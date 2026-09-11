@@ -26,7 +26,7 @@ export function Chip({
 
 export function ChipScroller({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cn('flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1', className)}>
+    <div className={cn('flex flex-wrap gap-2', className)}>
       {children}
     </div>
   )

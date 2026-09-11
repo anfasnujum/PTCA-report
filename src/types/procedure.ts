@@ -3,11 +3,16 @@ export type Vessel =
   | 'LAD'
   | 'D1'
   | 'D2'
+  | 'D3'
+  | 'S1'
   | 'LCX'
   | 'OM1'
   | 'OM2'
+  | 'OM3'
   | 'Ramus'
   | 'RCA'
+  | 'Conus'
+  | 'AM'
   | 'PDA'
   | 'PLV'
 
@@ -29,7 +34,12 @@ export type Patient = {
 
 export type Indication = {
   chips: string[]
-  stemiTerritory?: 'anterior' | 'inferior' | 'lateral' | 'posterior'
+  stemiTerritory?: string
+  symptoms: string[]
+  grafts: string[]
+  valveSurgeries: string[]
+  stentTerritories: string[]
+  pciType?: string
 }
 
 export type AccessSite = 'radial' | 'femoral' | 'brachial' | 'distal radial' | ''
@@ -185,17 +195,20 @@ export type Procedure = {
   patient: Patient
   indication: Indication
   access: Access
+  dominance?: string
   baselineAngio: AngioFinding[]
   events: ProcedureEvent[]
   outcome: Outcome
   periprocedural: Periprocedural
   closure: Closure
   operators: string[]
+  mainOperator: string
+  assistantOperator: string
   notes: string
   noteOverride?: string
 }
 
-export type CatalogueCategory = 'balloon' | 'stent' | 'wire' | 'guide'
+export type CatalogueCategory = 'balloon' | 'stent' | 'wire' | 'guide' | 'operator'
 
 export type CatalogueItem = {
   id: string

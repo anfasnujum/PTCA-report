@@ -18,7 +18,7 @@ export function emptyProcedure(id = nid()): Procedure {
       date: todayIso(),
       startTime: nowHm(),
     },
-    indication: { chips: [] },
+    indication: { chips: [], symptoms: [], grafts: [], valveSurgeries: [], stentTerritories: [] },
     access: {
       site: 'radial',
       side: 'right',
@@ -26,6 +26,7 @@ export function emptyProcedure(id = nid()): Procedure {
       punctures: 1,
       singleAttempt: true,
     },
+    dominance: '',
     baselineAngio: [],
     events: [],
     outcome: {
@@ -54,6 +55,8 @@ export function emptyProcedure(id = nid()): Procedure {
       endTime: '',
     },
     operators: [],
+    mainOperator: '',
+    assistantOperator: '',
     notes: '',
   }
 }
@@ -79,7 +82,15 @@ export function demoProcedure(): Procedure {
       date: '2026-09-11',
       startTime: '10:40',
     },
-    indication: { chips: ['STEMI', 'Primary PCI'], stemiTerritory: 'inferior' },
+    indication: {
+      chips: ['STEMI'],
+      stemiTerritory: 'inferior',
+      symptoms: ['Chest Pain', 'Dyspnea'],
+      grafts: [],
+      valveSurgeries: [],
+      stentTerritories: [],
+      pciType: 'Primary',
+    },
     access: {
       site: 'radial',
       side: 'right',
@@ -87,6 +98,7 @@ export function demoProcedure(): Procedure {
       punctures: 1,
       singleAttempt: true,
     },
+    dominance: 'Right',
     baselineAngio: [
       {
         id: 'ang-lmca',
@@ -210,6 +222,8 @@ export function demoProcedure(): Procedure {
       endTime: '11:25',
     },
     operators: ['Dr. A', 'Dr. B'],
+    mainOperator: 'Dr. A',
+    assistantOperator: 'Dr. B',
     notes: '',
   }
 }
@@ -281,5 +295,17 @@ export function seedCatalogue(now = Date.now()): CatalogueItem[] {
   stents.forEach(([name, type], i) => push('stent', name, { type }, i + 1))
   wires.forEach(([name, type], i) => push('wire', name, { type }, i + 1))
   guides.forEach(([name, coronary], i) => push('guide', name, { coronary }, i + 1))
+  ;['Dr. A', 'Dr. B'].forEach((name, i) => push('operator', name, {}, i + 1))
   return items
+}
+
+export function seedOperators(now = Date.now()): CatalogueItem[] {
+  return ['Dr. A', 'Dr. B'].map((name, i) => ({
+    id: `cat-operator-${name.replace(/\s+/g, '-').toLowerCase()}`,
+    category: 'operator' as const,
+    name,
+    meta: {},
+    lastUsedAt: now - (i + 1) * 1000,
+    useCount: Math.max(0, 12 - (i + 1)),
+  }))
 }

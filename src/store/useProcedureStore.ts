@@ -21,6 +21,20 @@ type ProcedureState = {
   setStatus: (status: Procedure['status']) => void
 }
 
+function withOperatorFields(p: Procedure): Procedure {
+  const main = p.mainOperator ?? ''
+  const assistant = p.assistantOperator ?? ''
+  if (main || assistant) {
+    return { ...p, mainOperator: main, assistantOperator: assistant }
+  }
+  const ops = p.operators ?? []
+  return {
+    ...p,
+    mainOperator: ops[0] ?? '',
+    assistantOperator: ops[1] ?? '',
+  }
+}
+
 let saveTimer: ReturnType<typeof setTimeout> | undefined
 
 function scheduleSave(procedure: Procedure) {
@@ -53,7 +67,7 @@ export const useProcedureStore = create<ProcedureState>((set, get) => ({
       set({ current: null, loadError: 'Procedure not found', saveState: 'idle' })
       return
     }
-    set({ current: row, loadError: null, saveState: 'saved' })
+    set({ current: withOperatorFields(row), loadError: null, saveState: 'saved' })
   },
 
   create: async () => {

@@ -1,5 +1,8 @@
 import { AngioBoard } from '@/components/angio/AngioBoard'
 import { Button } from '@/components/ui/button'
+import { Chip, ChipScroller } from '@/components/ui/chip'
+import { Section } from '@/components/ui/section'
+import { DOMINANCE_OPTIONS } from '@/lib/constants'
 import { useProcedureStore } from '@/store/useProcedureStore'
 import { useNavigate, useParams } from 'react-router-dom'
 
@@ -15,6 +18,24 @@ export function AngiogramPage() {
       <p className="text-sm text-muted">
         Tap a vessel to log stenosis, TIMI flow and features. Star at least one target.
       </p>
+      <Section title="Dominance">
+        <ChipScroller>
+          {DOMINANCE_OPTIONS.map((d) => (
+            <Chip
+              key={d}
+              selected={(current.dominance ?? '') === d}
+              onClick={() =>
+                mutate((p) => ({
+                  ...p,
+                  dominance: p.dominance === d ? '' : d,
+                }))
+              }
+            >
+              {d}
+            </Chip>
+          ))}
+        </ChipScroller>
+      </Section>
       <AngioBoard
         findings={current.baselineAngio}
         onChange={(baselineAngio) => mutate((p) => ({ ...p, baselineAngio }))}

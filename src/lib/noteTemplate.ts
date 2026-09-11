@@ -7,6 +7,7 @@ import {
   fmtSize,
   locationShort,
   MAIN_VESSELS,
+  VESSELS,
   timiRoman,
 } from '@/lib/format'
 import type {
@@ -33,35 +34,60 @@ function patientLine(p: Procedure): string {
   return `Patient: ${title}${name}, ${age}/${sex}`
 }
 
+function stemiPhrase(territory?: string): string {
+  if (!territory) return 'STEMI'
+  if (
+    territory === 'anterior' ||
+    territory === 'inferior' ||
+    territory === 'lateral' ||
+    territory === 'posterior' ||
+    territory === 'extensive anterior'
+  ) {
+    return `Acute ${territory} wall STEMI`
+  }
+  return `Acute ${territory} STEMI`
+}
+
 function indicationNarrative(ind: Indication): string {
   const chips = ind.chips
-  if (chips.length === 0) return '____'
-
   const bits: string[] = []
   if (chips.includes('STEMI')) {
-    const wall = ind.stemiTerritory
-      ? `Acute ${ind.stemiTerritory} wall STEMI`
-      : 'STEMI'
-    bits.push(wall)
+    bits.push(stemiPhrase(ind.stemiTerritory))
   }
   if (chips.includes('NSTEMI')) bits.push('NSTEMI')
   if (chips.includes('UA')) bits.push('unstable angina')
   if (chips.includes('CSA')) bits.push('chronic stable angina')
-
-  const pci = [
-    chips.includes('Primary PCI') ? 'primary PCI' : '',
-    chips.includes('Rescue PCI') ? 'rescue PCI' : '',
-    chips.includes('Post-thrombolysis') ? 'post-thrombolysis PCI' : '',
-    chips.includes('Staged PCI') ? 'staged PCI' : '',
-    chips.includes('Ad-hoc PCI') ? 'ad-hoc PCI' : '',
-  ].filter(Boolean)
-
-  let text = bits.join('; ') || chips.filter((c) => !pci.includes(c.toLowerCase())).join(', ')
-  if (!text) text = chips.join(', ')
-  if (pci.length) {
-    text = text ? `${text} — ${pci.join(', ')}` : pci.join(', ')
+  if (chips.includes('Pre-op Evaluation')) {
+    const valves = ind.valveSurgeries ?? []
+    bits.push(
+      valves.length
+        ? `pre-operative evaluation (${valves.join(', ')})`
+        : 'pre-operative evaluation',
+    )
   }
-  return text
+  if (chips.includes('Post-CABG')) {
+    const grafts = ind.grafts ?? []
+    bits.push(
+      grafts.length ? `post-CABG (${grafts.join(', ')})` : 'post-CABG',
+    )
+  }
+  if (chips.includes('Post-PCI')) {
+    const territories = ind.stentTerritories ?? []
+    bits.push(
+      territories.length ? `post-PCI (${territories.join(', ')})` : 'post-PCI',
+    )
+  }
+  if (chips.includes('TMT+')) bits.push('positive TMT')
+  if (chips.includes('Stress Echo')) bits.push('stress echocardiography')
+  if (chips.includes('Arrhythmia')) bits.push('arrhythmia')
+
+  let text = bits.join('; ') || chips.join(', ')
+  if (ind.pciType) {
+    const pci =
+      ind.pciType === 'Adhoc' ? 'ad-hoc PCI' : `${ind.pciType.toLowerCase()} PCI`
+    text = text ? `${text} — ${pci}` : pci
+  }
+  return text || '____'
 }
 
 function accessNarrative(a: Access): string {
@@ -101,8 +127,22 @@ function findingSentence(f: AngioFinding): string {
   return s
 }
 
-function angioNarrative(findings: AngioFinding[]): string {
-  if (findings.length === 0) return 'Coronary angiogram findings not recorded.'
+function dominanceSentence(dominance?: string): string | null {
+  const d = dominance?.trim()
+  if (!d) return null
+  if (/^codominant$/i.test(d) || /^co-dominant$/i.test(d) || /^balanced$/i.test(d)) {
+    return 'Codominant coronary circulation.'
+  }
+  if (/^super-dominant right$/i.test(d)) return 'Super-dominant right coronary circulation.'
+  if (/^super-dominant left$/i.test(d)) return 'Super-dominant left coronary circulation.'
+  return `${d} dominant coronary circulation.`
+}
+
+function angioNarrative(findings: AngioFinding[], dominance?: string): string {
+  const lead = dominanceSentence(dominance)
+  if (findings.length === 0) {
+    return lead ? `${lead} Coronary angiogram findings not recorded.` : 'Coronary angiogram findings not recorded.'
+  }
   const byVessel = new Map<Vessel, AngioFinding>()
   for (const f of findings) byVessel.set(f.vessel, f)
 
@@ -119,8 +159,10 @@ function angioNarrative(findings: AngioFinding[]): string {
       isTarget: false,
     })
   }
-  for (const f of findings) {
-    if (!MAIN_VESSELS.includes(f.vessel)) ordered.push(f)
+  for (const v of VESSELS) {
+    if (MAIN_VESSELS.includes(v)) continue
+    const found = byVessel.get(v)
+    if (found) ordered.push(found)
   }
 
   const lines = ordered.map(findingSentence)
@@ -132,7 +174,8 @@ function angioNarrative(findings: AngioFinding[]): string {
     const last = list.pop()
     lines.push(`Target vessels: ${list.join(', ')} and ${last}.`)
   }
-  return lines.join(' ')
+  const body = lines.join(' ')
+  return lead ? `${lead} ${body}` : body
 }
 
 function balloonPhrase(b: BalloonUse): string {
@@ -317,6 +360,18 @@ function heading(p: Procedure): string {
   return hasStent ? 'PTCA & STENTING — PROCEDURE NOTE' : 'PTCA — PROCEDURE NOTE'
 }
 
+function operatorsLine(p: Procedure): string | null {
+  const main = p.mainOperator?.trim() ?? ''
+  const assistant = p.assistantOperator?.trim() ?? ''
+  const extras = (p.operators ?? []).filter((o) => o && o !== main && o !== assistant)
+  const parts: string[] = []
+  if (main) parts.push(`${main} (main)`)
+  if (assistant) parts.push(`${assistant} (assistant)`)
+  parts.push(...extras)
+  if (!parts.length) return null
+  return `Operators: ${parts.join(', ')}`
+}
+
 export function generateNote(procedure: Procedure): string {
   if (procedure.noteOverride?.trim()) {
     const body = procedure.noteOverride.trim()
@@ -338,9 +393,13 @@ export function generateNote(procedure: Procedure): string {
     `Indication: ${indicationNarrative(procedure.indication)}`,
   ]
 
-  if (procedure.operators.length) {
-    blocks.push(`Operators: ${procedure.operators.join(', ')}`)
+  const symptoms = procedure.indication.symptoms ?? []
+  if (symptoms.length) {
+    blocks.push(`Symptoms: ${symptoms.join(', ')}`)
   }
+
+  const opLine = operatorsLine(procedure)
+  if (opLine) blocks.push(opLine)
 
   blocks.push(
     '',
@@ -348,7 +407,7 @@ export function generateNote(procedure: Procedure): string {
     accessNarrative(procedure.access),
     '',
     'CORONARY ANGIOGRAM',
-    angioNarrative(procedure.baselineAngio),
+    angioNarrative(procedure.baselineAngio, procedure.dominance),
     '',
     'PROCEDURE',
     procedureSection(procedure.events),

@@ -75,11 +75,11 @@ export function PreviewPage() {
           onChange={(e) => mutate((p) => ({ ...p, noteOverride: e.target.value }))}
         />
       ) : (
-        <pre className="print-note overflow-x-auto whitespace-pre-wrap rounded-2xl border border-border bg-card p-4 font-mono text-[13px] leading-relaxed">
+        <pre className="print-note overflow-x-auto whitespace-pre-wrap rounded-2xl border border-border bg-card p-4 font-mono text-[13px] leading-relaxed lg:min-h-[28rem]">
           {note}
         </pre>
       )}
-      <div className="no-print grid grid-cols-2 gap-2">
+      <div className="no-print grid grid-cols-2 gap-2 lg:grid-cols-4">
         <Button variant="secondary" onClick={() => void copy()}>
           <Copy className="size-4" />
           {copied ? 'Copied' : 'Copy'}
@@ -100,7 +100,7 @@ export function PreviewPage() {
           .txt
         </Button>
         <Button
-          className="col-span-2"
+          className="col-span-2 lg:col-span-4"
           variant="outline"
           onClick={() =>
             downloadBlob(`${stem}.json`, JSON.stringify(current, null, 2), 'application/json')

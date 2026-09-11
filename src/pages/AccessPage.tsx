@@ -20,7 +20,7 @@ export function AccessPage() {
     mutate((p) => ({ ...p, access: { ...p.access, ...patch } }))
 
   return (
-    <div className="space-y-5">
+    <div className="grid gap-5 lg:grid-cols-2">
       <Section title="Site">
         <ChipScroller>
           {SITES.map((s) => (
@@ -68,7 +68,7 @@ export function AccessPage() {
           />
         </Section>
       ) : null}
-      <Button size="lg" className="w-full" onClick={() => navigate(`/procedure/${id}/angiogram`)}>
+      <Button size="lg" className="w-full lg:col-span-2" onClick={() => navigate(`/procedure/${id}/angiogram`)}>
         Next — Angiogram
       </Button>
     </div>

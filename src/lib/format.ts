@@ -51,33 +51,37 @@ export function capitalise(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
-export const VESSELS: Vessel[] = [
+export const LEFT_VESSELS: Vessel[] = [
   'LMCA',
   'LAD',
   'D1',
   'D2',
+  'D3',
+  'S1',
   'LCX',
   'OM1',
   'OM2',
+  'OM3',
   'Ramus',
-  'RCA',
-  'PDA',
-  'PLV',
 ]
-
-export const LEFT_VESSELS: Vessel[] = ['LMCA', 'LAD', 'D1', 'D2', 'LCX', 'OM1', 'OM2', 'Ramus']
-export const RIGHT_VESSELS: Vessel[] = ['RCA', 'PDA', 'PLV']
+export const RIGHT_VESSELS: Vessel[] = ['RCA', 'Conus', 'AM', 'PDA', 'PLV']
+export const VESSELS: Vessel[] = [...LEFT_VESSELS, ...RIGHT_VESSELS]
 
 export const VESSEL_LONG: Record<Vessel, string> = {
   LMCA: 'left main coronary artery',
   LAD: 'left anterior descending artery',
   D1: 'first diagonal',
   D2: 'second diagonal',
+  D3: 'third diagonal',
+  S1: 'first septal',
   LCX: 'left circumflex artery',
   OM1: 'first obtuse marginal',
   OM2: 'second obtuse marginal',
+  OM3: 'third obtuse marginal',
   Ramus: 'ramus intermedius',
   RCA: 'right coronary artery',
+  Conus: 'conus branch',
+  AM: 'acute marginal',
   PDA: 'posterior descending artery',
   PLV: 'posterior left ventricular branch',
 }
@@ -85,6 +89,10 @@ export const VESSEL_LONG: Record<Vessel, string> = {
 export const SEGMENTS: Segment[] = ['ostial', 'proximal', 'mid', 'distal']
 
 export const MAIN_VESSELS: Vessel[] = ['LMCA', 'LAD', 'LCX', 'RCA']
+
+export function isRightCoronary(vessel: Vessel): boolean {
+  return RIGHT_VESSELS.includes(vessel)
+}
 
 export function defaultDiameter(vessel: Vessel, segment?: Segment | string): number {
   if (vessel === 'LMCA') return 4.0
@@ -103,6 +111,8 @@ export function defaultDiameter(vessel: Vessel, segment?: Segment | string): num
     return 3.25
   }
   if (vessel === 'Ramus') return 2.75
+  if (vessel === 'D1' || vessel === 'OM1') return 2.5
+  if (vessel === 'Conus' || vessel === 'S1') return 2.25
   return 2.5
 }
 

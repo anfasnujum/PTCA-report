@@ -76,9 +76,13 @@ export function AngioBoard({
 
   return (
     <div className="space-y-5">
-      <CoronarySchematic onSelect={open} findings={findings} />
-      {renderGroup('Left system', LEFT_VESSELS)}
-      {renderGroup('Right system', RIGHT_VESSELS)}
+      <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
+        <CoronarySchematic onSelect={open} findings={findings} />
+        <div className="space-y-5">
+          {renderGroup('Left system', LEFT_VESSELS)}
+          {renderGroup('Right system', RIGHT_VESSELS)}
+        </div>
+      </div>
       {editing ? (
         <FindingSheet
           finding={editing}
@@ -109,11 +113,11 @@ function CoronarySchematic({
     return '#4b6082'
   }
   return (
-    <div className="rounded-2xl border border-border bg-card p-3">
+    <div className="h-full rounded-2xl border border-border bg-card p-3">
       <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted">
         Coronary tree — tap a vessel
       </p>
-      <svg viewBox="0 0 320 220" className="h-auto w-full">
+      <svg viewBox="0 0 320 236" className="h-auto w-full">
         <text x="16" y="22" fill="#8b9bb4" fontSize="11">
           Left
         </text>
@@ -121,16 +125,21 @@ function CoronarySchematic({
           Right
         </text>
         <VesselPath d="M90 40 C70 55 58 70 52 95" label="LMCA" lx={18} ly={70} color={fill('LMCA')} onClick={() => onSelect('LMCA')} />
-        <VesselPath d="M52 95 C48 130 55 165 70 200" label="LAD" lx={18} ly={160} color={fill('LAD')} onClick={() => onSelect('LAD')} />
-        <VesselPath d="M55 120 L95 145" label="D1" lx={98} ly={140} color={fill('D1')} onClick={() => onSelect('D1')} />
-        <VesselPath d="M60 155 L100 175" label="D2" lx={104} ly={180} color={fill('D2')} onClick={() => onSelect('D2')} />
-        <VesselPath d="M52 95 C90 110 120 130 145 165" label="LCX" lx={148} ly={150} color={fill('LCX')} onClick={() => onSelect('LCX')} />
+        <VesselPath d="M52 95 C48 130 55 165 70 210" label="LAD" lx={18} ly={168} color={fill('LAD')} onClick={() => onSelect('LAD')} />
+        <VesselPath d="M55 118 L95 140" label="D1" lx={98} ly={136} color={fill('D1')} onClick={() => onSelect('D1')} />
+        <VesselPath d="M58 150 L100 170" label="D2" lx={104} ly={174} color={fill('D2')} onClick={() => onSelect('D2')} />
+        <VesselPath d="M64 182 L108 198" label="D3" lx={112} ly={204} color={fill('D3')} onClick={() => onSelect('D3')} />
+        <VesselPath d="M48 122 L18 138" label="S1" lx={4} ly={152} color={fill('S1')} onClick={() => onSelect('S1')} />
+        <VesselPath d="M52 95 C90 110 120 130 150 175" label="LCX" lx={152} ly={162} color={fill('LCX')} onClick={() => onSelect('LCX')} />
         <VesselPath d="M100 125 L130 115" label="OM1" lx={132} ly={108} color={fill('OM1')} onClick={() => onSelect('OM1')} />
-        <VesselPath d="M125 150 L155 140" label="OM2" lx={158} ly={136} color={fill('OM2')} onClick={() => onSelect('OM2')} />
+        <VesselPath d="M125 148 L158 138" label="OM2" lx={160} ly={134} color={fill('OM2')} onClick={() => onSelect('OM2')} />
+        <VesselPath d="M142 168 L178 160" label="OM3" lx={180} ly={158} color={fill('OM3')} onClick={() => onSelect('OM3')} />
         <VesselPath d="M70 100 L110 90" label="RI" lx={112} ly={86} color={fill('Ramus')} onClick={() => onSelect('Ramus')} />
-        <VesselPath d="M250 40 C260 80 255 130 230 200" label="RCA" lx={268} ly={120} color={fill('RCA')} onClick={() => onSelect('RCA')} />
-        <VesselPath d="M240 175 L200 200" label="PDA" lx={168} ly={208} color={fill('PDA')} onClick={() => onSelect('PDA')} />
-        <VesselPath d="M245 160 L275 190" label="PLV" lx={278} ly={200} color={fill('PLV')} onClick={() => onSelect('PLV')} />
+        <VesselPath d="M250 40 C260 80 255 130 230 210" label="RCA" lx={268} ly={120} color={fill('RCA')} onClick={() => onSelect('RCA')} />
+        <VesselPath d="M256 58 L292 48" label="Conus" lx={270} ly={42} color={fill('Conus')} onClick={() => onSelect('Conus')} />
+        <VesselPath d="M254 108 L218 96" label="AM" lx={196} ly={92} color={fill('AM')} onClick={() => onSelect('AM')} />
+        <VesselPath d="M240 182 L198 210" label="PDA" lx={168} ly={216} color={fill('PDA')} onClick={() => onSelect('PDA')} />
+        <VesselPath d="M245 168 L278 200" label="PLV" lx={280} ly={210} color={fill('PLV')} onClick={() => onSelect('PLV')} />
       </svg>
     </div>
   )

@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie'
-import { demoProcedure, seedCatalogue } from '@/lib/seed'
+import { demoProcedure, seedCatalogue, seedOperators } from '@/lib/seed'
 import type { CatalogueItem, Procedure } from '@/types/procedure'
 
 class CathNoteDB extends Dexie {
@@ -26,5 +26,9 @@ export async function ensureSeed(): Promise<void> {
   const c = await db.catalogue.count()
   if (c === 0) {
     await db.catalogue.bulkAdd(seedCatalogue())
+  }
+  const ops = await db.catalogue.where('category').equals('operator').count()
+  if (ops === 0) {
+    await db.catalogue.bulkAdd(seedOperators())
   }
 }

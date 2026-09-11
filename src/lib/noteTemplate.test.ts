@@ -31,7 +31,7 @@ function base(over: Partial<Procedure> = {}): Procedure {
 }
 
 describe('generateNote', () => {
-  it('renders the demo STEMI primary PCI note as a sequential narrative', () => {
+  it('renders the demo STEMI note as a sequential narrative', () => {
     const note = generateNote(demoProcedure())
     expect(note).toContain('PTCA & STENTING — PROCEDURE NOTE')
     expect(note).toContain('Patient: Mr. XXXX, 58/M')
@@ -39,8 +39,10 @@ describe('generateNote', () => {
     expect(note).toContain('Date: 11/09/2026')
     expect(note).toContain('Time: 10:40 – 11:25')
     expect(note).toContain('Indication: Acute inferior wall STEMI — primary PCI')
-    expect(note).toContain('Operators: Dr. A, Dr. B')
+    expect(note).toContain('Symptoms: Chest Pain, Dyspnea')
+    expect(note).toContain('Operators: Dr. A (main), Dr. B (assistant)')
     expect(note).toContain('Right radial artery accessed in a single attempt; 6F sheath inserted.')
+    expect(note).toContain('Right dominant coronary circulation.')
     expect(note).toContain('LMCA: normal.')
     expect(note).toContain('LAD: 40% stenosis in the mid segment, TIMI III flow.')
     expect(note).toContain('LCX: normal.')
@@ -309,5 +311,17 @@ describe('generateNote', () => {
     expect(note).toContain('Full expansion.')
     expect(note).toContain('Stenting deferred.')
     expect(note).toContain('20% residual stenosis')
+  })
+
+  it('names coronary dominance in the angiogram section', () => {
+    expect(generateNote(base({ dominance: 'Left' }))).toContain(
+      'Left dominant coronary circulation.',
+    )
+    expect(generateNote(base({ dominance: 'Codominant' }))).toContain(
+      'Codominant coronary circulation.',
+    )
+    expect(generateNote(base({ dominance: 'Super-dominant right' }))).toContain(
+      'Super-dominant right coronary circulation.',
+    )
   })
 })

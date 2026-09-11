@@ -3,14 +3,80 @@ export const INDICATION_CHIPS = [
   'UA',
   'NSTEMI',
   'STEMI',
-  'Primary PCI',
-  'Rescue PCI',
-  'Post-thrombolysis',
-  'Staged PCI',
-  'Ad-hoc PCI',
+  'Pre-op Evaluation',
+  'Post-CABG',
+  'Post-PCI',
+  'TMT+',
+  'Stress Echo',
+  'Arrhythmia',
 ] as const
 
-export const STEMI_TERRITORIES = ['anterior', 'inferior', 'lateral', 'posterior'] as const
+export const STEMI_TERRITORIES = [
+  'anterior',
+  'anteroseptal',
+  'anterolateral',
+  'extensive anterior',
+  'inferior',
+  'inferolateral',
+  'inferoposterior',
+  'posterior',
+  'posterolateral',
+  'lateral',
+  'high lateral',
+  'RV',
+] as const
+
+export const PCI_TYPES = [
+  'Primary',
+  'Planned',
+  'Rescue',
+  'Elective',
+  'Urgent',
+  'Adhoc',
+  'Staged',
+  'Facilitated',
+] as const
+
+export const CABG_GRAFTS = ['LIMA', 'RIMA', 'SVG', 'LRA', 'RRA', 'GEA'] as const
+
+export const PRIOR_PCI_TERRITORIES = [
+  'LMCA',
+  'LAD',
+  'Diagonal',
+  'LCX',
+  'OM',
+  'Ramus',
+  'RCA',
+  'PDA',
+  'PLV',
+] as const
+
+export const VALVE_SURGERIES = [
+  'MVR',
+  'AVR',
+  'TVR',
+  'PVR',
+  'DVR',
+  'MV repair',
+  'AV repair',
+  'TV repair',
+] as const
+
+export const SYMPTOM_CHIPS = [
+  'Chest Pain',
+  'Dyspnea',
+  'Palpitation',
+  'Fatigue',
+  'Syncope',
+] as const
+
+export const DOMINANCE_OPTIONS = [
+  'Right',
+  'Left',
+  'Codominant',
+  'Super-dominant right',
+  'Super-dominant left',
+] as const
 
 export const ANGIO_FEATURES = [
   'calcified',

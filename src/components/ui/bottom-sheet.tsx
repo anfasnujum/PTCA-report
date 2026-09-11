@@ -36,8 +36,8 @@ export function BottomSheet({
         className="absolute inset-0 bg-black/65"
         onClick={onClose}
       />
-      <div className="absolute inset-x-0 bottom-0 flex max-h-[92dvh] flex-col rounded-t-3xl border border-border bg-surface shadow-2xl">
-        <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-border" />
+      <div className="absolute inset-x-0 bottom-0 flex max-h-[92dvh] flex-col rounded-t-3xl border border-border bg-surface shadow-2xl lg:inset-auto lg:left-1/2 lg:top-[7%] lg:w-[min(640px,calc(100vw-4rem))] lg:max-h-[86dvh] lg:-translate-x-1/2 lg:rounded-3xl">
+        <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-border lg:hidden" />
         <header className="flex items-center justify-between gap-3 px-4 pb-2 pt-3">
           <h2 className="text-lg font-semibold">{title}</h2>
           <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close sheet">

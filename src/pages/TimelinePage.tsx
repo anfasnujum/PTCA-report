@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button'
 import { useProcedureStore } from '@/store/useProcedureStore'
 import { nid } from '@/lib/ids'
 import { defaultBalloon, lastLocation, targetVessels } from '@/lib/location'
-import { defaultDiameter } from '@/lib/format'
+import { defaultDiameter, isRightCoronary } from '@/lib/format'
 import { suggestedPostDil } from '@/lib/noteTemplate'
 import type {
   AdjunctUse,
@@ -61,9 +61,9 @@ export function TimelinePage() {
       setSheet({
         kind,
         initial: {
-          curve: loc.vessel === 'RCA' || loc.vessel === 'PDA' || loc.vessel === 'PLV' ? 'JR4' : 'EBU 3.5',
+          curve: isRightCoronary(loc.vessel) ? 'JR4' : 'EBU 3.5',
           size: current.access.sheathSize || '6F',
-          coronary: loc.vessel === 'RCA' || loc.vessel === 'PDA' || loc.vessel === 'PLV' ? 'right' : 'left',
+          coronary: isRightCoronary(loc.vessel) ? 'right' : 'left',
         },
       })
       return
@@ -163,7 +163,7 @@ export function TimelinePage() {
   }
 
   return (
-    <div className="pb-28">
+    <div className="pb-28 lg:pb-4">
       <p className="mb-3 text-sm text-muted">
         Log hardware in the order it happens. Drag to reorder. Repeat on a balloon adds another inflation.
       </p>

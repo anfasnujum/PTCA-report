@@ -76,7 +76,7 @@ export function EventCard({
           </p>
           <p className="text-[15px] font-medium leading-snug">{summarizeEvent(event)}</p>
         </button>
-        <div className="flex flex-col">
+        <div className="flex flex-col lg:flex-row">
           {balloon ? (
             <button
               type="button"

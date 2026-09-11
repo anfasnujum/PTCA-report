@@ -48,7 +48,7 @@ export function ResultPage() {
   }
 
   return (
-    <div className="space-y-5 pb-6">
+    <div className="grid gap-5 pb-6 lg:grid-cols-2">
       <Section title={`Residual stenosis  ${current.outcome.residualStenosis}%`}>
         <input
           type="range"
@@ -248,7 +248,7 @@ export function ResultPage() {
           </Button>
         </div>
       </Section>
-      <Button size="lg" className="w-full" onClick={() => navigate(`/procedure/${id}/preview`)}>
+      <Button size="lg" className="w-full lg:col-span-2" onClick={() => navigate(`/procedure/${id}/preview`)}>
         Preview note
       </Button>
     </div>
