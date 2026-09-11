@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --color-background: #0b1220;
+  --color-foreground: #e8eef7;
+  --color-surface: #121a2b;
+  --color-card: #182234;
+  --color-muted: #8b9bb4;
+  --color-accent: #22d3ee;
+  --color-accent-fg: #042f2e;
+  --color-border: #243049;
+  --color-danger: #fb7185;
+  --color-ok: #34d399;
+  --color-warn: #fbbf24;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+}
+
+html {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  min-height: 100dvh;
+  background: var(--color-background);
+  color: var(--color-foreground);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.pt-safe {
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+}
+
+@media print {
+  html,
+  body,
+  #root {
+    background: #fff !important;
+    color: #111 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-note {
+    color: #111 !important;
+    white-space: pre-wrap;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+}
