@@ -1,13 +1,25 @@
 import { useState } from 'react'
-import type { AngioFinding, Segment, TimiFlow, Vessel } from '@/types/procedure'
+import { Download } from 'lucide-react'
+import type { AngioFinding, TimiFlow, Vessel } from '@/types/procedure'
 import { Chip, ChipScroller, NumberChips } from '@/components/ui/chip'
 import { Section } from '@/components/ui/section'
 import { Switch } from '@/components/ui/switch'
 import { BottomSheet } from '@/components/ui/bottom-sheet'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { ANGIO_FEATURES } from '@/lib/constants'
-import { LEFT_VESSELS, RIGHT_VESSELS, SEGMENTS, STENOSIS_PRESETS } from '@/lib/format'
+import { downloadAngioPdf } from '@/lib/angioPdf'
+import { CORONARY_TREE, TREE_VIEWBOX, interactiveStroke } from '@/lib/coronaryTree'
+import {
+  asSegments,
+  LEFT_VESSELS,
+  RIGHT_VESSELS,
+  SEGMENTS,
+  STENOSIS_PRESETS,
+  toggleSegment,
+} from '@/lib/format'
 import { nid } from '@/lib/ids'
+import { useProcedureStore } from '@/store/useProcedureStore'
 import { cn } from '@/lib/utils'
 
 function stenosisColor(n: number): string {
@@ -76,7 +88,7 @@ export function AngioBoard({
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.7fr)_minmax(240px,1fr)] lg:items-start">
         <CoronarySchematic onSelect={open} findings={findings} />
         <div className="space-y-5">
           {renderGroup('Left system', LEFT_VESSELS)}
@@ -105,41 +117,55 @@ function CoronarySchematic({
   onSelect: (v: Vessel) => void
   findings: AngioFinding[]
 }) {
-  const fill = (v: Vessel) => {
-    const n = findings.find((f) => f.vessel === v)?.stenosis ?? 0
-    if (n >= 90) return '#fb7185'
-    if (n >= 50) return '#fbbf24'
-    if (n > 0) return '#34d399'
-    return '#4b6082'
+  const current = useProcedureStore((s) => s.current)
+  const [exporting, setExporting] = useState(false)
+
+  const exportPdf = async () => {
+    if (!current) return
+    setExporting(true)
+    try {
+      await downloadAngioPdf({ ...current, baselineAngio: findings })
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'Could not create the angiogram PDF.')
+    } finally {
+      setExporting(false)
+    }
   }
+
   return (
-    <div className="h-full rounded-2xl border border-border bg-card p-3">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-        Coronary tree — tap a vessel
-      </p>
-      <svg viewBox="0 0 320 236" className="h-auto w-full">
-        <text x="16" y="22" fill="#8b9bb4" fontSize="11">
+    <div className="h-full rounded-2xl bg-card p-5 shadow-card">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+          Coronary tree — tap a vessel
+        </p>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => void exportPdf()}
+          disabled={!current || exporting}
+        >
+          <Download className="size-4" />
+          {exporting ? 'Preparing…' : 'Download PDF'}
+        </Button>
+      </div>
+      <svg viewBox={`0 0 ${TREE_VIEWBOX.w} ${TREE_VIEWBOX.h}`} className="h-auto w-full">
+        <text x="20" y="26" fill="#10172a" fontSize="12">
           Left
         </text>
-        <text x="250" y="22" fill="#8b9bb4" fontSize="11">
+        <text x="348" y="26" fill="#10172a" fontSize="12">
           Right
         </text>
-        <VesselPath d="M90 40 C70 55 58 70 52 95" label="LMCA" lx={18} ly={70} color={fill('LMCA')} onClick={() => onSelect('LMCA')} />
-        <VesselPath d="M52 95 C48 130 55 165 70 210" label="LAD" lx={18} ly={168} color={fill('LAD')} onClick={() => onSelect('LAD')} />
-        <VesselPath d="M55 118 L95 140" label="D1" lx={98} ly={136} color={fill('D1')} onClick={() => onSelect('D1')} />
-        <VesselPath d="M58 150 L100 170" label="D2" lx={104} ly={174} color={fill('D2')} onClick={() => onSelect('D2')} />
-        <VesselPath d="M64 182 L108 198" label="D3" lx={112} ly={204} color={fill('D3')} onClick={() => onSelect('D3')} />
-        <VesselPath d="M48 122 L18 138" label="S1" lx={4} ly={152} color={fill('S1')} onClick={() => onSelect('S1')} />
-        <VesselPath d="M52 95 C90 110 120 130 150 175" label="LCX" lx={152} ly={162} color={fill('LCX')} onClick={() => onSelect('LCX')} />
-        <VesselPath d="M100 125 L130 115" label="OM1" lx={132} ly={108} color={fill('OM1')} onClick={() => onSelect('OM1')} />
-        <VesselPath d="M125 148 L158 138" label="OM2" lx={160} ly={134} color={fill('OM2')} onClick={() => onSelect('OM2')} />
-        <VesselPath d="M142 168 L178 160" label="OM3" lx={180} ly={158} color={fill('OM3')} onClick={() => onSelect('OM3')} />
-        <VesselPath d="M70 100 L110 90" label="RI" lx={112} ly={86} color={fill('Ramus')} onClick={() => onSelect('Ramus')} />
-        <VesselPath d="M250 40 C260 80 255 130 230 210" label="RCA" lx={268} ly={120} color={fill('RCA')} onClick={() => onSelect('RCA')} />
-        <VesselPath d="M256 58 L292 48" label="Conus" lx={270} ly={42} color={fill('Conus')} onClick={() => onSelect('Conus')} />
-        <VesselPath d="M254 108 L218 96" label="AM" lx={196} ly={92} color={fill('AM')} onClick={() => onSelect('AM')} />
-        <VesselPath d="M240 182 L198 210" label="PDA" lx={168} ly={216} color={fill('PDA')} onClick={() => onSelect('PDA')} />
-        <VesselPath d="M245 168 L278 200" label="PLV" lx={280} ly={210} color={fill('PLV')} onClick={() => onSelect('PLV')} />
+        {CORONARY_TREE.map((b) => (
+          <VesselPath
+            key={b.vessel}
+            d={b.d}
+            label={b.label}
+            lx={b.lx}
+            ly={b.ly}
+            color={interactiveStroke(findings.find((f) => f.vessel === b.vessel))}
+            onClick={() => onSelect(b.vessel)}
+          />
+        ))}
       </svg>
     </div>
   )
@@ -162,8 +188,8 @@ function VesselPath({
 }) {
   return (
     <g onClick={onClick} className="cursor-pointer">
-      <path d={d} fill="none" stroke={color} strokeWidth={10} strokeLinecap="round" />
-      <text x={lx} y={ly} fill="#e8eef7" fontSize="11" fontWeight="600">
+      <path d={d} fill="none" stroke={color} strokeWidth={8} strokeLinecap="round" />
+      <text x={lx} y={ly} fill="#10172a" fontSize="12" fontWeight="600">
         {label}
       </text>
     </g>
@@ -208,13 +234,42 @@ function FindingSheet({
       }
     >
       <div className="space-y-5">
+        {f.vessel === 'LMCA' ? (
+          <>
+            <Switch
+              label="Early bifurcation"
+              yesNo
+              checked={!!f.earlyBifurcation}
+              onChange={(earlyBifurcation) => setF({ ...f, earlyBifurcation })}
+            />
+            <Section title="Length">
+              <div className="relative">
+                <Input
+                  inputMode="decimal"
+                  placeholder="Length"
+                  value={f.lengthMm ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value
+                    if (v === '' || /^\d*\.?\d*$/.test(v)) {
+                      setF({ ...f, lengthMm: v })
+                    }
+                  }}
+                  className="pr-14"
+                />
+                <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-muted">
+                  mm
+                </span>
+              </div>
+            </Section>
+          </>
+        ) : null}
         <Section title="Segment">
           <ChipScroller>
             {SEGMENTS.map((s) => (
               <Chip
                 key={s}
-                selected={f.segment === s}
-                onClick={() => setF({ ...f, segment: s as Segment })}
+                selected={asSegments(f.segment).includes(s)}
+                onClick={() => setF({ ...f, segment: toggleSegment(f.segment, s) })}
               >
                 {s}
               </Chip>
@@ -229,7 +284,7 @@ function FindingSheet({
             step={5}
             value={f.stenosis}
             onChange={(e) => setF({ ...f, stenosis: Number(e.target.value) })}
-            className="w-full accent-cyan-400"
+            className="w-full accent-accent"
           />
           <NumberChips
             values={STENOSIS_PRESETS}

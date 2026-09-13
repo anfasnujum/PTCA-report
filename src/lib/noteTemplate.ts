@@ -7,6 +7,8 @@ import {
   fmtSize,
   locationShort,
   MAIN_VESSELS,
+  formatSegments,
+  segmentClause,
   VESSELS,
   timiRoman,
 } from '@/lib/format'
@@ -114,16 +116,35 @@ function featureAdjectives(features: string[]): { adj: string; rest: string[] } 
   return { adj: adj.length ? `${adj.join(', ')} ` : '', rest }
 }
 
+function lmcaQualifiers(f: AngioFinding): string[] {
+  if (f.vessel !== 'LMCA') return []
+  const bits: string[] = []
+  if (f.earlyBifurcation) bits.push('early bifurcation')
+  const n = Number.parseFloat(String(f.lengthMm ?? ''))
+  if (Number.isFinite(n) && n > 0) {
+    bits.push(`length ${String(n)} mm`)
+  }
+  return bits
+}
+
 function findingSentence(f: AngioFinding): string {
-  if (f.stenosis === 0 && f.features.length === 0) return `${f.vessel}: normal.`
+  const extras = lmcaQualifiers(f)
+  const extraClause = extras.length ? extras.join(', ') : ''
+  if (f.stenosis === 0 && f.features.length === 0) {
+    if (extraClause) return `${f.vessel}: ${extraClause}.`
+    return `${f.vessel}: normal.`
+  }
   if (f.features.includes('CTO') || f.stenosis === 100) {
-    const loc = f.segment ? ` in the ${f.segment} segment` : ''
-    return `${f.vessel}: chronic total occlusion${loc}, TIMI ${timiRoman(f.timiFlow)} flow.`
+    const loc = segmentClause(f.segment)
+    let s = `${f.vessel}: chronic total occlusion${loc}, TIMI ${timiRoman(f.timiFlow)} flow.`
+    if (extraClause) s = s.replace(/\.$/, `; ${extraClause}.`)
+    return s
   }
   const { adj, rest } = featureAdjectives(f.features)
-  const loc = f.segment ? ` in the ${f.segment} segment` : ''
+  const loc = segmentClause(f.segment)
   let s = `${f.vessel}: ${f.stenosis}% ${adj}stenosis${loc}, TIMI ${timiRoman(f.timiFlow)} flow.`
   if (rest.length) s = s.replace(/\.$/, `; ${rest.join(', ')}.`)
+  if (extraClause) s = s.replace(/\.$/, `; ${extraClause}.`)
   return s
 }
 
@@ -261,7 +282,7 @@ function eventSentence(e: ProcedureEvent, all: ProcedureEvent[]): string {
     }
     case 'guidewire': {
       const w = e.data
-      const parked = w.parkedSegment ?? 'distal'
+      const parked = formatSegments(w.parkedSegment) || 'distal'
       return `The lesion was crossed with a 0.014" ${w.name} ${w.type} guidewire and parked in the ${parked} ${w.vessel}.`
     }
     case 'predilatation':

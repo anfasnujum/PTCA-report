@@ -75,7 +75,7 @@ export function PreviewPage() {
           onChange={(e) => mutate((p) => ({ ...p, noteOverride: e.target.value }))}
         />
       ) : (
-        <pre className="print-note overflow-x-auto whitespace-pre-wrap rounded-2xl border border-border bg-card p-4 font-mono text-[13px] leading-relaxed lg:min-h-[28rem]">
+        <pre className="print-note overflow-x-auto whitespace-pre-wrap rounded-2xl bg-card p-4 font-mono text-[13px] leading-relaxed shadow-card lg:min-h-[28rem]">
           {note}
         </pre>
       )}

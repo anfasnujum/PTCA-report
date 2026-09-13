@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { Guidewire, Segment, Vessel } from '@/types/procedure'
+import type { Guidewire, Vessel } from '@/types/procedure'
 import { BottomSheet } from '@/components/ui/bottom-sheet'
 import { Button } from '@/components/ui/button'
 import { Chip, ChipScroller } from '@/components/ui/chip'
@@ -73,7 +73,7 @@ export function WireSheet({
           segment={data.parkedSegment}
           targets={targets}
           onVessel={(vessel) => setData({ ...data, vessel })}
-          onSegment={(segment: Segment) => setData({ ...data, parkedSegment: segment })}
+          onSegment={(segment) => setData({ ...data, parkedSegment: segment })}
         />
       </div>
     </BottomSheet>

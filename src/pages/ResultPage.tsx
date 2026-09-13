@@ -57,7 +57,7 @@ export function ResultPage() {
           step={5}
           value={current.outcome.residualStenosis}
           onChange={(e) => setOutcome({ residualStenosis: Number(e.target.value) })}
-          className="w-full accent-cyan-400"
+          className="w-full accent-accent"
         />
         <NumberChips
           values={STENOSIS_PRESETS}

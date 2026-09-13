@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
-import { Plus, Search, Stethoscope } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import { db } from '@/db'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { BrandMark } from '@/components/layout/BrandMark'
 import { useProcedureStore } from '@/store/useProcedureStore'
 import { fmtDisplayDate } from '@/lib/format'
 import type { Procedure } from '@/types/procedure'
@@ -45,17 +46,13 @@ export function HomePage() {
 
   return (
     <div className="min-h-dvh">
-      <header className="border-b border-border bg-surface/80 pt-safe">
-        <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-4 lg:px-8">
-          <div className="flex min-w-0 flex-1 items-center gap-2 text-accent">
-            <Stethoscope className="size-6 shrink-0" />
-            <div>
-              <p className="text-sm font-semibold tracking-widest uppercase">CathNote</p>
-              <p className="hidden text-xs text-muted sm:block">PTCA procedure notes — desktop workspace</p>
-            </div>
+      <header className="border-b border-border bg-surface pt-safe">
+        <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3.5 lg:px-8">
+          <div className="min-w-0 flex-1">
+            <BrandMark subtitle="Procedure console" />
           </div>
           <Button onClick={openNew} className="hidden sm:inline-flex">
-            <Plus className="size-5" />
+            <Plus className="size-4" />
             New procedure
           </Button>
         </div>
@@ -63,9 +60,11 @@ export function HomePage() {
 
       <div className="mx-auto max-w-6xl px-4 py-6 lg:px-8">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight">Procedures</h1>
-            <p className="mt-1 text-sm text-muted">Timeline builder for PTCA notes. Fully offline.</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-[1.65rem] font-semibold tracking-tight">Procedures</h1>
+            <span className="rounded-full bg-surface px-3 py-1 text-sm text-muted shadow-card">
+              {filtered.length} {filtered.length === 1 ? 'case' : 'cases'}
+            </span>
           </div>
           <div className="flex gap-2">
             <Stat label="Drafts" value={drafts} />
@@ -73,7 +72,7 @@ export function HomePage() {
           </div>
         </div>
 
-        <div className="relative mb-4 max-w-lg">
+        <div className="relative mb-5 max-w-lg">
           <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted" />
           <Input
             className="pl-11"
@@ -88,55 +87,49 @@ export function HomePage() {
           New procedure
         </Button>
 
-        <ul className="space-y-2 lg:hidden">
-          {filtered.map((p) => (
-            <li key={p.id}>
-              <button
-                type="button"
-                onClick={() => openRow(p)}
-                className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 text-left"
-              >
-                <RowBody p={p} />
-              </button>
-            </li>
-          ))}
-        </ul>
-
-        <div className="hidden overflow-x-auto rounded-2xl border border-border lg:block">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-card text-xs uppercase tracking-wider text-muted">
-              <tr>
-                <th className="px-4 py-3 font-semibold">Patient</th>
-                <th className="px-4 py-3 font-semibold">Hospital no.</th>
-                <th className="px-4 py-3 font-semibold">Date</th>
-                <th className="px-4 py-3 font-semibold">Indication</th>
-                <th className="px-4 py-3 font-semibold">Operators</th>
-                <th className="px-4 py-3 font-semibold">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((p) => (
-                <tr
-                  key={p.id}
-                  className="cursor-pointer border-t border-border bg-background hover:bg-card"
+        {filtered.length === 0 ? (
+          <div className="rounded-2xl bg-card px-6 py-16 text-center shadow-card">
+            <p className="text-muted">No procedures yet.</p>
+          </div>
+        ) : (
+          <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {filtered.map((p) => (
+              <li key={p.id}>
+                <button
+                  type="button"
                   onClick={() => openRow(p)}
+                  className="flex h-full w-full flex-col rounded-2xl bg-card p-5 text-left shadow-card transition hover:-translate-y-0.5"
                 >
-                  <td className="px-4 py-3 font-semibold">{p.patient.name || 'Unnamed patient'}</td>
-                  <td className="px-4 py-3 text-muted">{p.patient.hospitalId || '—'}</td>
-                  <td className="px-4 py-3 text-muted">{fmtDisplayDate(p.patient.date)}</td>
-                  <td className="px-4 py-3 text-muted">{p.indication.chips.join(', ') || '—'}</td>
-                  <td className="px-4 py-3 text-muted">{p.operators.join(', ') || '—'}</td>
-                  <td className="px-4 py-3">
+                  <div className="flex items-start gap-3">
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-semibold text-accent">
+                      {initials(p.patient.name)}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[15px] font-semibold">
+                        {p.patient.name || 'Unnamed patient'}
+                      </p>
+                      <p className="mt-0.5 text-sm text-muted">
+                        {p.patient.hospitalId || 'No hospital no.'}
+                      </p>
+                    </div>
                     <StatusBadge status={p.status} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {filtered.length === 0 ? (
-            <p className="px-4 py-10 text-center text-muted">No procedures yet.</p>
-          ) : null}
-        </div>
+                  </div>
+                  <div className="mt-5 flex gap-3">
+                    <MiniStat value={p.events.length} label="Events" />
+                    <MiniStat
+                      value={p.indication.chips[0] ? p.indication.chips[0].slice(0, 8) : '—'}
+                      label="Indication"
+                    />
+                    <MiniStat value={fmtDisplayDate(p.patient.date)} label="Date" />
+                  </div>
+                  <p className="mt-4 truncate text-sm text-muted">
+                    {p.operators.join(', ') || 'No operators listed'}
+                  </p>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
       <p className="px-4 py-6 text-center text-[11px] text-muted">
         Not a medical device — documentation aid only. Verify all entries before signing.
@@ -145,11 +138,33 @@ export function HomePage() {
   )
 }
 
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (!parts.length) return 'PT'
+  return parts
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? '')
+    .join('')
+}
+
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="min-w-24 rounded-2xl border border-border bg-card px-4 py-3">
+    <div className="min-w-24 rounded-2xl bg-card px-4 py-3 shadow-card">
       <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">{label}</p>
       <p className="text-2xl font-semibold">{value}</p>
+    </div>
+  )
+}
+
+function MiniStat({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="min-w-0 flex-1">
+      <div className="flex min-h-12 items-center justify-center rounded-full bg-background px-2">
+        <p className="truncate text-sm font-semibold">{value}</p>
+      </div>
+      <p className="mt-1.5 text-center text-[10px] font-medium uppercase tracking-wider text-muted">
+        {label}
+      </p>
     </div>
   )
 }
@@ -159,26 +174,10 @@ function StatusBadge({ status }: { status: Procedure['status'] }) {
     <span
       className={cn(
         'rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase',
-        status === 'finalised' ? 'bg-ok/20 text-ok' : 'bg-warn/20 text-warn',
+        status === 'finalised' ? 'bg-accent-soft text-accent' : 'bg-background text-warn',
       )}
     >
       {status}
     </span>
-  )
-}
-
-function RowBody({ p }: { p: Procedure }) {
-  return (
-    <>
-      <div className="min-w-0 flex-1">
-        <p className="truncate font-semibold">{p.patient.name || 'Unnamed patient'}</p>
-        <p className="text-sm text-muted">
-          {fmtDisplayDate(p.patient.date)}
-          {p.indication.chips[0] ? ` · ${p.indication.chips[0]}` : ''}
-          {p.patient.hospitalId ? ` · ${p.patient.hospitalId}` : ''}
-        </p>
-      </div>
-      <StatusBadge status={p.status} />
-    </>
   )
 }

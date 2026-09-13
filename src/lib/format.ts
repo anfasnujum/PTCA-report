@@ -36,8 +36,64 @@ export function nowHm(now = new Date()): string {
   return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
 }
 
-export function locationShort(vessel: Vessel, segment?: Segment | string): string {
-  return segment ? `${segment} ${vessel}` : vessel
+export const SEGMENTS: Segment[] = ['ostial', 'proximal', 'mid', 'distal', 'diffuse']
+const ANATOMIC_SEGMENTS: Segment[] = ['ostial', 'proximal', 'mid', 'distal']
+
+export function asSegments(segment?: Segment | Segment[] | string): Segment[] {
+  if (!segment) return []
+  const raw = Array.isArray(segment) ? segment : [segment]
+  const allowed = new Set<string>(SEGMENTS)
+  const picked = new Set<Segment>()
+  for (const s of raw) {
+    if (allowed.has(s)) picked.add(s as Segment)
+  }
+  return SEGMENTS.filter((s) => picked.has(s))
+}
+
+export function toggleSegment(current: Segment | Segment[] | string | undefined, s: Segment): Segment[] {
+  const list = asSegments(current)
+  return list.includes(s) ? list.filter((x) => x !== s) : asSegments([...list, s])
+}
+
+export function primarySegment(segment?: Segment | Segment[] | string): Segment | undefined {
+  return asSegments(segment)[0]
+}
+
+export function formatAnatomicSegments(segment?: Segment | Segment[] | string): string {
+  const list = asSegments(segment).filter((s) => s !== 'diffuse')
+  if (!list.length) return ''
+  if (list.length === 1) return list[0]
+  const idxs = list.map((s) => ANATOMIC_SEGMENTS.indexOf(s))
+  const contiguous = idxs.every((n, i) => i === 0 || n === idxs[i - 1] + 1)
+  if (contiguous) return `${list[0]} to ${list[list.length - 1]}`
+  if (list.length === 2) return `${list[0]} and ${list[1]}`
+  return `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`
+}
+
+export function formatSegments(segment?: Segment | Segment[] | string): string {
+  const list = asSegments(segment)
+  const anatomic = formatAnatomicSegments(list)
+  const diffuse = list.includes('diffuse')
+  if (diffuse && anatomic) return `diffuse ${anatomic}`
+  if (diffuse) return 'diffuse'
+  return anatomic
+}
+
+export function segmentClause(segment?: Segment | Segment[] | string): string {
+  const list = asSegments(segment)
+  if (!list.length) return ''
+  const anatomic = formatAnatomicSegments(list)
+  const diffuse = list.includes('diffuse')
+  if (!anatomic) return diffuse ? ' that is diffuse' : ''
+  const loc = list.filter((s) => s !== 'diffuse').length === 1
+    ? ` in the ${anatomic} segment`
+    : ` in the ${anatomic} segments`
+  return diffuse ? `${loc} (diffuse)` : loc
+}
+
+export function locationShort(vessel: Vessel, segment?: Segment | Segment[] | string): string {
+  const phrase = formatSegments(segment)
+  return phrase ? `${phrase} ${vessel}` : vessel
 }
 
 export function article(word: string): string {
@@ -86,28 +142,27 @@ export const VESSEL_LONG: Record<Vessel, string> = {
   PLV: 'posterior left ventricular branch',
 }
 
-export const SEGMENTS: Segment[] = ['ostial', 'proximal', 'mid', 'distal']
-
 export const MAIN_VESSELS: Vessel[] = ['LMCA', 'LAD', 'LCX', 'RCA']
 
 export function isRightCoronary(vessel: Vessel): boolean {
   return RIGHT_VESSELS.includes(vessel)
 }
 
-export function defaultDiameter(vessel: Vessel, segment?: Segment | string): number {
+export function defaultDiameter(vessel: Vessel, segment?: Segment | Segment[] | string): number {
+  const s = primarySegment(segment)
   if (vessel === 'LMCA') return 4.0
   if (vessel === 'LAD') {
-    if (segment === 'proximal' || segment === 'ostial') return 3.5
-    if (segment === 'distal') return 2.5
+    if (s === 'proximal' || s === 'ostial') return 3.5
+    if (s === 'distal') return 2.5
     return 3.0
   }
   if (vessel === 'LCX') {
-    if (segment === 'proximal' || segment === 'ostial') return 3.25
+    if (s === 'proximal' || s === 'ostial') return 3.25
     return 3.0
   }
   if (vessel === 'RCA') {
-    if (segment === 'proximal' || segment === 'ostial') return 3.5
-    if (segment === 'distal') return 3.0
+    if (s === 'proximal' || s === 'ostial') return 3.5
+    if (s === 'distal') return 3.0
     return 3.25
   }
   if (vessel === 'Ramus') return 2.75

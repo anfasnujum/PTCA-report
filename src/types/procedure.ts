@@ -16,7 +16,8 @@ export type Vessel =
   | 'PDA'
   | 'PLV'
 
-export type Segment = 'ostial' | 'proximal' | 'mid' | 'distal'
+export type Segment = 'ostial' | 'proximal' | 'mid' | 'distal' | 'diffuse' | 'diffuse'
+export type SegmentChoice = Segment | Segment[]
 
 export type TimiFlow = 0 | 1 | 2 | 3
 
@@ -55,7 +56,9 @@ export type Access = {
 export type AngioFinding = {
   id: string
   vessel: Vessel
-  segment?: Segment
+  segment?: SegmentChoice
+  earlyBifurcation?: boolean
+  lengthMm?: string
   stenosis: number
   timiFlow: TimiFlow
   features: string[]
@@ -72,7 +75,7 @@ export type Guidewire = {
   name: string
   type: 'workhorse' | 'hydrophilic' | 'CTO' | 'support'
   vessel: Vessel
-  parkedSegment?: Segment
+  parkedSegment?: SegmentChoice
 }
 
 export type BalloonType =
@@ -93,7 +96,7 @@ export type BalloonUse = {
   diameterMm: number
   lengthMm: number
   vessel: Vessel
-  segment?: Segment
+  segment?: SegmentChoice
   inflations: Inflation[]
   result?: string
 }
@@ -114,7 +117,7 @@ export type StentUse = {
   diameterMm: number
   lengthMm: number
   vessel: Vessel
-  segment?: Segment
+  segment?: SegmentChoice
   deployedAtAtm: number
   seconds: number
   overlapWithEventId?: string

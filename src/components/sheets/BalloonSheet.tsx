@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { BalloonType, BalloonUse, Segment, Vessel } from '@/types/procedure'
+import type { BalloonType, BalloonUse, Vessel } from '@/types/procedure'
 import { BottomSheet } from '@/components/ui/bottom-sheet'
 import { Button } from '@/components/ui/button'
 import { Chip, ChipScroller, NumberChips } from '@/components/ui/chip'
@@ -90,7 +90,7 @@ export function BalloonSheet({
               diameterMm: defaultDiameter(vessel, data.segment),
             })
           }
-          onSegment={(segment: Segment) =>
+          onSegment={(segment) =>
             setData({
               ...data,
               segment,
@@ -116,7 +116,7 @@ export function BalloonSheet({
           />
         </Section>
         {data.inflations.map((inf, i) => (
-          <div key={i} className="space-y-3 rounded-2xl border border-border p-3">
+          <div key={i} className="space-y-3 rounded-2xl bg-background p-3">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold text-muted">Inflation {i + 1}</p>
               {data.inflations.length > 1 ? (

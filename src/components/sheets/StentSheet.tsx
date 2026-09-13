@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { Procedure, Segment, StentType, StentUse, Vessel } from '@/types/procedure'
+import type { Procedure, StentType, StentUse, Vessel } from '@/types/procedure'
 import { BottomSheet } from '@/components/ui/bottom-sheet'
 import { Button } from '@/components/ui/button'
 import { Chip, ChipScroller, NumberChips } from '@/components/ui/chip'
@@ -69,7 +69,7 @@ export function StentSheet({
             setData({
               ...data,
               vessel: loc.vessel,
-              segment: loc.segment as Segment | undefined,
+              segment: loc.segment,
               diameterMm: defaultDiameter(loc.vessel, loc.segment),
             })
           }}

@@ -12,7 +12,7 @@ const ACTIONS = [
 
 export function ActionBar({ onAdd }: { onAdd: (kind: (typeof ACTIONS)[number]['kind'] | 'note') => void }) {
   return (
-    <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 backdrop-blur lg:static lg:z-auto lg:mt-4 lg:rounded-2xl lg:border lg:backdrop-blur-none">
+    <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 backdrop-blur lg:static lg:z-auto lg:mt-4 lg:rounded-2xl lg:border-0 lg:bg-card lg:shadow-card lg:backdrop-blur-none">
       <div className="mx-auto flex max-w-lg gap-2 overflow-x-auto px-3 pt-2 pb-safe scrollbar-none lg:max-w-none lg:flex-wrap lg:pb-3">
         {ACTIONS.map((a) => (
           <button

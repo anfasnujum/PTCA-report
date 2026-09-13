@@ -1,7 +1,7 @@
 import { defaultDiameter } from '@/lib/format'
-import type { BalloonUse, Procedure, Segment, Vessel } from '@/types/procedure'
+import type { BalloonUse, Procedure, SegmentChoice, Vessel } from '@/types/procedure'
 
-export function lastLocation(p: Procedure): { vessel: Vessel; segment?: Segment } {
+export function lastLocation(p: Procedure): { vessel: Vessel; segment?: SegmentChoice } {
   const target = p.baselineAngio.find((a) => a.isTarget) ?? p.baselineAngio[0]
   for (let i = p.events.length - 1; i >= 0; i--) {
     const e = p.events[i]

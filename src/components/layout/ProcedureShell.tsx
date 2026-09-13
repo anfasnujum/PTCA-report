@@ -1,8 +1,9 @@
 import { NavLink, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useEffect } from 'react'
-import { ArrowLeft, Stethoscope } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { useProcedureStore } from '@/store/useProcedureStore'
 import { SavedIndicator } from '@/components/ui/saved-indicator'
+import { BrandMark } from '@/components/layout/BrandMark'
 import { DISCLAIMER } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { STEPS } from '@/components/layout/steps'
@@ -43,10 +44,9 @@ export function ProcedureShell() {
         <button
           type="button"
           onClick={() => navigate('/')}
-          className="flex items-center gap-2 px-5 py-5 text-left"
+          className="px-5 py-5 text-left"
         >
-          <Stethoscope className="size-5 text-accent" />
-          <span className="text-sm font-semibold tracking-widest uppercase">CathNote</span>
+          <BrandMark subtitle="Procedure console" />
         </button>
         <nav className="flex flex-1 flex-col gap-1 px-3 pb-4">
           {STEPS.map((s, i) => (
@@ -56,7 +56,9 @@ export function ProcedureShell() {
               className={({ isActive }) =>
                 cn(
                   'rounded-2xl px-3 py-3',
-                  isActive ? 'bg-accent text-accent-fg' : 'text-muted hover:bg-card hover:text-foreground',
+                  isActive
+                    ? 'bg-accent-soft text-foreground'
+                    : 'text-muted hover:bg-background hover:text-foreground',
                 )
               }
             >
@@ -71,7 +73,7 @@ export function ProcedureShell() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="no-print sticky top-0 z-20 border-b border-border bg-background/95 pt-safe backdrop-blur">
+        <header className="no-print sticky top-0 z-20 border-b border-border bg-surface/95 pt-safe backdrop-blur">
           <div className="flex items-center gap-2 px-2 py-2 lg:px-6">
             <button
               type="button"
@@ -93,7 +95,7 @@ export function ProcedureShell() {
             <span
               className={cn(
                 'rounded-full px-3 py-1 text-xs font-semibold uppercase',
-                current.status === 'finalised' ? 'bg-ok/20 text-ok' : 'bg-warn/20 text-warn',
+                current.status === 'finalised' ? 'bg-accent-soft text-accent' : 'bg-background text-warn',
               )}
             >
               {current.status}
@@ -107,7 +109,7 @@ export function ProcedureShell() {
                 className={({ isActive }) =>
                   cn(
                     'min-h-11 shrink-0 rounded-full px-4 text-sm font-semibold leading-[44px]',
-                    isActive ? 'bg-accent text-accent-fg' : 'bg-card text-muted',
+                    isActive ? 'bg-accent text-accent-fg' : 'bg-card text-muted shadow-card',
                   )
                 }
               >
@@ -119,7 +121,12 @@ export function ProcedureShell() {
 
         <div className="flex min-h-0 flex-1">
           <main className="min-w-0 flex-1 overflow-y-auto px-4 py-4 lg:px-8 lg:py-6">
-            <div className="mx-auto w-full max-w-lg lg:max-w-3xl">
+            <div
+              className={cn(
+                'mx-auto w-full max-w-lg',
+                location.pathname.endsWith('/angiogram') ? 'lg:max-w-5xl' : 'lg:max-w-3xl',
+              )}
+            >
               <Outlet />
             </div>
             <footer className="no-print mx-auto max-w-lg px-1 pb-safe pt-8 text-center text-[11px] leading-snug text-muted xl:hidden">

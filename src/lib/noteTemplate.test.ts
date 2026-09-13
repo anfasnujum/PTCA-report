@@ -324,4 +324,64 @@ describe('generateNote', () => {
       'Super-dominant right coronary circulation.',
     )
   })
+
+  it('names multi-segment lesions as a span', () => {
+    const note = generateNote(
+      base({
+        baselineAngio: [
+          {
+            id: '1',
+            vessel: 'LAD',
+            segment: ['proximal', 'mid'],
+            stenosis: 80,
+            timiFlow: 3,
+            features: [],
+            isTarget: true,
+          },
+        ],
+      }),
+    )
+    expect(note).toContain('LAD: 80% stenosis in the proximal to mid segments, TIMI III flow.')
+    expect(note).toContain('Target vessel: proximal to mid LAD.')
+  })
+
+  it('names diffuse disease on a vessel', () => {
+    const note = generateNote(
+      base({
+        baselineAngio: [
+          {
+            id: '1',
+            vessel: 'LAD',
+            segment: 'diffuse',
+            stenosis: 60,
+            timiFlow: 3,
+            features: [],
+            isTarget: true,
+          },
+        ],
+      }),
+    )
+    expect(note).toContain('LAD: 60% stenosis that is diffuse, TIMI III flow.')
+    expect(note).toContain('Target vessel: diffuse LAD.')
+  })
+
+  it('notes early LMCA bifurcation', () => {
+    const note = generateNote(
+      base({
+        baselineAngio: [
+          {
+            id: 'lm',
+            vessel: 'LMCA',
+            stenosis: 0,
+            timiFlow: 3,
+            features: [],
+            isTarget: false,
+            earlyBifurcation: true,
+            lengthMm: '10',
+          },
+        ],
+      }),
+    )
+    expect(note).toContain('LMCA: early bifurcation, length 10 mm.')
+  })
 })

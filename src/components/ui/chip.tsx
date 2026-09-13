@@ -11,10 +11,10 @@ export function Chip({
     <button
       type="button"
       className={cn(
-        'min-h-12 shrink-0 rounded-full border px-4 text-base font-medium transition active:scale-[0.98]',
+        'min-h-10 shrink-0 rounded-full border px-4 text-sm font-medium transition active:scale-[0.98]',
         selected
           ? 'border-accent bg-accent text-accent-fg'
-          : 'border-border bg-card text-foreground',
+          : 'border-border bg-card text-foreground hover:border-accent/30',
         className,
       )}
       {...props}

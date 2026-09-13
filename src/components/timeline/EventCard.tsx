@@ -46,7 +46,7 @@ export function EventCard({
           transition,
         }}
         className={cn(
-          'relative flex items-stretch gap-1 rounded-2xl border border-border bg-card',
+          'relative flex items-stretch gap-1 rounded-2xl bg-card shadow-card',
           isDragging && 'z-10 opacity-90',
         )}
         onTouchStart={(e) => {
