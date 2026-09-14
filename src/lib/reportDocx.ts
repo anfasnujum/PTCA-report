@@ -114,6 +114,7 @@ export async function buildReportDocx(procedure: Procedure, noteText: string): P
 
 const ROW_BORDER = { style: BorderStyle.SINGLE, size: 4, color: 'AAAAAA' }
 const NO_BORDER = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }
+const CAG_FONT = 'Times New Roman'
 
 function cell(text: string, opts?: { width?: number; top?: boolean; bottom?: boolean }): TableCell {
   return new TableCell({
@@ -125,7 +126,12 @@ function cell(text: string, opts?: { width?: number; top?: boolean; bottom?: boo
       right: NO_BORDER,
     },
     margins: { top: 20, bottom: 20, left: 100, right: 100 },
-    children: [new Paragraph({ spacing: { line: 216 }, children: [new TextRun({ text, size: 18 })] })],
+    children: [
+      new Paragraph({
+        spacing: { line: 216 },
+        children: [new TextRun({ text, size: 18, font: CAG_FONT })],
+      }),
+    ],
   })
 }
 
@@ -150,7 +156,7 @@ function cagTitleParagraph(): Paragraph {
   return new Paragraph({
     alignment: AlignmentType.CENTER,
     spacing: { after: 40, line: 216 },
-    children: [new TextRun({ text: 'CORONARY ANGIOGRAPHY REPORT', bold: true, size: 32 })],
+    children: [new TextRun({ text: 'CORONARY ANGIOGRAPHY REPORT', bold: true, size: 32, font: CAG_FONT })],
   })
 }
 
@@ -160,8 +166,8 @@ function cagConsultantParagraph(doctorName: string): Paragraph {
     border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: '000000', space: 4 } },
     spacing: { after: 80, line: 216 },
     children: [
-      new TextRun({ text: 'Consultant: ', bold: true, size: 26 }),
-      new TextRun({ text: doctorName || '____', size: 26 }),
+      new TextRun({ text: 'Consultant: ', bold: true, size: 26, font: CAG_FONT }),
+      new TextRun({ text: doctorName || '____', size: 26, font: CAG_FONT }),
     ],
   })
 }
@@ -170,8 +176,8 @@ function cagFindingParagraph(label: string, value: string): Paragraph {
   return new Paragraph({
     spacing: { after: 20, line: 216 },
     children: [
-      new TextRun({ text: `${label} : `, bold: true, size: 24 }),
-      new TextRun({ text: value, size: 24 }),
+      new TextRun({ text: `${label} : `, bold: true, size: 24, font: CAG_FONT }),
+      new TextRun({ text: value, size: 24, font: CAG_FONT }),
     ],
   })
 }
@@ -179,7 +185,7 @@ function cagFindingParagraph(label: string, value: string): Paragraph {
 function cagPlainParagraph(text: string): Paragraph {
   return new Paragraph({
     spacing: { after: 20, line: 216 },
-    children: [new TextRun({ text, size: 24 })],
+    children: [new TextRun({ text, size: 24, font: CAG_FONT })],
   })
 }
 
@@ -276,12 +282,16 @@ export async function buildCagReportDocx(procedure: Procedure): Promise<Blob> {
     new Paragraph({
       alignment: AlignmentType.RIGHT,
       spacing: { before: 120 },
-      children: [new TextRun({ text: p.lab.doctorName || '____', bold: true, size: 24 })],
+      children: [new TextRun({ text: p.lab.doctorName || '____', bold: true, size: 24, font: CAG_FONT })],
     }),
     new Paragraph({
       alignment: AlignmentType.RIGHT,
       children: [
-        new TextRun({ text: 'Consultant Interventional Cardiologist & Asst. Professor', size: 20 }),
+        new TextRun({
+          text: 'Consultant Interventional Cardiologist & Asst. Professor',
+          size: 20,
+          font: CAG_FONT,
+        }),
       ],
     }),
   )
