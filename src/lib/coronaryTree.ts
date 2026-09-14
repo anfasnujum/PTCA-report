@@ -11,22 +11,22 @@ export type TreeBranch = {
 export const TREE_VIEWBOX = { w: 440, h: 280 }
 
 export const CORONARY_TREE: TreeBranch[] = [
-  { vessel: 'LMCA', d: 'M110 48 C86 66 72 84 66 112', label: 'LMCA', lx: 22, ly: 82 },
-  { vessel: 'LAD', d: 'M66 112 C60 152 70 192 88 248', label: 'LAD', lx: 22, ly: 198 },
-  { vessel: 'D1', d: 'M70 138 L122 166', label: 'D1', lx: 128, ly: 144 },
-  { vessel: 'D2', d: 'M74 176 L128 202', label: 'D2', lx: 132, ly: 206 },
-  { vessel: 'D3', d: 'M82 214 L138 236', label: 'D3', lx: 142, ly: 242 },
-  { vessel: 'S1', d: 'M60 142 L20 164', label: 'S1', lx: 6, ly: 180 },
-  { vessel: 'LCX', d: 'M66 112 C114 132 154 158 192 210', label: 'LCX', lx: 210, ly: 168 },
-  { vessel: 'OM1', d: 'M122 146 L164 130', label: 'OM1', lx: 168, ly: 124 },
-  { vessel: 'OM2', d: 'M152 174 L200 158', label: 'OM2', lx: 204, ly: 154 },
-  { vessel: 'OM3', d: 'M174 198 L224 184', label: 'OM3', lx: 228, ly: 180 },
-  { vessel: 'Ramus', d: 'M86 118 L140 102', label: 'RI', lx: 144, ly: 98 },
-  { vessel: 'RCA', d: 'M340 48 C354 96 348 156 316 250', label: 'RCA', lx: 366, ly: 142 },
-  { vessel: 'Conus', d: 'M348 70 L396 54', label: 'Conus', lx: 370, ly: 48 },
-  { vessel: 'AM', d: 'M346 128 L298 110', label: 'AM', lx: 272, ly: 106 },
-  { vessel: 'PDA', d: 'M328 216 L274 254', label: 'PDA', lx: 244, ly: 260 },
-  { vessel: 'PLV', d: 'M334 200 L384 242', label: 'PLV', lx: 388, ly: 254 },
+  { vessel: 'LMCA', d: 'M218 50 C192 68 174 86 158 108', label: 'LMCA', lx: 188, ly: 70 },
+  { vessel: 'LAD', d: 'M158 108 C154 150 164 198 176 252', label: 'LAD', lx: 186, ly: 210 },
+  { vessel: 'D1', d: 'M156 140 L108 158', label: 'D1', lx: 70, ly: 166 },
+  { vessel: 'D2', d: 'M162 180 L112 202', label: 'D2', lx: 86, ly: 206 },
+  { vessel: 'D3', d: 'M170 218 L126 242', label: 'D3', lx: 100, ly: 252 },
+  { vessel: 'S1', d: 'M154 152 L198 172', label: 'S1', lx: 202, ly: 184 },
+  { vessel: 'LCX', d: 'M158 108 C124 122 90 148 58 192', label: 'LCX', lx: 28, ly: 206 },
+  { vessel: 'OM1', d: 'M132 118 L100 92', label: 'OM1', lx: 72, ly: 88 },
+  { vessel: 'OM2', d: 'M102 142 L64 122', label: 'OM2', lx: 36, ly: 118 },
+  { vessel: 'OM3', d: 'M78 168 L38 156', label: 'OM3', lx: 8, ly: 152 },
+  { vessel: 'Ramus', d: 'M156 112 L118 128', label: 'RI', lx: 108, ly: 118 },
+  { vessel: 'RCA', d: 'M330 48 C344 96 338 156 308 250', label: 'RCA', lx: 356, ly: 142 },
+  { vessel: 'Conus', d: 'M338 70 L386 54', label: 'Conus', lx: 360, ly: 48 },
+  { vessel: 'AM', d: 'M336 128 L290 110', label: 'AM', lx: 264, ly: 106 },
+  { vessel: 'PDA', d: 'M318 216 L268 254', label: 'PDA', lx: 238, ly: 260 },
+  { vessel: 'PLV', d: 'M324 200 L374 242', label: 'PLV', lx: 378, ly: 254 },
 ]
 
 export function unmarkedStroke(): string {
