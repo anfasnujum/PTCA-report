@@ -291,6 +291,7 @@ export type Procedure = {
   lab: LabDetails
   notes: string
   noteOverride?: string
+  cagDocOverride?: string
   cagImpressions?: CagImpression[]
   cagCustomImpressions?: string[]
   cagAdvices?: CagAdvice[]
