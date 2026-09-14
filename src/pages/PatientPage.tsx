@@ -92,15 +92,13 @@ export function PatientPage() {
           onChange={(e) => setPatient({ hospitalId: e.target.value })}
         />
       </Section>
-      {current.kind === 'cag' ? (
-        <Section title="IP No.">
-          <Input
-            value={current.patient.ipNo}
-            placeholder="IP number"
-            onChange={(e) => setPatient({ ipNo: e.target.value })}
-          />
-        </Section>
-      ) : null}
+      <Section title="IP No.">
+        <Input
+          value={current.patient.ipNo}
+          placeholder="IP number"
+          onChange={(e) => setPatient({ ipNo: e.target.value })}
+        />
+      </Section>
       <Section title="Age">
         <Input
           inputMode="numeric"

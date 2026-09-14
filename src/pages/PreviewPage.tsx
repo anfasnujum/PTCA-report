@@ -1,9 +1,9 @@
 import { useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
 import { CagReportLayout } from '@/components/preview/CagReportLayout'
+import { PtcaReportLayout } from '@/components/preview/PtcaReportLayout'
 import { generateNote } from '@/lib/noteTemplate'
-import { buildCagReportDocx, buildReportDocx } from '@/lib/reportDocx'
+import { buildCagReportDocx, buildPtcaReportDocx, buildReportDocx } from '@/lib/reportDocx'
 import { useProcedureStore } from '@/store/useProcedureStore'
 import { cn } from '@/lib/utils'
 import { Bold, Copy, Download, Italic, Printer, RotateCcw, Share2, Underline } from 'lucide-react'
@@ -121,26 +121,16 @@ export function PreviewPage() {
   const docRef = useRef<HTMLDivElement>(null)
   const savedRangeRef = useRef<Range | null>(null)
 
-  const generated = useMemo(() => (current ? generateNote({ ...current, noteOverride: undefined }) : ''), [current])
-  const cagOverrideText = useMemo(
-    () => (current?.kind === 'cag' ? htmlToText(current.cagDocOverride ?? '') : ''),
-    [current],
-  )
-  const note =
-    current?.kind === 'cag'
-      ? current.cagDocOverride?.trim()
-        ? cagOverrideText
-        : generated
-      : current?.noteOverride?.trim()
-        ? generateNote(current)
-        : generated
+  const generated = useMemo(() => (current ? generateNote(current) : ''), [current])
+  const overrideText = useMemo(() => htmlToText(current?.docOverride ?? ''), [current])
+  const note = current?.docOverride?.trim() ? overrideText : generated
 
   if (!current) return null
 
-  const kindLabel = current.kind === 'cag' ? 'CAG' : 'PTCA'
-  const stem = `${kindLabel}-${current.patient.hospitalId || current.patient.name || 'note'}-${current.patient.date}`
   const isCag = current.kind === 'cag'
-  const hasOverride = isCag ? Boolean(current.cagDocOverride) : Boolean(current.noteOverride)
+  const kindLabel = isCag ? 'CAG' : 'PTCA'
+  const stem = `${kindLabel}-${current.patient.hospitalId || current.patient.name || 'note'}-${current.patient.date}`
+  const hasOverride = Boolean(current.docOverride)
 
   const copy = async () => {
     await navigator.clipboard.writeText(note)
@@ -151,7 +141,7 @@ export function PreviewPage() {
   const share = async () => {
     if (navigator.share) {
       await navigator.share({
-        title: current.kind === 'cag' ? 'CAG procedure note' : 'PTCA procedure note',
+        title: isCag ? 'CAG procedure note' : 'PTCA procedure note',
         text: note,
       })
       return
@@ -162,10 +152,11 @@ export function PreviewPage() {
   const exportDocx = async () => {
     setExportingDocx(true)
     try {
-      const blob =
-        isCag && !current.cagDocOverride?.trim()
+      const blob = current.docOverride?.trim()
+        ? await buildReportDocx(current, note)
+        : isCag
           ? await buildCagReportDocx(current)
-          : await buildReportDocx(current, note)
+          : await buildPtcaReportDocx(current)
       downloadBlobFile(`${stem}.docx`, blob)
     } finally {
       setExportingDocx(false)
@@ -173,9 +164,9 @@ export function PreviewPage() {
   }
 
   const commitEdit = () => {
-    if (editing && isCag && docRef.current) {
+    if (editing && docRef.current) {
       const html = docRef.current.innerHTML
-      mutate((p) => ({ ...p, cagDocOverride: html }))
+      mutate((p) => ({ ...p, docOverride: html }))
     }
   }
 
@@ -185,7 +176,7 @@ export function PreviewPage() {
   }
 
   const regenerate = () => {
-    mutate((p) => ({ ...p, noteOverride: undefined, cagDocOverride: undefined }))
+    mutate((p) => ({ ...p, docOverride: undefined }))
     setEditing(false)
   }
 
@@ -237,35 +228,25 @@ export function PreviewPage() {
           {current.status === 'finalised' ? 'Reopen draft' : 'Finalise'}
         </Button>
       </div>
-      {isCag ? (
-        <div className="relative">
-          {editing ? <EditorToolbar onFontSize={applyFontSize} /> : null}
-          <div
-            ref={docRef}
-            contentEditable={editing}
-            suppressContentEditableWarning
-            onMouseUp={saveSelection}
-            onKeyUp={saveSelection}
-            className={cn(editing && 'rounded-2xl outline outline-2 outline-offset-2 outline-accent/40')}
-          >
-            {current.cagDocOverride ? (
-              <div dangerouslySetInnerHTML={{ __html: current.cagDocOverride }} />
-            ) : (
-              <CagReportLayout procedure={current} />
-            )}
-          </div>
+      <div className="relative">
+        {editing ? <EditorToolbar onFontSize={applyFontSize} /> : null}
+        <div
+          ref={docRef}
+          contentEditable={editing}
+          suppressContentEditableWarning
+          onMouseUp={saveSelection}
+          onKeyUp={saveSelection}
+          className={cn(editing && 'rounded-2xl outline outline-2 outline-offset-2 outline-accent/40')}
+        >
+          {current.docOverride ? (
+            <div dangerouslySetInnerHTML={{ __html: current.docOverride }} />
+          ) : isCag ? (
+            <CagReportLayout procedure={current} />
+          ) : (
+            <PtcaReportLayout procedure={current} />
+          )}
         </div>
-      ) : editing ? (
-        <Textarea
-          className="min-h-[28rem] font-mono text-sm leading-relaxed"
-          value={current.noteOverride ?? generated}
-          onChange={(e) => mutate((p) => ({ ...p, noteOverride: e.target.value }))}
-        />
-      ) : (
-        <pre className="print-note overflow-x-auto whitespace-pre-wrap rounded-2xl bg-card p-4 font-mono text-[13px] leading-relaxed shadow-card lg:min-h-[28rem]">
-          {note}
-        </pre>
-      )}
+      </div>
       <div className="no-print grid grid-cols-2 gap-2 lg:grid-cols-5">
         <Button variant="secondary" onClick={() => void copy()}>
           <Copy className="size-4" />

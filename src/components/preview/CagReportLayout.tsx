@@ -26,10 +26,10 @@ export function CagReportLayout({ procedure }: { procedure: Procedure }) {
 
   return (
     <div
-      className="cag-report space-y-2 rounded-2xl bg-card p-6 text-[13px] leading-snug shadow-card"
+      className="report-doc cag-report space-y-2 rounded-2xl bg-card p-6 text-[13px] leading-snug shadow-card"
       style={{ fontFamily: "'Times New Roman', Times, serif" }}
     >
-      <div className="text-center" style={{ marginTop: '6cm' }}>
+      <div className="text-center">
         <h2 className="text-lg font-bold uppercase tracking-wide">Coronary Angiography Report</h2>
         <p className="mt-1">
           <span className="font-semibold">Consultant: </span>
