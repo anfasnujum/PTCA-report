@@ -74,21 +74,14 @@ body {
   .no-print {
     display: none !important;
   }
-  .print-note {
-    color: #111 !important;
-    white-space: pre-wrap;
-    font-family: ui-monospace, Menlo, Consolas, monospace;
-    font-size: 12px;
-    line-height: 1.45;
-  }
-  .cag-report {
+  .report-doc {
     color: #111 !important;
     background: #fff !important;
     box-shadow: none !important;
     font-size: 12px;
     line-height: 1.45;
   }
-  .cag-report table {
+  .report-doc table {
     border-collapse: collapse;
     border-color: #999 !important;
   }

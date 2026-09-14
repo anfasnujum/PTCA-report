@@ -20,7 +20,20 @@ import {
   DISCLAIMER,
   fmtDisplayDate,
 } from '@/lib/format'
-import { mainVesselParagraph } from '@/lib/noteTemplate'
+import { mainVesselParagraph, procedureSection } from '@/lib/noteTemplate'
+import {
+  accessShortCode,
+  ptcaAdjuvantsText,
+  ptcaCommentSentence,
+  ptcaComplicationsText,
+  ptcaContrastText,
+  ptcaHemodynamicText,
+  ptcaInventoryLines,
+  ptcaInventorySummary,
+  ptcaResultLabel,
+  ptcaTitle,
+  targetVesselsShort,
+} from '@/lib/ptcaReport'
 import type { Procedure } from '@/types/procedure'
 
 const MONO_FONT = 'Courier New'
@@ -114,9 +127,12 @@ export async function buildReportDocx(procedure: Procedure, noteText: string): P
 
 const ROW_BORDER = { style: BorderStyle.SINGLE, size: 4, color: 'AAAAAA' }
 const NO_BORDER = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }
-const CAG_FONT = 'Times New Roman'
+const REPORT_FONT = 'Times New Roman'
 
-function cell(text: string, opts?: { width?: number; top?: boolean; bottom?: boolean }): TableCell {
+function cell(
+  text: string,
+  opts?: { width?: number; top?: boolean; bottom?: boolean; size?: number },
+): TableCell {
   return new TableCell({
     width: opts?.width ? { size: opts.width, type: WidthType.PERCENTAGE } : undefined,
     borders: {
@@ -129,7 +145,7 @@ function cell(text: string, opts?: { width?: number; top?: boolean; bottom?: boo
     children: [
       new Paragraph({
         spacing: { line: 216 },
-        children: [new TextRun({ text, size: 18, font: CAG_FONT })],
+        children: [new TextRun({ text, size: opts?.size ?? 18, font: REPORT_FONT })],
       }),
     ],
   })
@@ -138,14 +154,19 @@ function cell(text: string, opts?: { width?: number; top?: boolean; bottom?: boo
 function fieldCell(
   label: string,
   value: string,
-  opts?: { top?: boolean; bottom?: boolean },
+  opts?: { top?: boolean; bottom?: boolean; size?: number },
 ): TableCell {
-  return cell(`${label} : ${value || '____'}`, { width: 25, top: opts?.top, bottom: opts?.bottom })
+  return cell(label ? `${label} : ${value || '____'}` : '', {
+    width: 25,
+    top: opts?.top,
+    bottom: opts?.bottom,
+    size: opts?.size,
+  })
 }
 
 function fieldRow(
   fields: Array<[string, string]>,
-  opts: { top?: boolean; bottom?: boolean },
+  opts: { top?: boolean; bottom?: boolean; size?: number },
 ): TableRow {
   return new TableRow({
     children: fields.map(([label, value]) => fieldCell(label, value, opts)),
@@ -156,7 +177,7 @@ function cagTitleParagraph(): Paragraph {
   return new Paragraph({
     alignment: AlignmentType.CENTER,
     spacing: { after: 40, line: 216 },
-    children: [new TextRun({ text: 'CORONARY ANGIOGRAPHY REPORT', bold: true, size: 32, font: CAG_FONT })],
+    children: [new TextRun({ text: 'CORONARY ANGIOGRAPHY REPORT', bold: true, size: 32, font: REPORT_FONT })],
   })
 }
 
@@ -166,8 +187,8 @@ function cagConsultantParagraph(doctorName: string): Paragraph {
     border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: '000000', space: 4 } },
     spacing: { after: 80, line: 216 },
     children: [
-      new TextRun({ text: 'Consultant: ', bold: true, size: 26, font: CAG_FONT }),
-      new TextRun({ text: doctorName || '____', size: 26, font: CAG_FONT }),
+      new TextRun({ text: 'Consultant: ', bold: true, size: 26, font: REPORT_FONT }),
+      new TextRun({ text: doctorName || '____', size: 26, font: REPORT_FONT }),
     ],
   })
 }
@@ -176,8 +197,8 @@ function cagFindingParagraph(label: string, value: string): Paragraph {
   return new Paragraph({
     spacing: { after: 20, line: 216 },
     children: [
-      new TextRun({ text: `${label} : `, bold: true, size: 24, font: CAG_FONT }),
-      new TextRun({ text: value, size: 24, font: CAG_FONT }),
+      new TextRun({ text: `${label} : `, bold: true, size: 24, font: REPORT_FONT }),
+      new TextRun({ text: value, size: 24, font: REPORT_FONT }),
     ],
   })
 }
@@ -185,7 +206,7 @@ function cagFindingParagraph(label: string, value: string): Paragraph {
 function cagPlainParagraph(text: string): Paragraph {
   return new Paragraph({
     spacing: { after: 20, line: 216 },
-    children: [new TextRun({ text, size: 24, font: CAG_FONT })],
+    children: [new TextRun({ text, size: 24, font: REPORT_FONT })],
   })
 }
 
@@ -282,7 +303,7 @@ export async function buildCagReportDocx(procedure: Procedure): Promise<Blob> {
     new Paragraph({
       alignment: AlignmentType.RIGHT,
       spacing: { before: 120 },
-      children: [new TextRun({ text: p.lab.doctorName || '____', bold: true, size: 24, font: CAG_FONT })],
+      children: [new TextRun({ text: p.lab.doctorName || '____', bold: true, size: 24, font: REPORT_FONT })],
     }),
     new Paragraph({
       alignment: AlignmentType.RIGHT,
@@ -290,7 +311,7 @@ export async function buildCagReportDocx(procedure: Procedure): Promise<Blob> {
         new TextRun({
           text: 'Consultant Interventional Cardiologist & Asst. Professor',
           size: 20,
-          font: CAG_FONT,
+          font: REPORT_FONT,
         }),
       ],
     }),
@@ -298,6 +319,142 @@ export async function buildCagReportDocx(procedure: Procedure): Promise<Blob> {
 
   const doc = new Document({
     title: 'CAG procedure note',
+    sections: [
+      {
+        properties: {
+          page: { margin: { top: convertMillimetersToTwip(60) } },
+        },
+        children,
+      },
+    ],
+  })
+
+  return Packer.toBlob(doc)
+}
+
+function ptcaTitleParagraph(text: string): Paragraph {
+  return new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { after: 40, line: 216 },
+    children: [new TextRun({ text, underline: {}, size: 32, font: REPORT_FONT })],
+  })
+}
+
+function ptcaConsultantParagraph(doctorName: string): Paragraph {
+  return new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { after: 80, line: 216 },
+    children: [new TextRun({ text: `Consultant: ${doctorName || '____'}`, bold: true, size: 24, font: REPORT_FONT })],
+  })
+}
+
+function ptcaBoldLineParagraph(label: string, value: string): Paragraph {
+  return new Paragraph({
+    spacing: { after: 20, line: 216 },
+    children: [new TextRun({ text: `${label} : ${value}`, bold: true, size: 24, font: REPORT_FONT })],
+  })
+}
+
+function ptcaPlainLineParagraph(label: string, value: string, indent = false): Paragraph {
+  return new Paragraph({
+    indent: indent ? { left: 400 } : undefined,
+    spacing: { after: 20, line: 216 },
+    children: [new TextRun({ text: `${label} : ${value}`, size: 24, font: REPORT_FONT })],
+  })
+}
+
+export async function buildPtcaReportDocx(procedure: Procedure): Promise<Blob> {
+  const p = procedure
+  const inventoryLines = ptcaInventoryLines(p)
+
+  const patientTable = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: TableBorders.NONE,
+    rows: [
+      fieldRow(
+        [
+          ['Name', p.patient.name.toUpperCase()],
+          ['Age', p.patient.age === '' ? '' : `${p.patient.age}/${p.patient.sex || '—'}`],
+          ['IP No', p.patient.ipNo],
+        ],
+        { size: 24 },
+      ),
+      fieldRow(
+        [
+          ['Cath No', p.patient.hospitalId],
+          ['Date', fmtDisplayDate(p.patient.date)],
+          ['', ''],
+        ],
+        { size: 24 },
+      ),
+      fieldRow(
+        [
+          ['Cath Tech', p.lab.technologist],
+          ['Scrub nurse', p.lab.scrubNurse],
+          ['', ''],
+        ],
+        { size: 24 },
+      ),
+    ],
+  })
+
+  const children: (Paragraph | Table)[] = [
+    ptcaTitleParagraph(ptcaTitle(p)),
+    ptcaConsultantParagraph(p.lab.doctorName),
+    new Paragraph({ spacing: { after: 80 }, children: [] }),
+    patientTable,
+    new Paragraph({ spacing: { before: 80, after: 20 }, children: [] }),
+    ptcaPlainLineParagraph('Premedication', 'Nil'),
+    ptcaPlainLineParagraph('Vascular Access', accessShortCode(p.access)),
+    ptcaPlainLineParagraph('Target Vessel/lesions', targetVesselsShort(p)),
+    ptcaBoldLineParagraph('Inventory', ptcaInventorySummary(p)),
+    ...inventoryLines.map((line) => ptcaPlainLineParagraph(line.label, line.value, true)),
+    new Paragraph({ spacing: { before: 80, after: 20 }, children: [] }),
+    ptcaBoldLineParagraph('Result', ptcaResultLabel(p.outcome)),
+    ptcaBoldLineParagraph('Complications', ptcaComplicationsText(p.outcome)),
+    ptcaBoldLineParagraph('Adjuvants', ptcaAdjuvantsText(p.periprocedural)),
+    ptcaBoldLineParagraph('Contrast', ptcaContrastText(p.periprocedural)),
+    ptcaBoldLineParagraph('Hemodynamic Data', ptcaHemodynamicText(p.lab)),
+    new Paragraph({ spacing: { before: 80, after: 20 }, children: [] }),
+    new Paragraph({
+      spacing: { after: 20, line: 216 },
+      children: [new TextRun({ text: 'PROCEDURE:', bold: true, size: 24, font: REPORT_FONT })],
+    }),
+    new Paragraph({
+      alignment: AlignmentType.JUSTIFIED,
+      spacing: { after: 160, line: 216 },
+      children: [new TextRun({ text: procedureSection(p.events), size: 24, font: REPORT_FONT })],
+    }),
+    new Paragraph({
+      spacing: { after: 160, line: 216 },
+      children: [
+        new TextRun({
+          text: `COMMENT: ${p.notes.trim() || ptcaCommentSentence(p)}`,
+          bold: true,
+          size: 24,
+          font: REPORT_FONT,
+        }),
+      ],
+    }),
+    new Paragraph({
+      alignment: AlignmentType.RIGHT,
+      spacing: { before: 120 },
+      children: [new TextRun({ text: p.lab.doctorName || '____', bold: true, size: 24, font: REPORT_FONT })],
+    }),
+    new Paragraph({
+      alignment: AlignmentType.RIGHT,
+      children: [
+        new TextRun({
+          text: 'Consultant Interventional Cardiologist & Asst. Professor',
+          size: 20,
+          font: REPORT_FONT,
+        }),
+      ],
+    }),
+  ]
+
+  const doc = new Document({
+    title: 'PTCA procedure note',
     sections: [
       {
         properties: {

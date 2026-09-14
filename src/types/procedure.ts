@@ -290,8 +290,7 @@ export type Procedure = {
   assistantOperator: string
   lab: LabDetails
   notes: string
-  noteOverride?: string
-  cagDocOverride?: string
+  docOverride?: string
   cagImpressions?: CagImpression[]
   cagCustomImpressions?: string[]
   cagAdvices?: CagAdvice[]

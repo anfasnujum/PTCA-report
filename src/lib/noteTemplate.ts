@@ -436,7 +436,7 @@ function eventSentence(e: ProcedureEvent, all: ProcedureEvent[]): string {
   }
 }
 
-function procedureSection(events: ProcedureEvent[]): string {
+export function procedureSection(events: ProcedureEvent[]): string {
   if (events.length === 0) return 'No procedural steps recorded.'
   return events.map((e) => eventSentence(e, events)).filter(Boolean).join('\n')
 }
@@ -548,11 +548,6 @@ function labDetailLines(lab?: LabDetails): string[] {
 }
 
 export function generateNote(procedure: Procedure): string {
-  if (procedure.noteOverride?.trim()) {
-    const body = procedure.noteOverride.trim()
-    return body.includes(DISCLAIMER) ? body : `${body}\n\n${DISCLAIMER}`
-  }
-
   const isCag = procedure.kind === 'cag'
   const timeRange =
     procedure.patient.startTime && procedure.closure.endTime
