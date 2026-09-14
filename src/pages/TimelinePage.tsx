@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { useProcedureStore } from '@/store/useProcedureStore'
 import { nid } from '@/lib/ids'
 import { defaultBalloon, lastLocation, targetVessels } from '@/lib/location'
+import { GUIDE_SIZES } from '@/lib/constants'
 import { defaultDiameter, isRightCoronary } from '@/lib/format'
 import { suggestedPostDil } from '@/lib/noteTemplate'
 import type {
@@ -62,7 +63,9 @@ export function TimelinePage() {
         kind,
         initial: {
           curve: isRightCoronary(loc.vessel) ? 'JR4' : 'EBU 3.5',
-          size: current.access.sheathSize || '6F',
+          size: GUIDE_SIZES.includes(current.access.sheathSize as (typeof GUIDE_SIZES)[number])
+            ? (current.access.sheathSize as (typeof GUIDE_SIZES)[number])
+            : '6F',
           coronary: isRightCoronary(loc.vessel) ? 'right' : 'left',
         },
       })

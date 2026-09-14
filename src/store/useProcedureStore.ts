@@ -1,8 +1,8 @@
 import { create } from 'zustand'
 import { db } from '@/db'
-import { emptyProcedure } from '@/lib/seed'
+import { emptyLab, emptyProcedure } from '@/lib/seed'
 import { nid } from '@/lib/ids'
-import type { Procedure, ProcedureEvent } from '@/types/procedure'
+import type { Procedure, ProcedureEvent, ProcedureKind } from '@/types/procedure'
 
 export type SaveState = 'idle' | 'saving' | 'saved'
 
@@ -11,7 +11,7 @@ type ProcedureState = {
   saveState: SaveState
   loadError: string | null
   load: (id: string) => Promise<void>
-  create: () => Promise<string>
+  create: (kind?: ProcedureKind) => Promise<string>
   unload: () => void
   mutate: (fn: (p: Procedure) => Procedure) => void
   addEvent: (event: ProcedureEvent) => void
@@ -22,16 +22,20 @@ type ProcedureState = {
 }
 
 function withOperatorFields(p: Procedure): Procedure {
+  const kind = p.kind === 'cag' ? 'cag' : 'ptca'
   const main = p.mainOperator ?? ''
   const assistant = p.assistantOperator ?? ''
+  const lab = p.lab ?? emptyLab()
   if (main || assistant) {
-    return { ...p, mainOperator: main, assistantOperator: assistant }
+    return { ...p, kind, mainOperator: main, assistantOperator: assistant, lab }
   }
   const ops = p.operators ?? []
   return {
     ...p,
+    kind,
     mainOperator: ops[0] ?? '',
     assistantOperator: ops[1] ?? '',
+    lab,
   }
 }
 
@@ -70,8 +74,8 @@ export const useProcedureStore = create<ProcedureState>((set, get) => ({
     set({ current: withOperatorFields(row), loadError: null, saveState: 'saved' })
   },
 
-  create: async () => {
-    const p = emptyProcedure(nid())
+  create: async (kind: ProcedureKind = 'ptca') => {
+    const p = emptyProcedure(nid(), kind)
     await db.procedures.put(p)
     set({ current: p, loadError: null, saveState: 'saved' })
     return p.id

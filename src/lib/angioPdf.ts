@@ -6,6 +6,17 @@ import {
   VESSEL_LONG,
   fmtDisplayDate,
   formatSegments,
+  findingNoteValue,
+  formatFindingPhrase,
+  isLadOtherSegment,
+  hasTimiFlow,
+  lmcaLengthLabel,
+  ladLeadClause,
+  lcxDominanceLabel,
+  ramusSizeLabel,
+  rcaLeadClause,
+  vesselReportName,
+  lmcaQualifierBits,
   timiRoman,
 } from '@/lib/format'
 import type { AngioFinding, Procedure } from '@/types/procedure'
@@ -119,12 +130,12 @@ export async function downloadAngioPdf(procedure: Procedure): Promise<void> {
     const cols = [
       { key: 'vessel', w: 22 },
       { key: 'loc', w: 32 },
-      { key: 'sten', w: 22 },
+      { key: 'sten', w: 28 },
       { key: 'timi', w: 18 },
       { key: 'feat', w: 58 },
       { key: 'tgt', w: 26 },
     ] as const
-    const headers = ['Vessel', 'Segment', 'Stenosis', 'TIMI', 'Features', 'Target']
+    const headers = ['Vessel', 'Segment', 'Finding', 'TIMI', 'Features', 'Target']
     const rowH = (lines: number) => Math.max(8, lines * 4.2 + 3)
 
     const drawHeader = () => {
@@ -144,16 +155,31 @@ export async function downloadAngioPdf(procedure: Procedure): Promise<void> {
     drawHeader()
 
     for (const f of marked) {
-      const loc = formatSegments(f.segment) || '—'
-      const extras: string[] = []
-      if (f.vessel === 'LMCA' && f.earlyBifurcation) extras.push('early bifurcation')
-      if (f.vessel === 'LMCA' && f.lengthMm) extras.push(`${f.lengthMm} mm`)
-      const features = [...f.features, ...extras].join(', ') || '—'
+      const loc = [
+        formatSegments(f.segment) || f.segmentOther?.trim() || '—',
+        findingNoteValue(f),
+      ]
+        .filter(Boolean)
+        .join(' · ')
+      const extras =
+        f.vessel === 'LMCA'
+          ? lmcaQualifierBits(f)
+          : ladLeadClause(f)
+            ? [ladLeadClause(f)]
+            : lcxDominanceLabel(f)
+              ? [lcxDominanceLabel(f)]
+              : ramusSizeLabel(f)
+                ? [ramusSizeLabel(f)]
+                : rcaLeadClause(f)
+                  ? [rcaLeadClause(f)]
+                  : []
+      const other = isLadOtherSegment(f)
+      const features = other ? extras.join(', ') || '—' : [...extras, ...f.features].join(', ') || '—'
       const cells = [
-        f.vessel,
+        vesselReportName(f),
         loc,
-        `${f.stenosis}%`,
-        timiRoman(f.timiFlow),
+        other ? f.segmentOther?.trim() || '—' : formatFindingPhrase(f),
+        other ? '—' : hasTimiFlow(f) ? timiRoman(f.timiFlow) : '—',
         features,
         f.isTarget ? 'Yes' : '—',
       ]
@@ -179,13 +205,13 @@ export async function downloadAngioPdf(procedure: Procedure): Promise<void> {
     for (const f of marked) {
       const long = VESSEL_LONG[f.vessel]
       const bits = [
-        `${f.vessel} (${long})`,
-        formatSegments(f.segment) || null,
-        `${f.stenosis}% stenosis`,
-        `TIMI ${timiRoman(f.timiFlow)}`,
-        f.features.length ? f.features.join(', ') : null,
-        f.vessel === 'LMCA' && f.earlyBifurcation ? 'early bifurcation' : null,
-        f.vessel === 'LMCA' && f.lengthMm ? `length ${f.lengthMm} mm` : null,
+        lmcaLengthLabel(f) || ladLeadClause(f) || lcxDominanceLabel(f) || ramusSizeLabel(f) || rcaLeadClause(f) || null,
+        `${vesselReportName(f)} (${long})`,
+        formatSegments(f.segment) || f.segmentOther?.trim() || null,
+        findingNoteValue(f) || null,
+        isLadOtherSegment(f) ? null : formatFindingPhrase(f),
+        !isLadOtherSegment(f) && hasTimiFlow(f) ? `TIMI ${timiRoman(f.timiFlow)}` : null,
+        !isLadOtherSegment(f) && f.features.length ? f.features.join(', ') : null,
         f.isTarget ? 'target vessel' : null,
       ].filter(Boolean)
       const line = bits.join(' · ')

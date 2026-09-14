@@ -78,10 +78,25 @@ export const DOMINANCE_OPTIONS = [
   'Super-dominant left',
 ] as const
 
+export const FINDING_TYPES = [
+  { id: 'normal', label: 'Normal' },
+  { id: 'plaque', label: 'Plaques' },
+  { id: 'stenosis', label: 'Stenosis' },
+  { id: 'lesion', label: 'Lesion' },
+] as const
+
+export const PLAQUE_GRADES = ['minor', 'mild', 'moderate', 'severe', 'other'] as const
+
 export const ANGIO_FEATURES = [
+  'discrete',
+  'tubular',
+  'diffuse',
+  'calcific',
+  'ulcerated',
+  'hazy',
+  'irregular',
   'calcified',
   'thrombotic',
-  'bifurcation',
   'tortuous',
   'CTO',
   'ectatic',
@@ -129,7 +144,71 @@ export const GUIDE_CURVES = [
   'SAL',
 ] as const
 
-export const SHEATH_SIZES = ['5F', '6F', '7F', '8F'] as const
+export const SHEATH_SIZES = ['4F', '5F', '6F', '7F', '8F', '9F', '10F'] as const
+export const GUIDE_SIZES = ['5F', '6F', '7F', '8F'] as const
+
+export const DISTAL_SEGMENT_NOTES = [
+  'Involving LAD ostium',
+  'Involving LCX ostium',
+  'Involving the bifurcation of LAD and LCX',
+  'Other',
+] as const
+
+export const RCA_DISTAL_NOTES = [
+  'Involving the bifurcation of PDA and PLV',
+  'Involving PDA ostium',
+  'Involving PLV ostium',
+  'Other',
+] as const
+
+export const LAD_BRANCH_NOTE_SEGMENTS = [
+  'ostioproximal',
+  'proximal',
+  'proximal-mid',
+  'mid',
+] as const
+
+export const LAD_BRANCHES = [
+  { id: 'D1', label: 'D1' },
+  { id: 'D2', label: 'D2' },
+  { id: 'major diagonal', label: 'Major diagonal' },
+] as const
+
+export const LAD_INVOLVEMENTS = [
+  { id: 'bifurcation', label: 'involving the bifurcation of' },
+  { id: 'ostium', label: 'involving ostium' },
+] as const
+
+export const LCX_BRANCHES = [
+  { id: 'OM1', label: 'OM1' },
+  { id: 'OM2', label: 'OM2' },
+  { id: 'major OM', label: 'Major OM' },
+] as const
+
+export const LAD_VESSEL_TYPES = ['I', 'II', 'III'] as const
+
+export const LCX_DOMINANCE = [
+  { id: 'dominant', label: 'Dominant' },
+  { id: 'non-dominant', label: 'Non Dominant' },
+  { id: 'co-dominant', label: 'Co-dominant' },
+] as const
+
+export const RCA_DOMINANCE = LCX_DOMINANCE
+
+export const RAMUS_SIZES = [
+  { id: 'good', label: 'Good sized vessel' },
+  { id: 'medium', label: 'Medium sized vessel' },
+  { id: 'small', label: 'Small sized vessels' },
+] as const
+
+export const ACCESS_SPECIAL_NOTES = [
+  'Radial artery calcification',
+  'Radial artery tortuosity',
+  'Radial loop',
+  'Subclavian artery tortuosity',
+  'Subclavian loop',
+  'Other',
+] as const
 
 export const BALLOON_TYPES = [
   'semi-compliant',
@@ -178,6 +257,28 @@ export const BALLOON_RESULTS = [
   'waist persists',
   'full expansion',
   'no-reflow after inflation',
+] as const
+
+export const CAG_IMPRESSIONS = [
+  { id: 'normal-epicardial', label: 'Normal epicardial coronary arteries' },
+  { id: 'mild-cad', label: 'Mild CAD' },
+  { id: 'svd', label: 'SVD', report: 'CAD - Single vessel disease' },
+  { id: 'dvd', label: 'DVD', report: 'CAD - Double vessel disease' },
+  { id: 'tvd', label: 'TVD', report: 'CAD - Triple vessel disease' },
+  { id: 'ectasia', label: 'Coronary artery ectasia' },
+  { id: 'ectasia-slow-flow', label: 'Coronary artery ectasia with slow flow' },
+] as const
+
+export const CAG_ADVICES = [
+  { id: 'omt', label: 'OMT', report: 'Optimal medical therapy' },
+  { id: 'medical-management', label: 'Medical Management' },
+  { id: 'ptca-lad', label: 'PTCA -> LAD', report: 'PTCA to LAD' },
+  { id: 'ptca-lcx', label: 'PTCA -> LCX', report: 'PTCA to LCX' },
+  { id: 'ptca-rca', label: 'PTCA -> RCA', report: 'PTCA to RCA' },
+  { id: 'multi-vessel-pci', label: 'Multi Vessel PCI' },
+  { id: 'emergency-cabg', label: 'Emergency CABG' },
+  { id: 'early-cabg', label: 'Early CABG' },
+  { id: 'early-ptca', label: 'Early PTCA' },
 ] as const
 
 export const HEPARIN_PRESETS = [5000, 7500, 10000, 12500]

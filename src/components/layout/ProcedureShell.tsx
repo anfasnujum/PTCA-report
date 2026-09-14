@@ -6,7 +6,7 @@ import { SavedIndicator } from '@/components/ui/saved-indicator'
 import { BrandMark } from '@/components/layout/BrandMark'
 import { DISCLAIMER } from '@/lib/format'
 import { cn } from '@/lib/utils'
-import { STEPS } from '@/components/layout/steps'
+import { stepsFor } from '@/components/layout/steps'
 import { NotePanel } from '@/components/layout/NotePanel'
 
 export function ProcedureShell() {
@@ -23,6 +23,13 @@ export function ProcedureShell() {
     if (id) void load(id)
   }, [id, load])
 
+  useEffect(() => {
+    if (!current || current.id !== id) return
+    if (current.kind === 'cag' && location.pathname.endsWith('/timeline')) {
+      navigate(`/procedure/${id}/result`, { replace: true })
+    }
+  }, [current, id, location.pathname, navigate])
+
   if (loadError) {
     return (
       <div className="p-6">
@@ -38,6 +45,8 @@ export function ProcedureShell() {
     return <div className="p-6 text-muted">Loading…</div>
   }
 
+  const steps = stepsFor(current.kind)
+
   return (
     <div className="flex min-h-dvh flex-col lg:flex-row">
       <aside className="no-print hidden w-60 shrink-0 flex-col border-r border-border bg-surface lg:flex">
@@ -49,7 +58,7 @@ export function ProcedureShell() {
           <BrandMark subtitle="Procedure console" />
         </button>
         <nav className="flex flex-1 flex-col gap-1 px-3 pb-4">
-          {STEPS.map((s, i) => (
+          {steps.map((s, i) => (
             <NavLink
               key={s.to}
               to={`/procedure/${id}/${s.to}`}
@@ -85,7 +94,7 @@ export function ProcedureShell() {
             </button>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold lg:text-base">
-                {current.patient.name || 'New procedure'}
+                {current.patient.name || (current.kind === 'cag' ? 'New CAG' : 'New PTCA')}
                 {current.patient.hospitalId ? (
                   <span className="font-normal text-muted"> · {current.patient.hospitalId}</span>
                 ) : null}
@@ -102,7 +111,7 @@ export function ProcedureShell() {
             </span>
           </div>
           <nav className="flex gap-1 overflow-x-auto px-3 pb-2 scrollbar-none lg:hidden">
-            {STEPS.map((s) => (
+            {steps.map((s) => (
               <NavLink
                 key={s.to}
                 to={`/procedure/${id}/${s.to}`}

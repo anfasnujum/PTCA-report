@@ -5,10 +5,31 @@ import {
   fmtDisplayDate,
   fmtMm,
   fmtSize,
+  findingLocationShort,
   locationShort,
   MAIN_VESSELS,
+  REPORT_VESSEL_ORDER,
+  LAD_REPORT_BRANCHES,
+  LCX_REPORT_BRANCHES,
   formatSegments,
-  segmentClause,
+  findingNoteValue,
+  formatDescribedFinding,
+  findingSubject,
+  findingTypeOf,
+  hasTimiFlow,
+  isUnremarkableFinding,
+  lmcaLengthLabel,
+  ladLeadClause,
+  lcxDominanceLabel,
+  ramusSizeLabel,
+  rcaLeadClause,
+  isSizeVessel,
+  cagImpressionSentence,
+  cagAdviceSentence,
+  cagArterialGraftLine,
+  vesselReportName,
+  isLadOtherSegment,
+  ladOtherSentence,
   VESSELS,
   timiRoman,
 } from '@/lib/format'
@@ -18,6 +39,7 @@ import type {
   BalloonUse,
   Closure,
   Indication,
+  LabDetails,
   Outcome,
   Periprocedural,
   Procedure,
@@ -50,7 +72,7 @@ function stemiPhrase(territory?: string): string {
   return `Acute ${territory} STEMI`
 }
 
-function indicationNarrative(ind: Indication): string {
+function indicationNarrative(ind: Indication, opts?: { includePciType?: boolean }): string {
   const chips = ind.chips
   const bits: string[] = []
   if (chips.includes('STEMI')) {
@@ -84,12 +106,20 @@ function indicationNarrative(ind: Indication): string {
   if (chips.includes('Arrhythmia')) bits.push('arrhythmia')
 
   let text = bits.join('; ') || chips.join(', ')
-  if (ind.pciType) {
+  if (opts?.includePciType !== false && ind.pciType) {
     const pci =
       ind.pciType === 'Adhoc' ? 'ad-hoc PCI' : `${ind.pciType.toLowerCase()} PCI`
     text = text ? `${text} — ${pci}` : pci
   }
   return text || '____'
+}
+
+function accessSpecialNoteLine(a: Access): string | null {
+  const choice = a.specialNote?.trim() ?? ''
+  if (!choice) return null
+  const value = choice === 'Other' ? (a.specialNoteCustom?.trim() ?? '') : choice
+  if (!value) return null
+  return `Special Notes: ${value}`
 }
 
 function accessNarrative(a: Access): string {
@@ -101,51 +131,88 @@ function accessNarrative(a: Access): string {
     a.site === 'distal radial'
       ? 'distal radial artery'
       : `${a.site} artery`
-  const attempt = a.singleAttempt
-    ? ' in a single attempt'
-    : a.punctures > 1
-      ? ` after ${a.punctures} punctures`
-      : ''
-  return `${capitalise(a.side)} ${artery} accessed${attempt}; ${a.sheathSize} sheath inserted.`
+  return `${capitalise(a.side)} ${artery} accessed; ${a.sheathSize} sheath inserted.`
 }
 
-function featureAdjectives(features: string[]): { adj: string; rest: string[] } {
-  const adjOrder = ['thrombotic', 'calcified', 'ectatic', 'tortuous']
-  const adj = adjOrder.filter((f) => features.includes(f))
-  const rest = features.filter((f) => !adjOrder.includes(f))
-  return { adj: adj.length ? `${adj.join(', ')} ` : '', rest }
-}
-
-function lmcaQualifiers(f: AngioFinding): string[] {
-  if (f.vessel !== 'LMCA') return []
-  const bits: string[] = []
-  if (f.earlyBifurcation) bits.push('early bifurcation')
-  const n = Number.parseFloat(String(f.lengthMm ?? ''))
-  if (Number.isFinite(n) && n > 0) {
-    bits.push(`length ${String(n)} mm`)
-  }
-  return bits
+function diseaseShowsSentence(f: AngioFinding, lead: string): string {
+  const note = findingNoteValue(f)
+  const noteBit = note ? `, ${note.charAt(0).toLowerCase()}${note.slice(1)}` : ''
+  const timi = hasTimiFlow(f) ? ` TIMI ${timiRoman(f.timiFlow)} flow.` : ''
+  return `${lead} ${formatDescribedFinding(f)}${noteBit}.${timi}`
 }
 
 function findingSentence(f: AngioFinding): string {
-  const extras = lmcaQualifiers(f)
-  const extraClause = extras.length ? extras.join(', ') : ''
-  if (f.stenosis === 0 && f.features.length === 0) {
-    if (extraClause) return `${f.vessel}: ${extraClause}.`
-    return `${f.vessel}: normal.`
+  if (f.vessel === 'LMCA') {
+    if (f.separateOrigin) return 'LMCA: separate origin of LAD and LCX.'
+    const lengthLabel = lmcaLengthLabel(f)
+    const isNormal = findingTypeOf(f) === 'normal' || isUnremarkableFinding(f)
+    if (isNormal) {
+      return lengthLabel ? `LMCA: ${lengthLabel} and Normal.` : 'LMCA: Normal.'
+    }
+    const lines: string[] = []
+    if (lengthLabel) lines.push(`LMCA: ${lengthLabel}.`)
+    lines.push(diseaseShowsSentence(f, `${findingSubject(f.vessel, f.segment)} shows`))
+    return lines.join('\n')
   }
-  if (f.features.includes('CTO') || f.stenosis === 100) {
-    const loc = segmentClause(f.segment)
-    let s = `${f.vessel}: chronic total occlusion${loc}, TIMI ${timiRoman(f.timiFlow)} flow.`
-    if (extraClause) s = s.replace(/\.$/, `; ${extraClause}.`)
-    return s
+
+  const prefix = `${vesselReportName(f)}: `
+  const place = formatSegments(f.segment)
+  const placeBit = place ? capitalise(place) : ''
+  const isNormal = findingTypeOf(f) === 'normal' || isUnremarkableFinding(f)
+
+  if (f.vessel === 'LAD') {
+    if (isLadOtherSegment(f)) return ladOtherSentence(f)
+    const lead = ladLeadClause(f)
+    if (isNormal) {
+      return lead ? `LAD: ${lead} and Normal.` : `${prefix}${placeBit ? `${placeBit}: ` : ''}Normal.`
+    }
+    const diseaseLead = placeBit ? `${placeBit} shows` : 'shows'
+    if (lead) return `LAD: ${lead}. ${diseaseShowsSentence(f, diseaseLead)}`
+    const fullLead = placeBit ? `${prefix}${placeBit} shows` : `${prefix}shows`
+    return diseaseShowsSentence(f, fullLead)
   }
-  const { adj, rest } = featureAdjectives(f.features)
-  const loc = segmentClause(f.segment)
-  let s = `${f.vessel}: ${f.stenosis}% ${adj}stenosis${loc}, TIMI ${timiRoman(f.timiFlow)} flow.`
-  if (rest.length) s = s.replace(/\.$/, `; ${rest.join(', ')}.`)
-  if (extraClause) s = s.replace(/\.$/, `; ${extraClause}.`)
-  return s
+
+  if (f.vessel === 'LCX') {
+    const dominance = lcxDominanceLabel(f)
+    if (isNormal) {
+      return dominance ? `LCX: ${dominance} and Normal.` : `${prefix}${placeBit ? `${placeBit}: ` : ''}Normal.`
+    }
+    const diseaseLead = placeBit ? `${placeBit} shows` : 'shows'
+    if (dominance) return `LCX: ${dominance}. ${diseaseShowsSentence(f, diseaseLead)}`
+    const fullLead = placeBit ? `${prefix}${placeBit} shows` : `${prefix}shows`
+    return diseaseShowsSentence(f, fullLead)
+  }
+
+  if (isSizeVessel(f.vessel)) {
+    const size = ramusSizeLabel(f)
+    const name = vesselReportName(f)
+    if (isNormal) {
+      return size ? `${name}: ${size} and Normal.` : `${prefix}${placeBit ? `${placeBit}: ` : ''}Normal.`
+    }
+    const diseaseLead = placeBit ? `${placeBit} shows` : 'shows'
+    if (size) return `${name}: ${size}. ${diseaseShowsSentence(f, diseaseLead)}`
+    const fullLead = placeBit ? `${prefix}${placeBit} shows` : `${prefix}shows`
+    return diseaseShowsSentence(f, fullLead)
+  }
+
+  if (f.vessel === 'RCA') {
+    const lead = rcaLeadClause(f)
+    if (isNormal) {
+      return lead ? `RCA: ${lead} and Normal.` : `${prefix}${placeBit ? `${placeBit}: ` : ''}Normal.`
+    }
+    const diseaseLead = placeBit ? `${placeBit} shows` : 'shows'
+    if (lead) return `RCA: ${lead}. ${diseaseShowsSentence(f, diseaseLead)}`
+    const fullLead = placeBit ? `${prefix}${placeBit} shows` : `${prefix}shows`
+    return diseaseShowsSentence(f, fullLead)
+  }
+
+  if (isNormal) {
+    const after = placeBit ? `${placeBit}: ` : ''
+    return `${prefix}${after}Normal.`
+  }
+
+  const lead = placeBit ? `${prefix}${placeBit} shows` : `${prefix}shows`
+  return diseaseShowsSentence(f, lead)
 }
 
 function dominanceSentence(dominance?: string): string | null {
@@ -159,44 +226,81 @@ function dominanceSentence(dominance?: string): string | null {
   return `${d} dominant coronary circulation.`
 }
 
-function angioNarrative(findings: AngioFinding[], dominance?: string): string {
+function defaultAngioFinding(vessel: Vessel): AngioFinding {
+  return {
+    id: vessel,
+    vessel,
+    stenosis: 0,
+    timiFlow: 'none',
+    features: [],
+    isTarget: false,
+  }
+}
+
+function findingsInOrder(
+  byVessel: Map<Vessel, AngioFinding>,
+  order: Vessel[],
+): AngioFinding[] {
+  const found: AngioFinding[] = []
+  for (const v of order) {
+    const f = byVessel.get(v)
+    if (f) found.push(f)
+  }
+  return found
+}
+
+function withAppendedFindings(line: string, extras: AngioFinding[]): string {
+  if (!extras.length) return line
+  return `${line} ${extras.map(findingSentence).join(' ')}`
+}
+
+function angioNarrative(
+  findings: AngioFinding[],
+  dominance?: string,
+  opts?: { includeTargets?: boolean },
+): string {
   const lead = dominanceSentence(dominance)
   if (findings.length === 0) {
-    return lead ? `${lead} Coronary angiogram findings not recorded.` : 'Coronary angiogram findings not recorded.'
+    return [lead, 'Coronary angiogram findings not recorded.'].filter(Boolean).join('\n')
   }
   const byVessel = new Map<Vessel, AngioFinding>()
   for (const f of findings) byVessel.set(f.vessel, f)
 
-  const ordered: AngioFinding[] = []
-  for (const v of MAIN_VESSELS) {
+  const folded = new Set<Vessel>([...LAD_REPORT_BRANCHES, ...LCX_REPORT_BRANCHES])
+  const lines: string[] = []
+
+  for (const v of REPORT_VESSEL_ORDER) {
     const found = byVessel.get(v)
-    if (found) ordered.push(found)
-    else ordered.push({
-      id: v,
-      vessel: v,
-      stenosis: 0,
-      timiFlow: 3,
-      features: [],
-      isTarget: false,
-    })
-  }
-  for (const v of VESSELS) {
-    if (MAIN_VESSELS.includes(v)) continue
-    const found = byVessel.get(v)
-    if (found) ordered.push(found)
+    const f = found ?? (MAIN_VESSELS.includes(v) ? defaultAngioFinding(v) : undefined)
+    if (!f) continue
+    let sentence = findingSentence(f)
+    if (v === 'LAD') {
+      sentence = withAppendedFindings(sentence, findingsInOrder(byVessel, LAD_REPORT_BRANCHES))
+    }
+    if (v === 'LCX') {
+      sentence = withAppendedFindings(sentence, findingsInOrder(byVessel, LCX_REPORT_BRANCHES))
+    }
+    lines.push(sentence)
   }
 
-  const lines = ordered.map(findingSentence)
-  const targets = findings.filter((f) => f.isTarget)
-  if (targets.length === 1) {
-    lines.push(`Target vessel: ${locationShort(targets[0].vessel, targets[0].segment)}.`)
-  } else if (targets.length > 1) {
-    const list = targets.map((t) => locationShort(t.vessel, t.segment))
-    const last = list.pop()
-    lines.push(`Target vessels: ${list.join(', ')} and ${last}.`)
+  for (const v of VESSELS) {
+    if (REPORT_VESSEL_ORDER.includes(v) || folded.has(v)) continue
+    const found = byVessel.get(v)
+    if (found) lines.push(findingSentence(found))
   }
-  const body = lines.join(' ')
-  return lead ? `${lead} ${body}` : body
+
+  if (opts?.includeTargets !== false) {
+    const targets = findings.filter((f) => f.isTarget)
+    if (targets.length === 1) {
+      lines.push(`Target vessel: ${findingLocationShort(targets[0])}.`)
+    } else if (targets.length > 1) {
+      const list = targets.map((t) => findingLocationShort(t))
+      const last = list.pop()
+      lines.push(`Target vessels: ${list.join(', ')} and ${last}.`)
+    }
+  }
+  const body = lines.join('\n')
+  return lead ? `${lead}\n${body}` : body
 }
 
 function balloonPhrase(b: BalloonUse): string {
@@ -377,6 +481,7 @@ function closureNarrative(c: Closure): string {
 }
 
 function heading(p: Procedure): string {
+  if (p.kind === 'cag') return 'CAG — PROCEDURE NOTE'
   const hasStent = p.events.some((e) => e.kind === 'stent')
   return hasStent ? 'PTCA & STENTING — PROCEDURE NOTE' : 'PTCA — PROCEDURE NOTE'
 }
@@ -393,12 +498,39 @@ function operatorsLine(p: Procedure): string | null {
   return `Operators: ${parts.join(', ')}`
 }
 
+function labDetailLines(lab?: LabDetails): string[] {
+  if (!lab) return []
+  const pressure = (lab.aorticPressureMmHg ?? '').trim()
+  const pressureLine = !pressure
+    ? ''
+    : /mm\s*hg$/i.test(pressure)
+      ? pressure
+      : `${pressure} mmHg`
+  const rows: Array<[string, string]> = [
+    ['Doctor Name', lab.doctorName],
+    ['Technologist', lab.technologist],
+    ['Scrub Nurse', lab.scrubNurse],
+    ['Access', lab.access],
+    ['Catheter', lab.catheter],
+    ['Contrast', lab.contrast],
+    ['Haemodynamic Data', lab.haemodynamicData],
+    ['Aortic Pressure', pressureLine],
+  ]
+  return rows
+    .map(([label, value]) => {
+      const v = (value ?? '').trim()
+      return v ? `${label}: ${v}` : null
+    })
+    .filter((line): line is string => Boolean(line))
+}
+
 export function generateNote(procedure: Procedure): string {
   if (procedure.noteOverride?.trim()) {
     const body = procedure.noteOverride.trim()
     return body.includes(DISCLAIMER) ? body : `${body}\n\n${DISCLAIMER}`
   }
 
+  const isCag = procedure.kind === 'cag'
   const timeRange =
     procedure.patient.startTime && procedure.closure.endTime
       ? `${procedure.patient.startTime} – ${procedure.closure.endTime}`
@@ -408,11 +540,11 @@ export function generateNote(procedure: Procedure): string {
     heading(procedure),
     '',
     patientLine(procedure),
-    `Hospital No: ${procedure.patient.hospitalId.trim() || '____'}`,
+    `Cath No: ${procedure.patient.hospitalId.trim() || '____'}`,
     `Date: ${fmtDisplayDate(procedure.patient.date)}`,
-    `Time: ${timeRange}`,
-    `Indication: ${indicationNarrative(procedure.indication)}`,
   ]
+  if (!isCag) blocks.push(`Time: ${timeRange}`)
+  blocks.push(`Indication: ${indicationNarrative(procedure.indication, { includePciType: !isCag })}`)
 
   const symptoms = procedure.indication.symptoms ?? []
   if (symptoms.length) {
@@ -421,30 +553,47 @@ export function generateNote(procedure: Procedure): string {
 
   const opLine = operatorsLine(procedure)
   if (opLine) blocks.push(opLine)
+  blocks.push(...labDetailLines(procedure.lab))
 
+  blocks.push('', 'ACCESS', accessNarrative(procedure.access))
+  const specialNote = accessSpecialNoteLine(procedure.access)
+  if (specialNote) blocks.push(specialNote)
   blocks.push(
     '',
-    'ACCESS',
-    accessNarrative(procedure.access),
-    '',
     'CORONARY ANGIOGRAM',
-    angioNarrative(procedure.baselineAngio, procedure.dominance),
-    '',
-    'PROCEDURE',
-    procedureSection(procedure.events),
-    '',
-    'RESULT',
-    resultNarrative(procedure.outcome),
-    '',
-    'PERIPROCEDURAL',
-    periNarrative(procedure.periprocedural),
-    '',
-    'CLOSURE',
-    closureNarrative(procedure.closure),
+    angioNarrative(procedure.baselineAngio, procedure.dominance, { includeTargets: !isCag }),
   )
+  if (!isCag) {
+    blocks.push('', 'PROCEDURE', procedureSection(procedure.events))
+    blocks.push(
+      '',
+      'RESULT',
+      resultNarrative(procedure.outcome),
+      '',
+      'PERIPROCEDURAL',
+      periNarrative(procedure.periprocedural),
+      '',
+      'CLOSURE',
+      closureNarrative(procedure.closure),
+    )
+  } else {
+    const graftLines = [
+      cagArterialGraftLine('LIMA', procedure.cagLimaOn, procedure.cagLimaNote),
+      cagArterialGraftLine('RIMA', procedure.cagRimaOn, procedure.cagRimaNote),
+    ].filter((line): line is string => Boolean(line))
+    if (graftLines.length) blocks.push('', ...graftLines)
+    blocks.push(
+      '',
+      'IMPRESSION',
+      cagImpressionSentence(procedure.cagImpressions, procedure.cagCustomImpressions),
+      '',
+      'ADVICE',
+      cagAdviceSentence(procedure.cagAdvices, procedure.cagCustomAdvices),
+    )
+  }
 
   if (procedure.notes.trim()) {
-    blocks.push('', 'NOTES', procedure.notes.trim())
+    blocks.push('', isCag ? 'FINAL' : 'NOTES', procedure.notes.trim())
   }
 
   blocks.push('', DISCLAIMER)

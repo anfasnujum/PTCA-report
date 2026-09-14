@@ -1,4 +1,5 @@
 import type { AngioFinding, Vessel } from '@/types/procedure'
+import { findingSeverity } from '@/lib/format'
 
 export type TreeBranch = {
   vessel: Vessel
@@ -34,9 +35,10 @@ export function unmarkedStroke(): string {
 }
 
 export function findingStroke(finding: AngioFinding): string {
-  if (finding.stenosis >= 90) return '#fb7185'
-  if (finding.stenosis >= 50) return '#fbbf24'
-  if (finding.stenosis > 0) return '#34d399'
+  const n = findingSeverity(finding)
+  if (n >= 90) return '#fb7185'
+  if (n >= 50) return '#fbbf24'
+  if (n > 0) return '#34d399'
   return '#64748b'
 }
 

@@ -27,7 +27,8 @@ export function PreviewPage() {
 
   if (!current) return null
 
-  const stem = `PTCA-${current.patient.hospitalId || current.patient.name || 'note'}-${current.patient.date}`
+  const kindLabel = current.kind === 'cag' ? 'CAG' : 'PTCA'
+  const stem = `${kindLabel}-${current.patient.hospitalId || current.patient.name || 'note'}-${current.patient.date}`
 
   const copy = async () => {
     await navigator.clipboard.writeText(note)
@@ -37,7 +38,10 @@ export function PreviewPage() {
 
   const share = async () => {
     if (navigator.share) {
-      await navigator.share({ title: 'PTCA procedure note', text: note })
+      await navigator.share({
+        title: current.kind === 'cag' ? 'CAG procedure note' : 'PTCA procedure note',
+        text: note,
+      })
       return
     }
     await copy()

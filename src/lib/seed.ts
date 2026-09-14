@@ -1,14 +1,28 @@
 import { nid } from '@/lib/ids'
 import { nowHm, todayIso } from '@/lib/format'
-import type { CatalogueItem, Procedure } from '@/types/procedure'
+import type { CatalogueItem, LabDetails, Procedure, ProcedureKind } from '@/types/procedure'
 
-export function emptyProcedure(id = nid()): Procedure {
+export function emptyLab(): LabDetails {
+  return {
+    doctorName: '',
+    technologist: '',
+    scrubNurse: '',
+    access: '',
+    catheter: '',
+    contrast: '',
+    haemodynamicData: '',
+    aorticPressureMmHg: '',
+  }
+}
+
+export function emptyProcedure(id = nid(), kind: ProcedureKind = 'ptca'): Procedure {
   const now = Date.now()
   return {
     id,
     createdAt: now,
     updatedAt: now,
     status: 'draft',
+    kind,
     patient: {
       name: '',
       title: 'Mr',
@@ -25,6 +39,8 @@ export function emptyProcedure(id = nid()): Procedure {
       sheathSize: '6F',
       punctures: 1,
       singleAttempt: true,
+      specialNote: '',
+      specialNoteCustom: '',
     },
     dominance: '',
     baselineAngio: [],
@@ -57,7 +73,16 @@ export function emptyProcedure(id = nid()): Procedure {
     operators: [],
     mainOperator: '',
     assistantOperator: '',
+    lab: emptyLab(),
     notes: '',
+    cagImpressions: [],
+    cagCustomImpressions: [],
+    cagAdvices: [],
+    cagCustomAdvices: [],
+    cagLimaOn: false,
+    cagLimaNote: '',
+    cagRimaOn: false,
+    cagRimaNote: '',
   }
 }
 
@@ -73,6 +98,7 @@ export function demoProcedure(): Procedure {
     createdAt,
     updatedAt: createdAt + 45 * 60 * 1000,
     status: 'draft',
+    kind: 'ptca',
     patient: {
       name: 'XXXX',
       title: 'Mr',
@@ -97,6 +123,8 @@ export function demoProcedure(): Procedure {
       sheathSize: '6F',
       punctures: 1,
       singleAttempt: true,
+      specialNote: '',
+      specialNoteCustom: '',
     },
     dominance: 'Right',
     baselineAngio: [
@@ -224,6 +252,7 @@ export function demoProcedure(): Procedure {
     operators: ['Dr. A', 'Dr. B'],
     mainOperator: 'Dr. A',
     assistantOperator: 'Dr. B',
+    lab: emptyLab(),
     notes: '',
   }
 }

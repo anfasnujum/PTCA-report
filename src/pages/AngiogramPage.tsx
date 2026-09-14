@@ -16,7 +16,7 @@ export function AngiogramPage() {
   return (
     <div className="space-y-5 pb-4">
       <p className="text-sm text-muted">
-        Tap a vessel to log stenosis, TIMI flow and features. Star at least one target.
+        Tap a vessel to log plaque, stenosis or lesion, TIMI flow and features. Star at least one target.
       </p>
       <Section title="Dominance">
         <ChipScroller>
@@ -40,8 +40,14 @@ export function AngiogramPage() {
         findings={current.baselineAngio}
         onChange={(baselineAngio) => mutate((p) => ({ ...p, baselineAngio }))}
       />
-      <Button size="lg" className="w-full" onClick={() => navigate(`/procedure/${id}/timeline`)}>
-        Next — Timeline
+      <Button
+        size="lg"
+        className="w-full"
+        onClick={() =>
+          navigate(`/procedure/${id}/${current.kind === 'cag' ? 'result' : 'timeline'}`)
+        }
+      >
+        {current.kind === 'cag' ? 'Next — Impression' : 'Next — PCI'}
       </Button>
     </div>
   )

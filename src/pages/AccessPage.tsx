@@ -1,13 +1,14 @@
-import { Chip, ChipScroller, NumberChips } from '@/components/ui/chip'
+import { Chip, ChipScroller } from '@/components/ui/chip'
 import { Section } from '@/components/ui/section'
-import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
-import { SHEATH_SIZES } from '@/lib/constants'
+import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
+import { ACCESS_SPECIAL_NOTES, SHEATH_SIZES } from '@/lib/constants'
 import { useProcedureStore } from '@/store/useProcedureStore'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { Access } from '@/types/procedure'
 
-const SITES = ['radial', 'distal radial', 'femoral', 'brachial'] as const
+const SITES = ['radial', 'distal radial', 'ulnar', 'femoral', 'brachial'] as const
 
 export function AccessPage() {
   const current = useProcedureStore((s) => s.current)
@@ -18,6 +19,8 @@ export function AccessPage() {
 
   const set = (patch: Partial<Access>) =>
     mutate((p) => ({ ...p, access: { ...p.access, ...patch } }))
+
+  const specialNote = current.access.specialNote ?? ''
 
   return (
     <div className="grid gap-5 lg:grid-cols-2">
@@ -52,22 +55,26 @@ export function AccessPage() {
           ))}
         </ChipScroller>
       </Section>
-      <Switch
-        label="Single attempt"
-        checked={current.access.singleAttempt}
-        onChange={(singleAttempt) =>
-          set({ singleAttempt, punctures: singleAttempt ? 1 : Math.max(2, current.access.punctures) })
-        }
-      />
-      {!current.access.singleAttempt ? (
-        <Section title="Punctures">
-          <NumberChips
-            values={[2, 3, 4, 5]}
-            value={current.access.punctures}
-            onChange={(punctures) => set({ punctures })}
-          />
+      <div className="lg:col-span-2">
+        <Section title="Special Notes">
+          <Select value={specialNote} onChange={(e) => set({ specialNote: e.target.value })}>
+            <option value="">Select</option>
+            {ACCESS_SPECIAL_NOTES.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </Select>
+          {specialNote === 'Other' ? (
+            <Input
+              className="mt-2"
+              placeholder="Enter special note"
+              value={current.access.specialNoteCustom ?? ''}
+              onChange={(e) => set({ specialNoteCustom: e.target.value })}
+            />
+          ) : null}
         </Section>
-      ) : null}
+      </div>
       <Button size="lg" className="w-full lg:col-span-2" onClick={() => navigate(`/procedure/${id}/angiogram`)}>
         Next — Angiogram
       </Button>

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Chip, ChipScroller, NumberChips } from '@/components/ui/chip'
 import { Input } from '@/components/ui/input'
 import { Section } from '@/components/ui/section'
@@ -5,6 +6,8 @@ import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import {
+  CAG_ADVICES,
+  CAG_IMPRESSIONS,
   CLOSURE_METHODS,
   COMPLICATION_CHIPS,
   CONDITIONS,
@@ -15,8 +18,13 @@ import {
   GP2B3A,
   HEPARIN_PRESETS,
 } from '@/lib/constants'
-import { STENOSIS_PRESETS } from '@/lib/format'
-import { nowHm } from '@/lib/format'
+import {
+  STENOSIS_PRESETS,
+  addCagCustomImpression,
+  nowHm,
+  toggleCagAdvice,
+  toggleCagImpression,
+} from '@/lib/format'
 import { useProcedureStore } from '@/store/useProcedureStore'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { Closure, Outcome, Periprocedural, TimiFlow } from '@/types/procedure'
@@ -26,6 +34,8 @@ export function ResultPage() {
   const mutate = useProcedureStore((s) => s.mutate)
   const navigate = useNavigate()
   const { id } = useParams()
+  const [impressionDraft, setImpressionDraft] = useState('')
+  const [adviceDraft, setAdviceDraft] = useState('')
   if (!current) return null
 
   const setOutcome = (patch: Partial<Outcome>) =>
@@ -45,6 +55,162 @@ export function ResultPage() {
       if (next.length === 0) next = ['none']
     }
     setOutcome({ complications: next })
+  }
+
+  if (current.kind === 'cag') {
+    const selected = current.cagImpressions ?? []
+    const custom = current.cagCustomImpressions ?? []
+    const advices = current.cagAdvices ?? []
+    const customAdvices = current.cagCustomAdvices ?? []
+    const addDraft = () => {
+      if (!impressionDraft.trim()) return
+      mutate((p) => ({
+        ...p,
+        cagCustomImpressions: addCagCustomImpression(p.cagCustomImpressions ?? [], impressionDraft),
+      }))
+      setImpressionDraft('')
+    }
+    const addAdviceDraft = () => {
+      if (!adviceDraft.trim()) return
+      mutate((p) => ({
+        ...p,
+        cagCustomAdvices: addCagCustomImpression(p.cagCustomAdvices ?? [], adviceDraft),
+      }))
+      setAdviceDraft('')
+    }
+    return (
+      <div className="grid gap-5 pb-6">
+        <div className="space-y-3">
+          <Switch
+            label="LIMA"
+            yesNo
+            checked={!!current.cagLimaOn}
+            onChange={(cagLimaOn) => mutate((p) => ({ ...p, cagLimaOn }))}
+          />
+          {current.cagLimaOn ? (
+            <Input
+              placeholder="Enter LIMA finding"
+              value={current.cagLimaNote ?? ''}
+              onChange={(e) => mutate((p) => ({ ...p, cagLimaNote: e.target.value }))}
+            />
+          ) : null}
+        </div>
+        <div className="space-y-3">
+          <Switch
+            label="RIMA"
+            yesNo
+            checked={!!current.cagRimaOn}
+            onChange={(cagRimaOn) => mutate((p) => ({ ...p, cagRimaOn }))}
+          />
+          {current.cagRimaOn ? (
+            <Input
+              placeholder="Enter RIMA finding"
+              value={current.cagRimaNote ?? ''}
+              onChange={(e) => mutate((p) => ({ ...p, cagRimaNote: e.target.value }))}
+            />
+          ) : null}
+        </div>
+        <Section title="Impression">
+          <ChipScroller>
+            {CAG_IMPRESSIONS.map((o) => (
+              <Chip
+                key={o.id}
+                selected={selected.includes(o.id)}
+                onClick={() =>
+                  mutate((p) => ({
+                    ...p,
+                    cagImpressions: toggleCagImpression(p.cagImpressions ?? [], o.id),
+                  }))
+                }
+              >
+                {o.label}
+              </Chip>
+            ))}
+            {custom.map((label) => (
+              <Chip
+                key={label}
+                selected
+                onClick={() =>
+                  mutate((p) => ({
+                    ...p,
+                    cagCustomImpressions: (p.cagCustomImpressions ?? []).filter((x) => x !== label),
+                  }))
+                }
+              >
+                {label}
+              </Chip>
+            ))}
+          </ChipScroller>
+          <div className="flex gap-2">
+            <Input
+              placeholder="Add impression"
+              value={impressionDraft}
+              onChange={(e) => setImpressionDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  addDraft()
+                }
+              }}
+            />
+            <Button variant="secondary" onClick={addDraft}>
+              Add
+            </Button>
+          </div>
+        </Section>
+        <Section title="Advice">
+          <ChipScroller>
+            {CAG_ADVICES.map((o) => (
+              <Chip
+                key={o.id}
+                selected={advices.includes(o.id)}
+                onClick={() =>
+                  mutate((p) => ({
+                    ...p,
+                    cagAdvices: toggleCagAdvice(p.cagAdvices ?? [], o.id),
+                  }))
+                }
+              >
+                {o.label}
+              </Chip>
+            ))}
+            {customAdvices.map((label) => (
+              <Chip
+                key={label}
+                selected
+                onClick={() =>
+                  mutate((p) => ({
+                    ...p,
+                    cagCustomAdvices: (p.cagCustomAdvices ?? []).filter((x) => x !== label),
+                  }))
+                }
+              >
+                {label}
+              </Chip>
+            ))}
+          </ChipScroller>
+          <div className="flex gap-2">
+            <Input
+              placeholder="Add advice"
+              value={adviceDraft}
+              onChange={(e) => setAdviceDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  addAdviceDraft()
+                }
+              }}
+            />
+            <Button variant="secondary" onClick={addAdviceDraft}>
+              Add
+            </Button>
+          </div>
+        </Section>
+        <Button size="lg" className="w-full" onClick={() => navigate(`/procedure/${id}/preview`)}>
+          Next — Final
+        </Button>
+      </div>
+    )
   }
 
   return (
@@ -249,7 +415,7 @@ export function ResultPage() {
         </div>
       </Section>
       <Button size="lg" className="w-full lg:col-span-2" onClick={() => navigate(`/procedure/${id}/preview`)}>
-        Preview note
+        Next — Final
       </Button>
     </div>
   )

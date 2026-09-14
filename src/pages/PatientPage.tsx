@@ -3,12 +3,14 @@ import { Input } from '@/components/ui/input'
 import { Section } from '@/components/ui/section'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { CABG_GRAFTS, INDICATION_CHIPS, PCI_TYPES, PRIOR_PCI_TERRITORIES, STEMI_TERRITORIES, SYMPTOM_CHIPS, VALVE_SURGERIES } from '@/lib/constants'
+import { emptyLab } from '@/lib/seed'
 import { useProcedureStore } from '@/store/useProcedureStore'
 import { useCatalogueStore } from '@/store/useCatalogueStore'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useState } from 'react'
-import type { Patient } from '@/types/procedure'
+import type { LabDetails, Patient } from '@/types/procedure'
 
 export function PatientPage() {
   const current = useProcedureStore((s) => s.current)
@@ -28,6 +30,11 @@ export function PatientPage() {
 
   const setPatient = (patch: Partial<Patient>) =>
     mutate((p) => ({ ...p, patient: { ...p.patient, ...patch } }))
+
+  const setLab = (patch: Partial<LabDetails>) =>
+    mutate((p) => ({ ...p, lab: { ...(p.lab ?? emptyLab()), ...patch } }))
+
+  const lab = current.lab ?? emptyLab()
 
   const setDoctors = (mainOperator: string, assistantOperator: string) => {
     mutate((p) => ({
@@ -78,10 +85,10 @@ export function PatientPage() {
           onChange={(e) => setPatient({ name: e.target.value })}
         />
       </Section>
-      <Section title="Hospital no.">
+      <Section title="Cath no.">
         <Input
           value={current.patient.hospitalId}
-          placeholder="Hospital ID"
+          placeholder="Cath number"
           onChange={(e) => setPatient({ hospitalId: e.target.value })}
         />
       </Section>
@@ -116,13 +123,15 @@ export function PatientPage() {
           onChange={(e) => setPatient({ date: e.target.value })}
         />
       </Section>
-      <Section title="Start time">
-        <Input
-          type="time"
-          value={current.patient.startTime}
-          onChange={(e) => setPatient({ startTime: e.target.value })}
-        />
-      </Section>
+      {current.kind === 'cag' ? null : (
+        <Section title="Start time">
+          <Input
+            type="time"
+            value={current.patient.startTime}
+            onChange={(e) => setPatient({ startTime: e.target.value })}
+          />
+        </Section>
+      )}
       <div className="lg:col-span-2">
       <Section title="Symptoms">
         <ChipScroller>
@@ -353,6 +362,70 @@ export function PatientPage() {
         </div>
       </Section>
       </div>
+      <Section title="Doctor Name">
+        <Input
+          value={lab.doctorName}
+          placeholder="Doctor name"
+          onChange={(e) => setLab({ doctorName: e.target.value })}
+        />
+      </Section>
+      <Section title="Technologist">
+        <Input
+          value={lab.technologist}
+          placeholder="Technologist"
+          onChange={(e) => setLab({ technologist: e.target.value })}
+        />
+      </Section>
+      <Section title="Scrub Nurse">
+        <Input
+          value={lab.scrubNurse}
+          placeholder="Scrub nurse"
+          onChange={(e) => setLab({ scrubNurse: e.target.value })}
+        />
+      </Section>
+      <Section title="Access">
+        <Input
+          value={lab.access}
+          placeholder="e.g. Right radial"
+          onChange={(e) => setLab({ access: e.target.value })}
+        />
+      </Section>
+      <Section title="Catheter">
+        <Input
+          value={lab.catheter}
+          placeholder="e.g. 5F TIG"
+          onChange={(e) => setLab({ catheter: e.target.value })}
+        />
+      </Section>
+      <Section title="Contrast">
+        <Input
+          value={lab.contrast}
+          placeholder="e.g. Iohexol 40 mL"
+          onChange={(e) => setLab({ contrast: e.target.value })}
+        />
+      </Section>
+      <div className="lg:col-span-2">
+        <Section title="Haemodynamic Data">
+          <Textarea
+            value={lab.haemodynamicData}
+            placeholder="Haemodynamic data"
+            onChange={(e) => setLab({ haemodynamicData: e.target.value })}
+          />
+        </Section>
+      </div>
+      <Section title="Aortic Pressure">
+        <div className="relative">
+          <Input
+            value={lab.aorticPressureMmHg}
+            placeholder="e.g. 120/80"
+            onChange={(e) => setLab({ aorticPressureMmHg: e.target.value })}
+            className="pr-16"
+          />
+          <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-muted">
+            mmHg
+          </span>
+        </div>
+      </Section>
       <Button size="lg" className="w-full lg:col-span-2" onClick={() => navigate(`/procedure/${id}/access`)}>
         Next — Access
       </Button>

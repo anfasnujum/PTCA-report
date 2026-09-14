@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { BrandMark } from '@/components/layout/BrandMark'
 import { useProcedureStore } from '@/store/useProcedureStore'
 import { fmtDisplayDate } from '@/lib/format'
-import type { Procedure } from '@/types/procedure'
+import type { Procedure, ProcedureKind } from '@/types/procedure'
 import { cn } from '@/lib/utils'
 
 export function HomePage() {
@@ -37,12 +37,21 @@ export function HomePage() {
   const drafts = rows.filter((p) => p.status === 'draft').length
   const finalised = rows.filter((p) => p.status === 'finalised').length
 
-  const openNew = () => {
-    void create().then((id) => navigate(`/procedure/${id}/patient`))
+  const openNew = (kind: ProcedureKind) => {
+    void create(kind).then((id) => navigate(`/procedure/${id}/patient`))
   }
 
-  const openRow = (p: Procedure) =>
-    navigate(`/procedure/${p.id}/${p.events.length ? 'timeline' : 'patient'}`)
+  const openRow = (p: Procedure) => {
+    const step =
+      p.kind === 'cag'
+        ? p.baselineAngio.length
+          ? 'angiogram'
+          : 'patient'
+        : p.events.length
+          ? 'timeline'
+          : 'patient'
+    navigate(`/procedure/${p.id}/${step}`)
+  }
 
   return (
     <div className="min-h-dvh">
@@ -51,10 +60,16 @@ export function HomePage() {
           <div className="min-w-0 flex-1">
             <BrandMark subtitle="Procedure console" />
           </div>
-          <Button onClick={openNew} className="hidden sm:inline-flex">
-            <Plus className="size-4" />
-            New procedure
-          </Button>
+          <div className="hidden gap-2 sm:flex">
+            <Button onClick={() => openNew('ptca')}>
+              <Plus className="size-4" />
+              New PTCA
+            </Button>
+            <Button variant="secondary" onClick={() => openNew('cag')}>
+              <Plus className="size-4" />
+              New CAG
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -76,16 +91,22 @@ export function HomePage() {
           <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted" />
           <Input
             className="pl-11"
-            placeholder="Search name or hospital no."
+            placeholder="Search name or cath no."
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
         </div>
 
-        <Button size="lg" className="mb-5 w-full sm:hidden" onClick={openNew}>
-          <Plus className="size-5" />
-          New procedure
-        </Button>
+        <div className="mb-5 grid grid-cols-2 gap-2 sm:hidden">
+          <Button size="lg" onClick={() => openNew('ptca')}>
+            <Plus className="size-5" />
+            New PTCA
+          </Button>
+          <Button size="lg" variant="secondary" onClick={() => openNew('cag')}>
+            <Plus className="size-5" />
+            New CAG
+          </Button>
+        </div>
 
         {filtered.length === 0 ? (
           <div className="rounded-2xl bg-card px-6 py-16 text-center shadow-card">
@@ -109,10 +130,15 @@ export function HomePage() {
                         {p.patient.name || 'Unnamed patient'}
                       </p>
                       <p className="mt-0.5 text-sm text-muted">
-                        {p.patient.hospitalId || 'No hospital no.'}
+                        {p.patient.hospitalId || 'No cath no.'}
                       </p>
                     </div>
-                    <StatusBadge status={p.status} />
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      <StatusBadge status={p.status} />
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">
+                        {p.kind === 'cag' ? 'CAG' : 'PTCA'}
+                      </span>
+                    </div>
                   </div>
                   <div className="mt-5 flex gap-3">
                     <MiniStat value={p.events.length} label="Events" />

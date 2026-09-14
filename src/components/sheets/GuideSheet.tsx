@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Chip, ChipScroller } from '@/components/ui/chip'
 import { Section } from '@/components/ui/section'
 import { DevicePicker } from '@/components/fields/DevicePicker'
-import { GUIDE_CURVES, SHEATH_SIZES } from '@/lib/constants'
+import { GUIDE_CURVES, GUIDE_SIZES } from '@/lib/constants'
 import { useCatalogueStore } from '@/store/useCatalogueStore'
 
 function coronaryFromCurve(curve: string): 'left' | 'right' {
@@ -78,7 +78,7 @@ export function GuideSheet({
         </Section>
         <Section title="Size">
           <ChipScroller>
-            {SHEATH_SIZES.map((s) => (
+            {GUIDE_SIZES.map((s) => (
               <Chip key={s} selected={data.size === s} onClick={() => setData({ ...data, size: s })}>
                 {s}
               </Chip>
