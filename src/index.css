@@ -81,4 +81,15 @@ body {
     font-size: 12px;
     line-height: 1.45;
   }
+  .cag-report {
+    color: #111 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  .cag-report table {
+    border-collapse: collapse;
+    border-color: #999 !important;
+  }
 }

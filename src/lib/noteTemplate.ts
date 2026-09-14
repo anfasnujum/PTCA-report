@@ -141,7 +141,7 @@ function diseaseShowsSentence(f: AngioFinding, lead: string): string {
   return `${lead} ${formatDescribedFinding(f)}${noteBit}.${timi}`
 }
 
-function findingSentence(f: AngioFinding): string {
+export function findingSentence(f: AngioFinding): string {
   if (f.vessel === 'LMCA') {
     if (f.separateOrigin) return 'LMCA: separate origin of LAD and LCX.'
     const lengthLabel = lmcaLengthLabel(f)
@@ -301,6 +301,29 @@ function angioNarrative(
   }
   const body = lines.join('\n')
   return lead ? `${lead}\n${body}` : body
+}
+
+const RCA_REPORT_BRANCHES: Vessel[] = ['PDA', 'PLV']
+
+export function mainVesselParagraph(findings: AngioFinding[], vessel: Vessel): string {
+  const byVessel = new Map<Vessel, AngioFinding>()
+  for (const f of findings) byVessel.set(f.vessel, f)
+
+  const found = byVessel.get(vessel)
+  const f = found ?? (MAIN_VESSELS.includes(vessel) ? defaultAngioFinding(vessel) : undefined)
+  if (!f) return 'Not assessed.'
+
+  let sentence = findingSentence(f)
+  if (vessel === 'LAD') {
+    sentence = withAppendedFindings(sentence, findingsInOrder(byVessel, LAD_REPORT_BRANCHES))
+  }
+  if (vessel === 'LCX') {
+    sentence = withAppendedFindings(sentence, findingsInOrder(byVessel, LCX_REPORT_BRANCHES))
+  }
+  if (vessel === 'RCA') {
+    sentence = withAppendedFindings(sentence, findingsInOrder(byVessel, RCA_REPORT_BRANCHES))
+  }
+  return sentence.replace(new RegExp(`^${vessel}\\s*:\\s*`), '')
 }
 
 function balloonPhrase(b: BalloonUse): string {

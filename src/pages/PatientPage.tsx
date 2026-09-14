@@ -92,6 +92,15 @@ export function PatientPage() {
           onChange={(e) => setPatient({ hospitalId: e.target.value })}
         />
       </Section>
+      {current.kind === 'cag' ? (
+        <Section title="IP No.">
+          <Input
+            value={current.patient.ipNo}
+            placeholder="IP number"
+            onChange={(e) => setPatient({ ipNo: e.target.value })}
+          />
+        </Section>
+      ) : null}
       <Section title="Age">
         <Input
           inputMode="numeric"
@@ -362,10 +371,10 @@ export function PatientPage() {
         </div>
       </Section>
       </div>
-      <Section title="Doctor Name">
+      <Section title={current.kind === 'cag' ? 'Consultant' : 'Doctor Name'}>
         <Input
           value={lab.doctorName}
-          placeholder="Doctor name"
+          placeholder={current.kind === 'cag' ? 'Consultant name' : 'Doctor name'}
           onChange={(e) => setLab({ doctorName: e.target.value })}
         />
       </Section>
@@ -404,6 +413,15 @@ export function PatientPage() {
           onChange={(e) => setLab({ contrast: e.target.value })}
         />
       </Section>
+      {current.kind === 'cag' ? (
+        <Section title="Inventory">
+          <Input
+            value={lab.inventory}
+            placeholder="e.g. 5F Radial sheath, 0.035&quot; J-tip guidewire"
+            onChange={(e) => setLab({ inventory: e.target.value })}
+          />
+        </Section>
+      ) : null}
       <div className="lg:col-span-2">
         <Section title="Haemodynamic Data">
           <Textarea
@@ -426,6 +444,21 @@ export function PatientPage() {
           </span>
         </div>
       </Section>
+      {current.kind === 'cag' ? (
+        <Section title="LVEDP">
+          <div className="relative">
+            <Input
+              value={lab.lvedp}
+              placeholder="e.g. 12"
+              onChange={(e) => setLab({ lvedp: e.target.value })}
+              className="pr-16"
+            />
+            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-muted">
+              mmHg
+            </span>
+          </div>
+        </Section>
+      ) : null}
       <Button size="lg" className="w-full lg:col-span-2" onClick={() => navigate(`/procedure/${id}/access`)}>
         Next — Access
       </Button>

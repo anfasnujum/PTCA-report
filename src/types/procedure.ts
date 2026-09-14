@@ -57,6 +57,7 @@ export type Patient = {
   age: number | ''
   sex: 'M' | 'F' | 'Other' | ''
   hospitalId: string
+  ipNo: string
   date: string
   startTime: string
 }
@@ -70,6 +71,8 @@ export type LabDetails = {
   contrast: string
   haemodynamicData: string
   aorticPressureMmHg: string
+  inventory: string
+  lvedp: string
 }
 
 export type Indication = {
@@ -288,6 +291,7 @@ export type Procedure = {
   lab: LabDetails
   notes: string
   noteOverride?: string
+  cagDocOverride?: string
   cagImpressions?: CagImpression[]
   cagCustomImpressions?: string[]
   cagAdvices?: CagAdvice[]
