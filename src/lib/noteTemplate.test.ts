@@ -1943,6 +1943,8 @@ describe('generateNote', () => {
           contrast: 'Iohexol 40 mL',
           haemodynamicData: 'Stable throughout',
           aorticPressureMmHg: '130/80',
+          inventory: '',
+          lvedp: '',
         },
       }),
     )

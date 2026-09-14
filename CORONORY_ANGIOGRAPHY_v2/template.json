@@ -1,0 +1,182 @@
+{
+  "id": "0df4fd8c-3880-4573-bf96-183ba161d7b6",
+  "name": "CORONORY ANGIOGRAPHY v2",
+  "schema": {
+    "instructions": "Map only facts that are actually documented in the source pages; never invent values. Copy identifiers and numeric values exactly as written. Use DD/MM/YYYY for dates where possible. Use \"\" (or an empty table) when the source has no evidence for a field \u2014 do not guess.\n\nTarget form: Cardiology.\n\nDepartment-specific mapping notes:\n- Map diagnosis bullets and major comorbid lines into final_diagnosis.\n- Keep vessel-wise CAG and graft findings split across cag and graft_angio.\n- Map two-panel lab table into lab_investigations rows with keys TESTS, TESTS2, TESTS3, TESTS4.\n- Map discharge list to discharge_advice and keep diet/activity/review/booking/signature lines in discharge_advice_notes, review_follow_up, booking_note, consultant_signature.",
+    "focus_page_hints": [],
+    "fields": [
+      {
+        "type": "keyvalue",
+        "key": "patient_name",
+        "required": true,
+        "content_prompt": "Extract the patient's full name exactly as written on the case sheet, in CAPITAL / Block letters (drop titles like Mr/Mrs/Ms).",
+        "maps_to": "patient_name",
+        "verify": true
+      },
+      {
+        "type": "keyvalue",
+        "key": "age",
+        "required": true,
+        "content_prompt": "Extract the patient's age as written (e.g. \"45\").",
+        "maps_to": null,
+        "verify": true
+      },
+      {
+        "type": "keyvalue",
+        "key": "sex",
+        "required": false,
+        "content_prompt": "Extract the patient's sex as written (e.g. \"M/F\").",
+        "maps_to": null,
+        "verify": false
+      },
+      {
+        "type": "keyvalue",
+        "key": "cath_no",
+        "required": false,
+        "content_prompt": "",
+        "maps_to": null,
+        "verify": false
+      },
+      {
+        "type": "keyvalue",
+        "key": "cath_tech",
+        "required": false,
+        "content_prompt": "",
+        "maps_to": null,
+        "verify": false
+      },
+      {
+        "type": "keyvalue",
+        "key": "date",
+        "required": false,
+        "content_prompt": "Extract the date as provided (DOP).",
+        "maps_to": null,
+        "verify": false
+      },
+      {
+        "type": "keyvalue",
+        "key": "scrub_nurse",
+        "required": false,
+        "content_prompt": "",
+        "maps_to": null,
+        "verify": false
+      },
+      {
+        "type": "keyvalue",
+        "key": "ip_no",
+        "required": false,
+        "content_prompt": "Extract the inpatient (IP) number exactly as written. Digits only.",
+        "maps_to": "ip_no",
+        "verify": false
+      },
+      {
+        "type": "keyvalue",
+        "key": "inventory",
+        "required": false,
+        "content_prompt": "",
+        "maps_to": null,
+        "verify": false
+      },
+      {
+        "type": "keyvalue",
+        "key": "access",
+        "required": false,
+        "content_prompt": "From the Inventory line, the vascular access. One of: RRA, RFA, Nil, Brachial, LFV, RFV, LFA. Default when the line only says 'Inventory' is RRA. Never invent a value: if the line is absent or unreadable, leave the field empty.",
+        "maps_to": null,
+        "verify": false
+      },
+      {
+        "type": "keyvalue",
+        "key": "catheter",
+        "required": false,
+        "content_prompt": "From the Inventory line, the diagnostic catheter. One of: 5F TIG, 5.2F JR 4.0, 5F MPA. Two catheters may be listed comma-separated. Near-misses map to the closest entry (e.g. 'TIG' \u2192 5F TIG). Never invent a value: if the line is absent or unreadable, leave the field empty.",
+        "maps_to": null,
+        "verify": false
+      },
+      {
+        "type": "keyvalue",
+        "key": "contrast",
+        "required": false,
+        "content_prompt": "From the Inventory line, contrast as '<volume> ml <brand>'. Brand is one of: Omnipaque, Visipaque, Xenetix. Any of these spellings mean Omnipaque: 100 ml Omnipaque, 30 ml Omnipaque, 100 ml Omniplaque, 100 ml Omniaque, 100ml Omniaque, 100ml Omnipaque, 100 ml Ominipague, 100 ml omnipaque, 200 ml Omnipaque. Typical CAG volume is 30\u201370 ml. Never invent a value: if the line is absent or unreadable, leave the field empty.",
+        "maps_to": null,
+        "verify": false
+      },
+      {
+        "type": "keyvalue",
+        "key": "hemodynamic_data",
+        "required": false,
+        "content_prompt": "Aortic pressure as '<systolic>/<diastolic> mmHg' from 'Hemodynamic Data : Aortic Pressure :'. Leave empty if not written \u2014 do not carry a value from another document.",
+        "maps_to": null,
+        "verify": false
+      },
+      {
+        "type": "keyvalue",
+        "key": "lvedp",
+        "required": false,
+        "content_prompt": "LVEDP in mmHg if written after 'LVEDP:'. Empty otherwise.",
+        "maps_to": null,
+        "verify": false
+      },
+      {
+        "type": "keyvalue",
+        "key": "lmca",
+        "required": false,
+        "content_prompt": "Left main finding, verbatim after 'LMCA :'. Typical values: 'Normal.', 'shows minor plaque', 'distal LMCA <n>% stenosis'.",
+        "maps_to": null,
+        "verify": false
+      },
+      {
+        "type": "keyvalue",
+        "key": "lad",
+        "required": false,
+        "content_prompt": "LAD finding verbatim after 'LAD :' INCLUDING the continuation lines for D1/D2 (diagonals belong to LAD). Keep 'Type III vessel.' if present. Preserve percentages and segment words (ostial / proximal / mid / distal).",
+        "maps_to": null,
+        "verify": false
+      },
+      {
+        "type": "keyvalue",
+        "key": "lcx",
+        "required": false,
+        "content_prompt": "LCX finding verbatim after 'LCX :' INCLUDING OM / ramus continuation lines. Keep the dominance phrase ('Non-dominant vessel,' / 'Co-dominant').",
+        "maps_to": null,
+        "verify": false
+      },
+      {
+        "type": "keyvalue",
+        "key": "rca",
+        "required": false,
+        "content_prompt": "RCA finding verbatim after 'RCA :' INCLUDING PDA / PLV continuation lines. Keep 'Dominant vessel,'. Stop before any 'PERIPHERAL ANGIOGRAM' block.",
+        "maps_to": null,
+        "verify": false
+      },
+      {
+        "type": "keyvalue",
+        "key": "impression",
+        "required": false,
+        "content_prompt": "The IMPRESSION line. Starts with one of: NORMAL CORONARIES, SVD, DVD, TVD, LM + DVD, LM + TVD, CALCIFIC TVD, ISR / PATENT STENT \u2014 then any qualifier verbatim. Seen values: SVD, TVD, CAG: LM + TVD PAG : B/L SEVERE INFRAPOPLITEAL DISEASE, CAG: PAG :, CALCIFIC TVD, LM 30-40% WITH PATENT STENT IN LAD, LAD -60% ISR, PATENT STENT IN LCX LM & RCA -MILD DISEASE, TVD WITH PATENT STENTS IN LM-LAD / RCA.",
+        "maps_to": null,
+        "verify": false
+      },
+      {
+        "type": "keyvalue",
+        "key": "advice",
+        "required": false,
+        "content_prompt": "The ADVICE line verbatim. Closed set in practice: OMT, PTA (POBA) TO (L) SFA + ATA, CABG FOR CAD VASCULAR SURGERY / IR OPINION FOR PVOD, OMT FOR CAD PTA TO (L) EIA + INFRAPOPLITEAL VESSEL, I\u00b0 PTCA TO LAD, CABG VS MVPCI, CABG, PTCA LAD.",
+        "maps_to": null,
+        "verify": false
+      }
+    ]
+  },
+  "margin_config": {
+    "start_sequence": [],
+    "repeated_sequence": [
+      {
+        "top": 6.0,
+        "bottom": 1.8,
+        "left": 1.6,
+        "right": 1.6
+      }
+    ],
+    "end_sequence": null
+  }
+}
