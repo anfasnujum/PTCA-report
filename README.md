@@ -31,7 +31,7 @@ The app talks to the access point alias:
 [
   {
     "AllowedHeaders": ["*"],
-    "AllowedMethods": ["GET", "PUT", "HEAD"],
+    "AllowedMethods": ["GET", "PUT", "HEAD", "DELETE"],
     "AllowedOrigins": ["http://localhost:5173", "https://ptca-report-rhwa.vercel.app"],
     "ExposeHeaders": ["ETag"],
     "MaxAgeSeconds": 3000
@@ -45,4 +45,4 @@ The app talks to the access point alias:
 
 Keys are stored in that browser only. Do not commit them. Objects are written with SSE-S3 (`AES256`).
 
-If the same case is edited on two devices at once, the later `updatedAt` wins. Demo seed cases stay on the device and are not uploaded.
+If the same case is edited on two devices at once, the later `updatedAt` wins. Deleting a case on Home also deletes `cathnote/procedures/<id>.json` from the bucket. Demo seed cases stay on the device and are not uploaded.

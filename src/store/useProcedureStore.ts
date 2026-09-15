@@ -138,9 +138,9 @@ export const useProcedureStore = create<ProcedureState>((set, get) => ({
   },
 
   remove: async (id) => {
-    useSyncStore.getState().deleteProcedure(id)
     await db.procedures.delete(id)
     const current = get().current
     if (current?.id === id) set({ current: null, saveState: 'idle', loadError: null })
+    await useSyncStore.getState().deleteProcedure(id)
   },
 }))

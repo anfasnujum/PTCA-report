@@ -76,7 +76,8 @@ export function SettingsPage() {
         <p className="text-sm leading-relaxed text-muted">
           Keep using the app offline on this device. When S3 is enabled, procedures and the device
           catalogue are copied to your private bucket so other phones or laptops with the same keys
-          see the same cases. The later save wins if the same case is edited in two places at once.
+          see the same cases. Removing a case on Home also deletes its object from the bucket. The
+          later save wins if the same case is edited in two places at once.
         </p>
 
         <Switch
@@ -205,7 +206,7 @@ function Field({
 const corsExample = `[
   {
     "AllowedHeaders": ["*"],
-    "AllowedMethods": ["GET", "PUT", "HEAD"],
+    "AllowedMethods": ["GET", "PUT", "HEAD", "DELETE"],
     "AllowedOrigins": [
       "http://localhost:5173",
       "https://ptca-report-rhwa.vercel.app"
@@ -228,7 +229,7 @@ const iamExample = `{
     },
     {
       "Effect": "Allow",
-      "Action": ["s3:GetObject", "s3:PutObject"],
+      "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
       "Resource": [
         "arn:aws:s3:::cathnote-bucket/cathnote/*",
         "arn:aws:s3:ap-south-1:975050082798:accesspoint/cathnote-bucket-vercel/object/cathnote/*"

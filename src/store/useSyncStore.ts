@@ -21,7 +21,7 @@ type SyncState = {
   sync: () => Promise<void>
   testConnection: () => Promise<void>
   pushProcedure: (procedure: Procedure) => void
-  deleteProcedure: (id: string) => void
+  deleteProcedure: (id: string) => Promise<void>
   pushCatalogue: () => void
 }
 
@@ -100,13 +100,17 @@ export const useSyncStore = create<SyncState>((set, get) => ({
     }))
   },
 
-  deleteProcedure: (id) => {
-    queueProcedureCloudDelete(id)
-    if (!isS3Ready()) return
-    set((state) => ({
-      status: state.status === 'error' ? state.status : 'ok',
-      lastPushAt: Date.now(),
-    }))
+  deleteProcedure: async (id) => {
+    try {
+      await queueProcedureCloudDelete(id)
+      if (!isS3Ready()) return
+      set((state) => ({
+        status: state.status === 'error' ? state.status : 'ok',
+        lastPushAt: Date.now(),
+      }))
+    } catch (error) {
+      set({ status: 'error', error: messageOf(error) })
+    }
   },
 
   pushCatalogue: () => {

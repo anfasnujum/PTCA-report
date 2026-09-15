@@ -173,12 +173,18 @@ export function queueProcedureCloudPush(procedure: Procedure): void {
   }, 500)
 }
 
-export function queueProcedureCloudDelete(id: string): void {
+export async function queueProcedureCloudDelete(id: string): Promise<void> {
   rememberDeletedProcedure(id)
   pendingProcedures.delete(id)
   if (!isS3Ready() || isSeedProcedureId(id)) return
+  await procedureFlush.catch(() => undefined)
   const settings = loadS3Settings()
-  void s3Delete(procedureObjectKey(settings.prefix, id), settings).catch(reportError)
+  try {
+    await s3Delete(procedureObjectKey(settings.prefix, id), settings)
+  } catch (error) {
+    reportError(error)
+    throw error
+  }
 }
 
 export function queueCatalogueCloudPush(): void {
