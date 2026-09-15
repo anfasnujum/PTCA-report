@@ -1,7 +1,15 @@
+import type { CSSProperties } from 'react'
 import { cagAdviceItems, cagArterialGraftLine, cagImpressionItems, fmtDisplayDate } from '@/lib/format'
 import { accessNarrative, accessSpecialNote } from '@/lib/access'
 import { mainVesselLabel, mainVesselParagraph } from '@/lib/noteTemplate'
 import type { Procedure } from '@/types/procedure'
+
+// Marks the intended .docx point size for a section, independent of its on-screen
+// pixel size (tuned separately for screen legibility). Read back by the doc-editor's
+// style-baking step so exported formatting matches the non-edited .docx exactly.
+function pt(n: number): CSSProperties {
+  return { '--pt': n } as CSSProperties
+}
 
 function FieldCell({ label, value }: { label: string; value: string }) {
   return (
@@ -66,15 +74,17 @@ export function CagReportLayout({ procedure }: { procedure: Procedure }) {
       style={{ fontFamily: "'Times New Roman', Times, serif" }}
     >
       <div className="text-center">
-        <h2 className="text-lg font-bold uppercase tracking-wide">Coronary Angiography Report</h2>
-        <p className="mt-1">
+        <h2 className="text-lg font-bold tracking-wide" style={pt(16)}>
+          CORONARY ANGIOGRAPHY REPORT
+        </h2>
+        <p className="mt-1" style={pt(13)}>
           <span className="font-semibold">Consultant: </span>
           {p.lab.doctorName || '____'}
         </p>
       </div>
       <hr className="border-t border-border" />
 
-      <table className="w-full border-collapse">
+      <table className="w-full border-collapse" style={pt(9)}>
         <tbody>
           <tr>
             <FieldCell label="Name" value={p.patient.name.toUpperCase()} />
@@ -91,19 +101,16 @@ export function CagReportLayout({ procedure }: { procedure: Procedure }) {
         </tbody>
       </table>
 
-      <div className="border-t border-border pt-2">
+      <div className="border-t border-border pt-2" style={pt(9)}>
         <FieldLine label="Access" value={accessText} tabs={4} />
         {specialNotes ? <FieldLine label="Special Notes" value={specialNotes} tabs={5} /> : null}
         <FieldLine label="Catheter" value={p.lab.catheter} tabs={4} />
         <FieldLine label="Contrast" value={p.lab.contrast} tabs={4} />
-        <p className="py-0.5 text-[10px] font-normal" style={{ paddingLeft: `${0.375 + 2 * 2}em` }}>
-          Haemodynamic Data : {p.lab.haemodynamicData.trim() || '____'}
-          <span className="inline-block w-6" />
-          Aortic Pressure : {aorticPressure || '____'}
-        </p>
+        <FieldLine label="Haemodynamic Data" value={p.lab.haemodynamicData.trim()} tabs={2} />
+        <FieldLine label="Aortic Pressure" value={aorticPressure} tabs={2} />
       </div>
 
-      <div className="space-y-0.5 border-t border-border pt-2">
+      <div className="space-y-0.5 border-t border-border pt-2" style={pt(12)}>
         <p>
           <span className="font-bold">LMCA</span> : {lmca}
         </p>
@@ -128,8 +135,12 @@ export function CagReportLayout({ procedure }: { procedure: Procedure }) {
       </div>
 
       <div className="text-right">
-        <p className="font-semibold">{p.lab.doctorName || '____'}</p>
-        <p className="text-[11px] text-muted">Consultant Interventional Cardiologist &amp; Asst. Professor</p>
+        <p className="font-semibold" style={pt(12)}>
+          {p.lab.doctorName || '____'}
+        </p>
+        <p className="text-[11px] text-muted" style={pt(10)}>
+          Consultant Interventional Cardiologist &amp; Asst. Professor
+        </p>
       </div>
     </div>
   )
