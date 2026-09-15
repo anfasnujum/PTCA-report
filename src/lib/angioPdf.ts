@@ -18,6 +18,7 @@ import {
   vesselReportName,
   lmcaQualifierBits,
   timiRoman,
+  sortFindingsByAnatomy,
 } from '@/lib/format'
 import type { AngioFinding, Procedure } from '@/types/procedure'
 
@@ -57,8 +58,7 @@ function patientLine(p: Procedure): string {
 }
 
 function findingRows(findings: AngioFinding[]): AngioFinding[] {
-  const byVessel = new Map(findings.map((f) => [f.vessel, f]))
-  return VESSELS.map((v) => byVessel.get(v)).filter((f): f is AngioFinding => Boolean(f))
+  return VESSELS.flatMap((v) => sortFindingsByAnatomy(findings.filter((f) => f.vessel === v)))
 }
 
 export async function downloadAngioPdf(procedure: Procedure): Promise<void> {

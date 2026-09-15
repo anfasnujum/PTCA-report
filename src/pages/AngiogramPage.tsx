@@ -16,7 +16,7 @@ export function AngiogramPage() {
   return (
     <div className="space-y-5 pb-4">
       <p className="text-sm text-muted">
-        Tap a vessel to log plaque, stenosis or lesion, TIMI flow and features. Star at least one target.
+        Tap a vessel to log plaque, stenosis or lesion. Add another issue when more than one segment is diseased. Star at least one target.
       </p>
       <Section title="Dominance">
         <ChipScroller>

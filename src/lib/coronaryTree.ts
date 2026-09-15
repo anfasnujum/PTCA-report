@@ -51,9 +51,12 @@ export function buildCoronarySvg(
   findings: AngioFinding[],
   mode: 'interactive' | 'export',
 ): string {
-  const byVessel = new Map(findings.map((f) => [f.vessel, f]))
   const branches = CORONARY_TREE.map((b) => {
-    const finding = byVessel.get(b.vessel)
+    const list = findings.filter((f) => f.vessel === b.vessel)
+    const finding = list.reduce<AngioFinding | undefined>((best, f) => {
+      if (!best) return f
+      return findingSeverity(f) > findingSeverity(best) ? f : best
+    }, undefined)
     const marked = Boolean(finding)
     const color =
       mode === 'export'
@@ -62,7 +65,7 @@ export function buildCoronarySvg(
           : unmarkedStroke()
         : interactiveStroke(finding)
     const showLabel = mode === 'interactive' || marked
-    const target = Boolean(finding?.isTarget)
+    const target = list.some((f) => f.isTarget)
     const label = showLabel
       ? `<text x="${b.lx}" y="${b.ly}" fill="#10172a" font-size="12" font-weight="600" font-family="Inter, ui-sans-serif, system-ui, sans-serif">${escapeXml(target ? `★ ${b.label}` : b.label)}</text>`
       : ''

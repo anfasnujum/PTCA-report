@@ -1,8 +1,13 @@
-import { defaultDiameter } from '@/lib/format'
+import { defaultDiameter, findingSeverity } from '@/lib/format'
 import type { BalloonUse, Procedure, SegmentChoice, Vessel } from '@/types/procedure'
 
 export function lastLocation(p: Procedure): { vessel: Vessel; segment?: SegmentChoice } {
-  const target = p.baselineAngio.find((a) => a.isTarget) ?? p.baselineAngio[0]
+  const targets = p.baselineAngio.filter((a) => a.isTarget)
+  const target =
+    targets.reduce<(typeof targets)[number] | undefined>((best, f) => {
+      if (!best) return f
+      return findingSeverity(f) > findingSeverity(best) ? f : best
+    }, undefined) ?? p.baselineAngio[0]
   for (let i = p.events.length - 1; i >= 0; i--) {
     const e = p.events[i]
     if (e.kind === 'guidewire' || e.kind === 'imaging') {
@@ -29,7 +34,7 @@ export function lastStentEventId(p: Procedure, vessel?: Vessel): string | undefi
 }
 
 export function targetVessels(p: Procedure): Vessel[] {
-  return p.baselineAngio.filter((a) => a.isTarget).map((a) => a.vessel)
+  return [...new Set(p.baselineAngio.filter((a) => a.isTarget).map((a) => a.vessel))]
 }
 
 export function defaultBalloon(p: Procedure): BalloonUse {

@@ -102,7 +102,7 @@ export type Access = {
 
 export type LmcaLengthMode = 'category' | 'mm'
 export type LmcaLengthCategory = 'short' | 'long'
-export type FindingType = 'normal' | 'plaque' | 'stenosis' | 'lesion'
+export type FindingType = 'normal' | 'plaque' | 'stenosis' | 'lesion' | 'total-occlusion' | 'other'
 export type PlaqueGrade = 'minor' | 'mild' | 'moderate' | 'severe' | 'other'
 export type LadBranch = 'D1' | 'D2' | 'major diagonal'
 export type LadInvolvement = 'bifurcation' | 'ostium'
@@ -131,6 +131,7 @@ export type AngioFinding = {
   findingType?: FindingType
   plaqueGrade?: PlaqueGrade
   plaqueOther?: string
+  findingOther?: string
   stenosis: number
   stenosisMode?: 'single' | 'range'
   stenosisTo?: number
@@ -146,6 +147,8 @@ export type AngioFinding = {
   lcxInvolvement?: LadInvolvement
   segmentOther?: string
   omMajor?: boolean
+  lcxParent?: boolean
+  joinBefore?: string
 }
 
 export type GuideCatheter = {

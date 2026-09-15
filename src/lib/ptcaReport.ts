@@ -1,15 +1,34 @@
-import { fmtSize, vesselReportName } from '@/lib/format'
+import { fmtSize, formatSegments, vesselReportName } from '@/lib/format'
 import { hasStentEvents } from '@/lib/noteTemplate'
-import type { Access, LabDetails, Outcome, Periprocedural, Procedure } from '@/types/procedure'
+import type { Access, AngioFinding, LabDetails, Outcome, Periprocedural, Procedure } from '@/types/procedure'
 
 function shortVesselCode(vessel: string): string {
   return vessel === 'LMCA' ? 'LM' : vessel
 }
 
+function targetLabel(
+  f: Pick<AngioFinding, 'vessel' | 'segment' | 'omMajor' | 'lcxParent'>,
+  repeatVessel: boolean,
+): string {
+  const name = shortVesselCode(vesselReportName(f))
+  if (!repeatVessel) return name
+  const phrase = formatSegments(f.segment)
+  return phrase ? `${phrase} ${name}` : name
+}
+
+function labelledTargets(targets: AngioFinding[]): string[] {
+  const counts = new Map<string, number>()
+  for (const f of targets) {
+    const key = vesselReportName(f)
+    counts.set(key, (counts.get(key) ?? 0) + 1)
+  }
+  return targets.map((f) => targetLabel(f, (counts.get(vesselReportName(f)) ?? 0) > 1))
+}
+
 export function targetVesselsShort(procedure: Procedure): string {
   const targets = procedure.baselineAngio.filter((f) => f.isTarget)
   if (!targets.length) return '____'
-  return targets.map((f) => shortVesselCode(vesselReportName(f))).join(' - ')
+  return labelledTargets(targets).join(' - ')
 }
 
 export function ptcaTitle(procedure: Procedure): string {
@@ -35,7 +54,7 @@ export function accessShortCode(access: Access): string {
 export function ptcaInventorySummary(procedure: Procedure): string {
   const targets = procedure.baselineAngio.filter((f) => f.isTarget)
   if (!targets.length) return 'PTCA'
-  return `PTCA ${targets.map((f) => shortVesselCode(vesselReportName(f))).join(' to ')}`
+  return `PTCA ${labelledTargets(targets).join(' to ')}`
 }
 
 export function ptcaInventoryLines(procedure: Procedure): Array<{ label: string; value: string }> {

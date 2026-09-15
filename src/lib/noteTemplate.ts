@@ -14,7 +14,6 @@ import {
   formatSegments,
   findingNoteValue,
   formatDescribedFinding,
-  findingSubject,
   findingTypeOf,
   hasTimiFlow,
   isUnremarkableFinding,
@@ -32,6 +31,10 @@ import {
   ladOtherSentence,
   VESSELS,
   timiRoman,
+  sortFindingsByAnatomy,
+  applyVesselMeta,
+  freeTextSentence,
+  issueJoinPhrase,
 } from '@/lib/format'
 import { accessNarrative, accessSpecialNoteLine, formatLabAccess } from '@/lib/access'
 import type {
@@ -120,6 +123,24 @@ function diseaseShowsSentence(f: AngioFinding, lead: string): string {
   return `${lead} ${formatDescribedFinding(f)}${noteBit}.${timi}`
 }
 
+function findingShowsLead(f: AngioFinding): string {
+  return `${capitalise(findingLocationShort(f))} shows`
+}
+
+function findingDiseaseClause(f: AngioFinding): string {
+  if (isLadOtherSegment(f)) return freeTextSentence(f.segmentOther)
+  return diseaseShowsSentence(f, findingShowsLead(f))
+}
+
+function labeledDiseaseSentence(f: AngioFinding, intro = ''): string {
+  const disease = findingDiseaseClause(f)
+  const name = vesselReportName(f)
+  if (intro) return `${name}: ${intro}. ${disease}`
+  const keepLabel = MAIN_VESSELS.includes(f.vessel) || f.vessel === 'Ramus'
+  if (keepLabel && formatSegments(f.segment)) return `${name}: ${disease}`
+  return disease
+}
+
 export function findingSentence(f: AngioFinding): string {
   if (f.vessel === 'LMCA') {
     if (f.separateOrigin) return 'LMCA: separate origin of LAD and LCX.'
@@ -130,7 +151,7 @@ export function findingSentence(f: AngioFinding): string {
     }
     const lines: string[] = []
     if (lengthLabel) lines.push(`LMCA: ${lengthLabel}.`)
-    lines.push(diseaseShowsSentence(f, `${findingSubject(f.vessel, f.segment)} shows`))
+    lines.push(findingDiseaseClause(f))
     return lines.join('\n')
   }
 
@@ -145,21 +166,16 @@ export function findingSentence(f: AngioFinding): string {
     if (isNormal) {
       return lead ? `LAD: ${lead} and Normal.` : `${prefix}${placeBit ? `${placeBit}: ` : ''}Normal.`
     }
-    const diseaseLead = placeBit ? `${placeBit} shows` : 'shows'
-    if (lead) return `LAD: ${lead}. ${diseaseShowsSentence(f, diseaseLead)}`
-    const fullLead = placeBit ? `${prefix}${placeBit} shows` : `${prefix}shows`
-    return diseaseShowsSentence(f, fullLead)
+    return labeledDiseaseSentence(f, lead)
   }
 
   if (f.vessel === 'LCX') {
     const dominance = lcxDominanceLabel(f)
+    const name = vesselReportName(f)
     if (isNormal) {
-      return dominance ? `LCX: ${dominance} and Normal.` : `${prefix}${placeBit ? `${placeBit}: ` : ''}Normal.`
+      return dominance ? `${name}: ${dominance} and Normal.` : `${prefix}${placeBit ? `${placeBit}: ` : ''}Normal.`
     }
-    const diseaseLead = placeBit ? `${placeBit} shows` : 'shows'
-    if (dominance) return `LCX: ${dominance}. ${diseaseShowsSentence(f, diseaseLead)}`
-    const fullLead = placeBit ? `${prefix}${placeBit} shows` : `${prefix}shows`
-    return diseaseShowsSentence(f, fullLead)
+    return labeledDiseaseSentence(f, dominance)
   }
 
   if (isSizeVessel(f.vessel)) {
@@ -168,10 +184,7 @@ export function findingSentence(f: AngioFinding): string {
     if (isNormal) {
       return size ? `${name}: ${size} and Normal.` : `${prefix}${placeBit ? `${placeBit}: ` : ''}Normal.`
     }
-    const diseaseLead = placeBit ? `${placeBit} shows` : 'shows'
-    if (size) return `${name}: ${size}. ${diseaseShowsSentence(f, diseaseLead)}`
-    const fullLead = placeBit ? `${prefix}${placeBit} shows` : `${prefix}shows`
-    return diseaseShowsSentence(f, fullLead)
+    return labeledDiseaseSentence(f, size)
   }
 
   if (f.vessel === 'RCA') {
@@ -179,10 +192,7 @@ export function findingSentence(f: AngioFinding): string {
     if (isNormal) {
       return lead ? `RCA: ${lead} and Normal.` : `${prefix}${placeBit ? `${placeBit}: ` : ''}Normal.`
     }
-    const diseaseLead = placeBit ? `${placeBit} shows` : 'shows'
-    if (lead) return `RCA: ${lead}. ${diseaseShowsSentence(f, diseaseLead)}`
-    const fullLead = placeBit ? `${prefix}${placeBit} shows` : `${prefix}shows`
-    return diseaseShowsSentence(f, fullLead)
+    return labeledDiseaseSentence(f, lead)
   }
 
   if (isNormal) {
@@ -190,8 +200,105 @@ export function findingSentence(f: AngioFinding): string {
     return `${prefix}${after}Normal.`
   }
 
-  const lead = placeBit ? `${prefix}${placeBit} shows` : `${prefix}shows`
-  return diseaseShowsSentence(f, lead)
+  return labeledDiseaseSentence(f)
+}
+
+function startLower(s: string): string {
+  if (!s) return s
+  if (/^[A-Z]{2,}(?:\b|[0-9])/.test(s) || /^[A-Z][0-9]/.test(s)) return s
+  return s.charAt(0).toLowerCase() + s.slice(1)
+}
+
+function joinDiseaseClauses(disease: AngioFinding[]): string {
+  const items = disease
+    .map((f) => ({ f, clause: findingDiseaseClause(f) }))
+    .filter((item) => item.clause)
+  if (!items.length) return ''
+  let text = items[0].clause
+  for (let i = 1; i < items.length; i++) {
+    const connector = issueJoinPhrase(items[i].f, i - 1)
+    const head = text.replace(/[.\s]+$/, '')
+    const tail = items[i].clause
+    if (!connector) {
+      text = `${head}. ${tail}`
+      continue
+    }
+    const glued = /^[,;:]/.test(connector)
+      ? `${head}${connector} ${startLower(tail)}`
+      : `${head} ${connector} ${startLower(tail)}`
+    text = glued.replace(/\s+/g, ' ')
+  }
+  return /[.!?]$/.test(text.trim()) ? text : `${text}.`
+}
+
+function combineVesselFindings(meta: AngioFinding, disease: AngioFinding[]): string {
+  const joined = joinDiseaseClauses(disease)
+
+  if (meta.vessel === 'LMCA') {
+    if (meta.separateOrigin) return 'LMCA: separate origin of LAD and LCX.'
+    const lengthLabel = lmcaLengthLabel(meta)
+    if (lengthLabel) return `LMCA: ${lengthLabel}.\n${joined}`
+    return joined
+  }
+
+  const name = vesselReportName(meta)
+  if (meta.vessel === 'LAD') {
+    const lead = ladLeadClause(meta)
+    return lead ? `${name}: ${lead}. ${joined}` : `${name}: ${joined}`
+  }
+  if (meta.vessel === 'LCX') {
+    const dominance = lcxDominanceLabel(meta)
+    return dominance ? `${name}: ${dominance}. ${joined}` : `${name}: ${joined}`
+  }
+  if (isSizeVessel(meta.vessel)) {
+    const size = ramusSizeLabel(meta)
+    return size ? `${name}: ${size}. ${joined}` : `${name}: ${joined}`
+  }
+  if (meta.vessel === 'RCA') {
+    const lead = rcaLeadClause(meta)
+    return lead ? `${name}: ${lead}. ${joined}` : `${name}: ${joined}`
+  }
+  return `${name}: ${joined}`
+}
+
+function pickMetaSource(group: AngioFinding[]): AngioFinding {
+  return (
+    group.find(
+      (f) =>
+        Boolean(f.ladType) ||
+        Boolean(f.ladRemarkOpen) ||
+        Boolean(f.lcxDominance) ||
+        Boolean(f.rcaDominance) ||
+        Boolean(f.rcaRemarkOpen) ||
+        Boolean(f.ramusSize) ||
+        Boolean(f.lengthCategory) ||
+        Boolean(f.lengthMm) ||
+        Boolean(f.separateOrigin) ||
+        Boolean(f.omMajor) ||
+        Boolean(f.lcxParent),
+    ) ?? group[0]
+  )
+}
+
+export function vesselSentence(group: AngioFinding[]): string {
+  if (!group.length) return ''
+  const sorted = sortFindingsByAnatomy(group)
+  if (sorted.length === 1) return findingSentence(sorted[0])
+
+  const metaSource = pickMetaSource(sorted)
+  const disease = sorted.filter((f) => isLadOtherSegment(f) || !isUnremarkableFinding(f))
+  if (disease.length === 0) {
+    return findingSentence({
+      ...applyVesselMeta(sorted[0], metaSource),
+      findingType: 'normal',
+      stenosis: 0,
+      features: [],
+      segment: undefined,
+      segmentOther: undefined,
+    })
+  }
+  if (disease.length === 1) return findingSentence(applyVesselMeta(disease[0], metaSource))
+  return combineVesselFindings(metaSource, disease)
 }
 
 function dominanceSentence(dominance?: string): string | null {
@@ -216,21 +323,38 @@ function defaultAngioFinding(vessel: Vessel): AngioFinding {
   }
 }
 
+function groupFindingsByVessel(findings: AngioFinding[]): Map<Vessel, AngioFinding[]> {
+  const byVessel = new Map<Vessel, AngioFinding[]>()
+  for (const f of findings) {
+    const list = byVessel.get(f.vessel)
+    if (list) list.push(f)
+    else byVessel.set(f.vessel, [f])
+  }
+  return byVessel
+}
+
 function findingsInOrder(
-  byVessel: Map<Vessel, AngioFinding>,
+  byVessel: Map<Vessel, AngioFinding[]>,
   order: Vessel[],
 ): AngioFinding[] {
   const found: AngioFinding[] = []
   for (const v of order) {
-    const f = byVessel.get(v)
-    if (f) found.push(f)
+    const list = byVessel.get(v)
+    if (list?.length) found.push(...sortFindingsByAnatomy(list))
   }
   return found
 }
 
 function withAppendedFindings(line: string, extras: AngioFinding[]): string {
   if (!extras.length) return line
-  return `${line} ${extras.map(findingSentence).join(' ')}`
+  const groups: AngioFinding[][] = []
+  const seen = new Set<Vessel>()
+  for (const f of extras) {
+    if (seen.has(f.vessel)) continue
+    seen.add(f.vessel)
+    groups.push(extras.filter((x) => x.vessel === f.vessel))
+  }
+  return `${line} ${groups.map(vesselSentence).join(' ')}`
 }
 
 function angioNarrative(
@@ -242,17 +366,16 @@ function angioNarrative(
   if (findings.length === 0) {
     return [lead, 'Coronary angiogram findings not recorded.'].filter(Boolean).join('\n')
   }
-  const byVessel = new Map<Vessel, AngioFinding>()
-  for (const f of findings) byVessel.set(f.vessel, f)
+  const byVessel = groupFindingsByVessel(findings)
 
   const folded = new Set<Vessel>([...LAD_REPORT_BRANCHES, ...LCX_REPORT_BRANCHES])
   const lines: string[] = []
 
   for (const v of REPORT_VESSEL_ORDER) {
     const found = byVessel.get(v)
-    const f = found ?? (MAIN_VESSELS.includes(v) ? defaultAngioFinding(v) : undefined)
-    if (!f) continue
-    let sentence = findingSentence(f)
+    const group = found ?? (MAIN_VESSELS.includes(v) ? [defaultAngioFinding(v)] : undefined)
+    if (!group) continue
+    let sentence = vesselSentence(group)
     if (v === 'LAD') {
       sentence = withAppendedFindings(sentence, findingsInOrder(byVessel, LAD_REPORT_BRANCHES))
     }
@@ -265,7 +388,7 @@ function angioNarrative(
   for (const v of VESSELS) {
     if (REPORT_VESSEL_ORDER.includes(v) || folded.has(v)) continue
     const found = byVessel.get(v)
-    if (found) lines.push(findingSentence(found))
+    if (found) lines.push(vesselSentence(found))
   }
 
   if (opts?.includeTargets !== false) {
@@ -285,14 +408,13 @@ function angioNarrative(
 const RCA_REPORT_BRANCHES: Vessel[] = ['PDA', 'PLV']
 
 export function mainVesselParagraph(findings: AngioFinding[], vessel: Vessel): string {
-  const byVessel = new Map<Vessel, AngioFinding>()
-  for (const f of findings) byVessel.set(f.vessel, f)
+  const byVessel = groupFindingsByVessel(findings)
 
   const found = byVessel.get(vessel)
-  const f = found ?? (MAIN_VESSELS.includes(vessel) ? defaultAngioFinding(vessel) : undefined)
-  if (!f) return 'Not assessed.'
+  const group = found ?? (MAIN_VESSELS.includes(vessel) ? [defaultAngioFinding(vessel)] : undefined)
+  if (!group) return 'Not assessed.'
 
-  let sentence = findingSentence(f)
+  let sentence = vesselSentence(group)
   if (vessel === 'LAD') {
     sentence = withAppendedFindings(sentence, findingsInOrder(byVessel, LAD_REPORT_BRANCHES))
   }
@@ -302,7 +424,11 @@ export function mainVesselParagraph(findings: AngioFinding[], vessel: Vessel): s
   if (vessel === 'RCA') {
     sentence = withAppendedFindings(sentence, findingsInOrder(byVessel, RCA_REPORT_BRANCHES))
   }
-  return sentence.replace(new RegExp(`^${vessel}\\s*:\\s*`), '')
+  const name = vesselReportName(group[0] ?? { vessel })
+  const labels = [...new Set([name, vessel])].map((label) =>
+    label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+  )
+  return sentence.replace(new RegExp(`^(?:${labels.join('|')})\\s*:\\s*`), '')
 }
 
 function balloonPhrase(b: BalloonUse): string {

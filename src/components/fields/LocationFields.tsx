@@ -1,7 +1,7 @@
-import type { Segment, SegmentChoice, Vessel } from '@/types/procedure'
+import type { SegmentChoice, Vessel } from '@/types/procedure'
 import { Chip, ChipScroller } from '@/components/ui/chip'
 import { Section } from '@/components/ui/section'
-import { LEFT_VESSELS, RIGHT_VESSELS, primarySegment, segmentsFor, selectSegment } from '@/lib/format'
+import { LEFT_VESSELS, RIGHT_VESSELS, asSegments, segmentsFor, selectSegment } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 export function LocationFields({
@@ -14,7 +14,7 @@ export function LocationFields({
   vessel: Vessel
   segment?: SegmentChoice
   onVessel: (v: Vessel) => void
-  onSegment: (s: Segment | undefined) => void
+  onSegment: (s: SegmentChoice | undefined) => void
   targets?: Vessel[]
 }) {
   return (
@@ -39,7 +39,7 @@ export function LocationFields({
           {segmentsFor(vessel).map((s) => (
             <Chip
               key={s}
-              selected={primarySegment(segment) === s}
+              selected={asSegments(segment).includes(s)}
               onClick={() => onSegment(selectSegment(segment, s))}
             >
               {s}

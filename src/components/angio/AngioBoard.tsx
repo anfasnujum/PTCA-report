@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Download } from 'lucide-react'
+import { Download, Plus } from 'lucide-react'
 import type { AngioFinding, LadBranch, LadInvolvement, LadVesselType, LcxBranch, LcxDominance, RamusSize, RcaDominance, TimiFlow, Vessel } from '@/types/procedure'
 import { Chip, ChipScroller, NumberChips } from '@/components/ui/chip'
 import { Section } from '@/components/ui/section'
@@ -12,10 +12,10 @@ import { downloadAngioPdf } from '@/lib/angioPdf'
 import { CORONARY_TREE, TREE_VIEWBOX, interactiveStroke } from '@/lib/coronaryTree'
 import {
   asSegments,
+  defaultIssueJoin,
   DEFAULT_STENOSIS_RANGE,
   LEFT_VESSELS,
   lmcaLengthMode,
-  primarySegment,
   RIGHT_VESSELS,
   segmentsFor,
   selectSegment,
@@ -27,15 +27,22 @@ import {
   isSizeVessel,
   vesselReportName,
   formatDescribedFinding,
+  formatSegments,
   featureLabel,
   formatStenosis,
   findingSeverity,
   findingTypeOf,
+  findingIssueLabel,
+  findingsForVessel,
   hasTimiFlow,
+  sortFindingsByAnatomy,
   stenosisModeOf,
   stenosisRangeOf,
   STENOSIS_PRESETS,
+  syncVesselMeta,
   timiRoman,
+  vesselMetaFrom,
+  worstFinding,
 } from '@/lib/format'
 import { nid } from '@/lib/ids'
 import { useProcedureStore } from '@/store/useProcedureStore'
@@ -162,7 +169,9 @@ function PercentFields({
   )
 }
 
-function emptyFinding(vessel: Vessel): AngioFinding {
+function emptyFinding(vessel: Vessel, existing: AngioFinding[] = []): AngioFinding {
+  const siblings = existing.filter((f) => f.vessel === vessel)
+  const prior = siblings[0]
   return {
     id: nid(),
     vessel,
@@ -171,7 +180,18 @@ function emptyFinding(vessel: Vessel): AngioFinding {
     timiFlow: 'none',
     features: [],
     isTarget: false,
+    ...(prior ? vesselMetaFrom(prior) : {}),
   }
+}
+
+function vesselSummary(list: AngioFinding[]): string {
+  if (!list.length) return 'tap'
+  if (list.length === 1) {
+    const f = list[0]
+    if (isLadOtherSegment(f)) return f.segmentOther?.trim() || 'other'
+    return `${formatDescribedFinding(f)}${hasTimiFlow(f) ? ` · T${timiRoman(f.timiFlow)}` : ''}`
+  }
+  return sortFindingsByAnatomy(list).map(findingIssueLabel).join(' · ')
 }
 
 export function AngioBoard({
@@ -181,23 +201,70 @@ export function AngioBoard({
   findings: AngioFinding[]
   onChange: (next: AngioFinding[]) => void
 }) {
-  const [editing, setEditing] = useState<AngioFinding | null>(null)
+  const [hubVessel, setHubVessel] = useState<Vessel | null>(null)
+  const [editing, setEditing] = useState<{ finding: AngioFinding; fromHub: boolean } | null>(null)
 
-  const get = (v: Vessel) => findings.find((f) => f.vessel === v)
+  const open = (v: Vessel) => {
+    const list = findingsForVessel(findings, v)
+    if (list.length > 1) {
+      setHubVessel(v)
+      setEditing(null)
+      return
+    }
+    setHubVessel(null)
+    setEditing({ finding: list[0] ?? emptyFinding(v, findings), fromHub: false })
+  }
 
-  const open = (v: Vessel) => setEditing(get(v) ?? emptyFinding(v))
+  const persist = (f: AngioFinding): AngioFinding[] => {
+    const rest = findings.filter((x) => x.id !== f.id)
+    const next = syncVesselMeta([...rest, f], f)
+    onChange(next)
+    return next
+  }
 
-  const save = (f: AngioFinding) => {
-    const rest = findings.filter((x) => x.vessel !== f.vessel)
-    onChange([...rest, f])
+  const save = (f: AngioFinding, andAdd = false) => {
+    const next = persist(f)
+    if (andAdd) {
+      setEditing({ finding: emptyFinding(f.vessel, next), fromHub: true })
+      setHubVessel(null)
+      return
+    }
+    if (editing?.fromHub || findingsForVessel(next, f.vessel).length > 1) {
+      setEditing(null)
+      setHubVessel(f.vessel)
+      return
+    }
     setEditing(null)
+    setHubVessel(null)
+  }
+
+  const closeEditor = () => {
+    if (editing?.fromHub) {
+      setEditing(null)
+      setHubVessel(editing.finding.vessel)
+      return
+    }
+    setEditing(null)
+    setHubVessel(null)
+  }
+
+  const clearEditing = () => {
+    if (!editing) return
+    const vessel = editing.finding.vessel
+    const persisted = findings.some((x) => x.id === editing.finding.id)
+    const next = persisted ? findings.filter((x) => x.id !== editing.finding.id) : findings
+    if (persisted) onChange(next)
+    const remaining = findingsForVessel(next, vessel)
+    setEditing(null)
+    setHubVessel(editing.fromHub || remaining.length > 1 ? vessel : null)
   }
 
   const renderGroup = (label: string, vessels: Vessel[]) => (
     <Section title={label}>
       <div className="grid grid-cols-3 gap-2">
         {vessels.map((v) => {
-          const f = get(v)
+          const list = findingsForVessel(findings, v)
+          const worst = worstFinding(list)
           return (
             <button
               key={v}
@@ -205,20 +272,18 @@ export function AngioBoard({
               onClick={() => open(v)}
               className={cn(
                 'min-h-16 rounded-2xl border px-2 py-2 text-center',
-                stenosisColor(f ? findingSeverity(f) : 0),
-                f?.isTarget && 'ring-2 ring-accent',
+                stenosisColor(worst ? findingSeverity(worst) : 0),
+                list.some((f) => f.isTarget) && 'ring-2 ring-accent',
               )}
             >
               <div className="text-sm font-semibold">
                 {v}
-                {f?.omMajor ? ' · Major' : ''}
+                {list.some((f) => f.omMajor) ? ' · Major' : ''}
+                {list.some((f) => f.lcxParent) ? ' · Parent' : ''}
+                {list.length > 1 ? ` · ${list.length}` : ''}
               </div>
-              <div className="text-xs opacity-80">
-                {f
-                  ? isLadOtherSegment(f)
-                    ? (f.segmentOther?.trim() || 'other')
-                    : `${formatDescribedFinding(f)}${hasTimiFlow(f) ? ` · T${timiRoman(f.timiFlow)}` : ''}`
-                  : 'tap'}
+              <div className="text-xs opacity-80 line-clamp-2">
+                {vesselSummary(list)}
               </div>
             </button>
           )
@@ -238,12 +303,27 @@ export function AngioBoard({
       </div>
       {editing ? (
         <FindingSheet
-          finding={editing}
-          onClose={() => setEditing(null)}
-          onSave={save}
-          onClear={() => {
-            onChange(findings.filter((f) => f.vessel !== editing.vessel))
-            setEditing(null)
+          key={editing.finding.id}
+          finding={editing.finding}
+          otherCount={findingsForVessel(findings, editing.finding.vessel).filter((f) => f.id !== editing.finding.id).length}
+          onClose={closeEditor}
+          onSave={(f) => save(f)}
+          onAddAnother={(f) => save(f, true)}
+          onClear={clearEditing}
+        />
+      ) : hubVessel ? (
+        <VesselHubSheet
+          vessel={hubVessel}
+          findings={findingsForVessel(findings, hubVessel)}
+          onClose={() => setHubVessel(null)}
+          onEdit={(f) => setEditing({ finding: f, fromHub: true })}
+          onAdd={() => setEditing({ finding: emptyFinding(hubVessel, findings), fromHub: true })}
+          onJoinChange={(id, joinBefore) => {
+            onChange(findings.map((f) => (f.id === id ? { ...f, joinBefore } : f)))
+          }}
+          onClearAll={() => {
+            onChange(findings.filter((f) => f.vessel !== hubVessel))
+            setHubVessel(null)
           }}
         />
       ) : null}
@@ -303,7 +383,7 @@ function CoronarySchematic({
             label={b.label}
             lx={b.lx}
             ly={b.ly}
-            color={interactiveStroke(findings.find((f) => f.vessel === b.vessel))}
+            color={interactiveStroke(worstFinding(findings.filter((f) => f.vessel === b.vessel)))}
             onClick={() => onSelect(b.vessel)}
           />
         ))}
@@ -337,19 +417,114 @@ function VesselPath({
   )
 }
 
+function VesselHubSheet({
+  vessel,
+  findings,
+  onClose,
+  onEdit,
+  onAdd,
+  onJoinChange,
+  onClearAll,
+}: {
+  vessel: Vessel
+  findings: AngioFinding[]
+  onClose: () => void
+  onEdit: (f: AngioFinding) => void
+  onAdd: () => void
+  onJoinChange: (id: string, joinBefore: string) => void
+  onClearAll: () => void
+}) {
+  const list = sortFindingsByAnatomy(findings)
+  const title = vesselReportName(list[0] ?? { vessel })
+  return (
+    <BottomSheet
+      open
+      title={title}
+      onClose={onClose}
+      footer={
+        <div className="flex gap-2">
+          <Button variant="secondary" className="flex-1" onClick={onClearAll}>
+            Clear all
+          </Button>
+          <Button className="flex-1" onClick={onAdd}>
+            <Plus className="size-4" />
+            Add issue
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-3">
+        <p className="text-sm text-muted">
+          Each issue is one segment. Tap a row to edit, or add another diseased segment.
+        </p>
+        {list.map((f, i) => (
+          <div key={f.id} className="space-y-3">
+            {i > 0 ? (
+              <div className="flex items-center gap-2 px-1">
+                <span className="h-px flex-1 bg-border" />
+                <Input
+                  aria-label="Connector"
+                  value={f.joinBefore ?? defaultIssueJoin(i - 1)}
+                  onChange={(e) => onJoinChange(f.id, e.target.value)}
+                  className="min-h-9 max-w-[14rem] text-center text-sm"
+                />
+                <span className="h-px flex-1 bg-border" />
+              </div>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => onEdit(f)}
+              className={cn(
+                'w-full rounded-2xl border px-3 py-3 text-left',
+                stenosisColor(findingSeverity(f)),
+                f.isTarget && 'ring-2 ring-accent',
+              )}
+            >
+              <div className="text-sm font-semibold">
+                {isLadOtherSegment(f)
+                  ? 'Other'
+                  : formatSegments(f.segment) || 'No segment'}
+                {f.isTarget ? ' · target' : ''}
+              </div>
+              <div className="text-xs opacity-80">
+                {isLadOtherSegment(f)
+                  ? f.segmentOther?.trim() || 'other'
+                  : `${formatDescribedFinding(f)}${hasTimiFlow(f) ? ` · T${timiRoman(f.timiFlow)}` : ''}`}
+              </div>
+            </button>
+          </div>
+        ))}
+      </div>
+    </BottomSheet>
+  )
+}
+
 function FindingSheet({
   finding,
+  otherCount,
   onClose,
   onSave,
+  onAddAnother,
   onClear,
 }: {
   finding: AngioFinding
+  otherCount: number
   onClose: () => void
   onSave: (f: AngioFinding) => void
+  onAddAnother: (f: AngioFinding) => void
   onClear: () => void
 }) {
   const [f, setF] = useState(finding)
   const ladOther = isLadOtherSegment(f)
+  const sheetTitle = (() => {
+    const name = vesselReportName(f)
+    if (otherCount > 0) {
+      if (isLadOtherSegment(f)) return `${name} · other`
+      const seg = formatSegments(f.segment)
+      return seg ? `${name} · ${seg}` : `${name} · new issue`
+    }
+    return name
+  })()
   const hideNotes =
     f.vessel === 'Ramus' ||
     (findingTypeOf(f) === 'normal' &&
@@ -366,15 +541,21 @@ function FindingSheet({
   return (
     <BottomSheet
       open
-      title={vesselReportName(f)}
+      title={sheetTitle}
       onClose={onClose}
       footer={
-        <div className="flex gap-2">
-          <Button variant="secondary" className="flex-1" onClick={onClear}>
-            Clear
-          </Button>
-          <Button className="flex-1" onClick={() => onSave(f)}>
-            Save finding
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <Button variant="secondary" className="flex-1" onClick={onClear}>
+              {otherCount > 0 ? 'Remove issue' : 'Clear'}
+            </Button>
+            <Button className="flex-1" onClick={() => onSave(f)}>
+              Save finding
+            </Button>
+          </div>
+          <Button variant="outline" className="w-full" onClick={() => onAddAnother(f)}>
+            <Plus className="size-4" />
+            Add another issue
           </Button>
         </div>
       }
@@ -476,24 +657,32 @@ function FindingSheet({
           </Section>
         ) : null}
         {f.vessel === 'LCX' ? (
-          <Section title="Dominance">
-            <ChipScroller>
-              {LCX_DOMINANCE.map((d) => (
-                <Chip
-                  key={d.id}
-                  selected={f.lcxDominance === d.id}
-                  onClick={() =>
-                    setF({
-                      ...f,
-                      lcxDominance: f.lcxDominance === d.id ? undefined : (d.id as LcxDominance),
-                    })
-                  }
-                >
-                  {d.label}
-                </Chip>
-              ))}
-            </ChipScroller>
-          </Section>
+          <>
+            <Section title="Dominance">
+              <ChipScroller>
+                {LCX_DOMINANCE.map((d) => (
+                  <Chip
+                    key={d.id}
+                    selected={f.lcxDominance === d.id}
+                    onClick={() =>
+                      setF({
+                        ...f,
+                        lcxDominance: f.lcxDominance === d.id ? undefined : (d.id as LcxDominance),
+                      })
+                    }
+                  >
+                    {d.label}
+                  </Chip>
+                ))}
+              </ChipScroller>
+            </Section>
+            <Switch
+              label="Parent"
+              yesNo
+              checked={!!f.lcxParent}
+              onChange={(lcxParent) => setF({ ...f, lcxParent })}
+            />
+          </>
         ) : null}
         {isSizeVessel(f.vessel) ? (
           <Section title="Size">
@@ -562,7 +751,7 @@ function FindingSheet({
               (s) => (
                 <Chip
                   key={s}
-                  selected={primarySegment(f.segment) === s}
+                  selected={asSegments(f.segment).includes(s)}
                   onClick={() => setF({ ...f, segment: selectSegment(f.segment, s) })}
                 >
                   {s === 'other' ? 'Other' : s}
@@ -592,6 +781,13 @@ function FindingSheet({
               </Chip>
             ))}
           </ChipScroller>
+          {findingTypeOf(f) === 'other' ? (
+            <Input
+              placeholder="Enter finding"
+              value={f.findingOther ?? ''}
+              onChange={(e) => setF({ ...f, findingOther: e.target.value })}
+            />
+          ) : null}
         </Section>
         {findingTypeOf(f) === 'plaque' ? (
           <Section title="Plaque">
@@ -625,7 +821,9 @@ function FindingSheet({
               </div>
             ) : null}
           </Section>
-        ) : findingTypeOf(f) === 'normal' ? null : (
+        ) : findingTypeOf(f) === 'normal' ||
+          findingTypeOf(f) === 'total-occlusion' ||
+          findingTypeOf(f) === 'other' ? null : (
           <PercentFields
             title={findingTypeOf(f) === 'lesion' ? 'Lesion' : 'Stenosis'}
             f={f}

@@ -1,5 +1,5 @@
 import { ANGIO_FEATURES, CAG_ADVICES, CAG_IMPRESSIONS, LAD_BRANCH_NOTE_SEGMENTS } from '@/lib/constants'
-import type { AngioFinding, CagAdvice, CagImpression, FindingType, PlaqueGrade, Segment, TimiFlow, Vessel } from '@/types/procedure'
+import type { AngioFinding, CagAdvice, CagImpression, FindingType, PlaqueGrade, Segment, SegmentChoice, TimiFlow, Vessel } from '@/types/procedure'
 
 export const DISCLAIMER =
   'Not a medical device — documentation aid only. Verify all entries before signing.'
@@ -51,15 +51,6 @@ export const ALL_SEGMENTS: Segment[] = [
   'mid-distal',
   'distal',
 ]
-const ANATOMIC_SEGMENTS: Segment[] = [
-  'ostial',
-  'ostioproximal',
-  'proximal',
-  'proximal-mid',
-  'mid',
-  'mid-distal',
-  'distal',
-]
 
 export function segmentsFor(vessel: Vessel): Segment[] {
   return vessel === 'LMCA' ? SEGMENTS : ALL_SEGMENTS
@@ -81,22 +72,55 @@ export function primarySegment(segment?: Segment | Segment[] | string): Segment 
   return asSegments(segment)[0]
 }
 
+const ANATOMY_ORDER: Segment[] = [...ALL_SEGMENTS, 'other']
+
+export function findingsForVessel(findings: AngioFinding[], vessel: Vessel): AngioFinding[] {
+  return findings.filter((f) => f.vessel === vessel)
+}
+
+export function sortFindingsByAnatomy(findings: AngioFinding[]): AngioFinding[] {
+  return [...findings].sort((a, b) => {
+    const sa = primarySegment(a.segment)
+    const sb = primarySegment(b.segment)
+    const ia = sa ? ANATOMY_ORDER.indexOf(sa) : ANATOMY_ORDER.length
+    const ib = sb ? ANATOMY_ORDER.indexOf(sb) : ANATOMY_ORDER.length
+    return ia - ib
+  })
+}
+
+export const DEFAULT_ISSUE_JOIN = 'followed by'
+
+export function defaultIssueJoin(connectorIndex: number): string {
+  if (connectorIndex <= 0) return DEFAULT_ISSUE_JOIN
+  if (connectorIndex === 1) return 'and'
+  return ','
+}
+
+export function issueJoinPhrase(
+  f: Pick<AngioFinding, 'joinBefore'>,
+  connectorIndex = 0,
+): string {
+  if (typeof f.joinBefore === 'string') return f.joinBefore.trim()
+  return defaultIssueJoin(connectorIndex)
+}
+
 export function selectSegment(
   current: Segment | Segment[] | string | undefined,
   s: Segment,
-): Segment | undefined {
-  return primarySegment(current) === s ? undefined : s
+): SegmentChoice | undefined {
+  if (s === 'other') return asSegments(current).includes('other') ? undefined : 'other'
+  const selected = asSegments(current).filter((x) => x !== 'other')
+  const next = selected.includes(s) ? selected.filter((x) => x !== s) : asSegments([...selected, s])
+  if (!next.length) return undefined
+  return next.length === 1 ? next[0] : next
 }
 
 export function formatAnatomicSegments(segment?: Segment | Segment[] | string): string {
   const list = asSegments(segment).filter((s) => s !== 'other')
   if (!list.length) return ''
   if (list.length === 1) return list[0]
-  const idxs = list.map((s) => ANATOMIC_SEGMENTS.indexOf(s))
-  const contiguous = idxs.every((n, i) => i === 0 || n === idxs[i - 1] + 1)
-  if (contiguous) return `${list[0]} to ${list[list.length - 1]}`
-  if (list.length === 2) return `${list[0]} and ${list[1]}`
-  return `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`
+  if (list.length === 2) return `${list[0]} & ${list[1]}`
+  return `${list.slice(0, -1).join(', ')} & ${list[list.length - 1]}`
 }
 
 export function formatSegments(segment?: Segment | Segment[] | string): string {
@@ -120,8 +144,7 @@ export function showsLadBranchNotes(
   segment?: Segment | Segment[] | string,
 ): boolean {
   if (vessel !== 'LAD') return false
-  const seg = primarySegment(segment)
-  return !!seg && (LAD_BRANCH_NOTE_SEGMENTS as readonly string[]).includes(seg)
+  return asSegments(segment).some((seg) => (LAD_BRANCH_NOTE_SEGMENTS as readonly string[]).includes(seg))
 }
 
 export function ladBranchNoteValue(
@@ -273,14 +296,56 @@ export function isSizeVessel(vessel: Vessel): boolean {
   return SIZE_VESSELS.includes(vessel)
 }
 
-export function vesselReportName(f: Pick<AngioFinding, 'vessel' | 'omMajor'>): string {
-  if (isOmVessel(f.vessel) && f.omMajor) return 'Major OM'
+export function vesselReportName(
+  f: Pick<AngioFinding, 'vessel' | 'omMajor' | 'lcxParent'>,
+): string {
+  if (isOmVessel(f.vessel) && f.omMajor) return `${f.vessel} - Major OM`
   if (isDiagonalVessel(f.vessel) && f.omMajor) return 'Major Diagonal'
+  if (f.vessel === 'LCX' && f.lcxParent) return 'Parent LCX'
   return f.vessel
 }
 
+export const VESSEL_META_KEYS = [
+  'separateOrigin',
+  'lengthMode',
+  'lengthMm',
+  'lengthCategory',
+  'ladType',
+  'ladRemarkOpen',
+  'ladRemark',
+  'lcxDominance',
+  'ramusSize',
+  'rcaDominance',
+  'rcaRemarkOpen',
+  'rcaRemark',
+  'omMajor',
+  'lcxParent',
+] as const
+
+export type VesselMetaKey = (typeof VESSEL_META_KEYS)[number]
+
+export function vesselMetaFrom(f: AngioFinding): Partial<AngioFinding> {
+  const meta: Partial<AngioFinding> = {}
+  for (const key of VESSEL_META_KEYS) {
+    if (f[key] !== undefined) (meta as Record<VesselMetaKey, AngioFinding[VesselMetaKey]>)[key] = f[key]
+  }
+  return meta
+}
+
+export function applyVesselMeta(f: AngioFinding, source: AngioFinding): AngioFinding {
+  const next = { ...f }
+  for (const key of VESSEL_META_KEYS) {
+    next[key] = source[key] as never
+  }
+  return next
+}
+
+export function syncVesselMeta(findings: AngioFinding[], source: AngioFinding): AngioFinding[] {
+  return findings.map((f) => (f.vessel === source.vessel ? applyVesselMeta(f, source) : f))
+}
+
 export function findingLocationShort(
-  f: Pick<AngioFinding, 'vessel' | 'segment' | 'omMajor'>,
+  f: Pick<AngioFinding, 'vessel' | 'segment' | 'omMajor' | 'lcxParent'>,
 ): string {
   const phrase = formatSegments(f.segment)
   const name = vesselReportName(f)
@@ -383,33 +448,44 @@ export function findingTypeOf(f: Pick<AngioFinding, 'findingType'>): FindingType
     f.findingType === 'plaque' ||
     f.findingType === 'lesion' ||
     f.findingType === 'normal' ||
-    f.findingType === 'stenosis'
+    f.findingType === 'stenosis' ||
+    f.findingType === 'total-occlusion' ||
+    f.findingType === 'other'
   ) {
     return f.findingType
   }
   return 'stenosis'
 }
 
-export function findingNoun(f: Pick<AngioFinding, 'findingType'>): 'plaque' | 'stenosis' | 'lesion' | 'normal' {
+export function findingNoun(f: Pick<AngioFinding, 'findingType'>): FindingType {
   return findingTypeOf(f)
 }
 
 export function formatFindingPhrase(
   f: Pick<
     AngioFinding,
-    'findingType' | 'plaqueGrade' | 'plaqueOther' | 'stenosis' | 'stenosisMode' | 'stenosisTo' | 'stenosisRange'
+    | 'findingType'
+    | 'plaqueGrade'
+    | 'plaqueOther'
+    | 'findingOther'
+    | 'stenosis'
+    | 'stenosisMode'
+    | 'stenosisTo'
+    | 'stenosisRange'
   >,
 ): string {
   const type = findingTypeOf(f)
   if (type === 'normal') return 'Normal'
+  if (type === 'total-occlusion') return 'total occlusion'
+  if (type === 'other') return (f.findingOther ?? '').trim() || 'other'
   if (type === 'plaque') {
     if (f.plaqueGrade === 'other') {
       const custom = (f.plaqueOther ?? '').trim().replace(/%+$/, '').trim()
       const grade = custom ? `${custom}% ` : ''
-      return `${grade}plaque`
+      return `${grade}plaques`
     }
     const grade = f.plaqueGrade ? `${f.plaqueGrade} ` : ''
-    return `${grade}plaque`
+    return `${grade}plaques`
   }
   return `${formatStenosis(f)} ${type}`
 }
@@ -429,8 +505,11 @@ export function formatFeatureList(features: string[]): string {
 export function isChronicTotalOcclusion(
   f: Pick<AngioFinding, 'features' | 'findingType' | 'stenosis'>,
 ): boolean {
+  const type = findingTypeOf(f)
+  if (type === 'plaque' || type === 'normal' || type === 'total-occlusion' || type === 'other') {
+    return false
+  }
   if (f.features.includes('CTO')) return true
-  if (findingTypeOf(f) === 'plaque') return false
   return f.stenosis === 100
 }
 
@@ -440,9 +519,25 @@ export function formatDescribedFinding(f: AngioFinding): string {
   return feats ? `${feats}, ${finding}` : finding
 }
 
+export function findingIssueLabel(f: AngioFinding): string {
+  if (isLadOtherSegment(f)) return f.segmentOther?.trim() || 'other'
+  const seg = formatSegments(f.segment)
+  const type = findingTypeOf(f)
+  const body =
+    type === 'normal'
+      ? 'Normal'
+      : type === 'plaque' || type === 'total-occlusion' || type === 'other'
+        ? formatFindingPhrase(f)
+        : formatStenosis(f)
+  return seg ? `${seg} ${body}` : body
+}
+
 export function findingSeverity(f: AngioFinding): number {
-  if (findingTypeOf(f) === 'normal') return 0
-  if (findingTypeOf(f) === 'plaque') {
+  const type = findingTypeOf(f)
+  if (type === 'normal') return 0
+  if (type === 'total-occlusion') return 100
+  if (type === 'other') return (f.findingOther ?? '').trim() ? 50 : 20
+  if (type === 'plaque') {
     if (f.plaqueGrade === 'other') {
       const n = Number.parseFloat((f.plaqueOther ?? '').trim())
       return Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : 0
@@ -458,10 +553,17 @@ export function findingSeverity(f: AngioFinding): number {
   return stenosisMax(f)
 }
 
+export function worstFinding(findings: AngioFinding[]): AngioFinding | undefined {
+  if (!findings.length) return undefined
+  return findings.reduce((best, f) => (findingSeverity(f) > findingSeverity(best) ? f : best))
+}
+
 export function isUnremarkableFinding(f: AngioFinding): boolean {
-  if (findingTypeOf(f) === 'normal') return f.features.length === 0
+  const type = findingTypeOf(f)
+  if (type === 'normal') return f.features.length === 0
+  if (type === 'total-occlusion' || type === 'other') return false
   if (f.features.length) return false
-  if (findingTypeOf(f) === 'plaque') {
+  if (type === 'plaque') {
     if (f.plaqueGrade === 'other') return !(f.plaqueOther ?? '').trim()
     return !f.plaqueGrade
   }

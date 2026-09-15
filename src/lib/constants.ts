@@ -96,6 +96,8 @@ export const FINDING_TYPES = [
   { id: 'plaque', label: 'Plaques' },
   { id: 'stenosis', label: 'Stenosis' },
   { id: 'lesion', label: 'Lesion' },
+  { id: 'total-occlusion', label: 'Total Occlusion' },
+  { id: 'other', label: 'Other' },
 ] as const
 
 export const PLAQUE_GRADES = ['minor', 'mild', 'moderate', 'severe', 'other'] as const
@@ -315,7 +317,7 @@ export const CAG_IMPRESSIONS = [
 ] as const
 
 export const CAG_ADVICES = [
-  { id: 'omt', label: 'OMT', report: 'Optimal medical therapy' },
+  { id: 'omt', label: 'OMT' },
   { id: 'medical-management', label: 'Medical Management' },
   { id: 'ptca-lad', label: 'PTCA -> LAD', report: 'PTCA to LAD' },
   { id: 'ptca-lcx', label: 'PTCA -> LCX', report: 'PTCA to LCX' },
