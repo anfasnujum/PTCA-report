@@ -1,5 +1,5 @@
 import { ANGIO_FEATURES, CAG_ADVICES, CAG_IMPRESSIONS, LAD_BRANCH_NOTE_SEGMENTS } from '@/lib/constants'
-import type { AngioFinding, CagAdvice, CagImpression, FindingType, PlaqueGrade, Segment, SegmentChoice, TimiFlow, Vessel } from '@/types/procedure'
+import type { AngioFinding, BridgingGrade, CagAdvice, CagImpression, FindingType, PlaqueGrade, Segment, SegmentChoice, TimiFlow, Vessel } from '@/types/procedure'
 
 export const DISCLAIMER =
   'Not a medical device — documentation aid only. Verify all entries before signing.'
@@ -450,6 +450,7 @@ export function findingTypeOf(f: Pick<AngioFinding, 'findingType'>): FindingType
     f.findingType === 'normal' ||
     f.findingType === 'stenosis' ||
     f.findingType === 'total-occlusion' ||
+    f.findingType === 'myocardial-bridging' ||
     f.findingType === 'other'
   ) {
     return f.findingType
@@ -467,6 +468,7 @@ export function formatFindingPhrase(
     | 'findingType'
     | 'plaqueGrade'
     | 'plaqueOther'
+    | 'bridgingGrade'
     | 'findingOther'
     | 'stenosis'
     | 'stenosisMode'
@@ -487,6 +489,10 @@ export function formatFindingPhrase(
     const grade = f.plaqueGrade ? `${f.plaqueGrade} ` : ''
     return `${grade}plaques`
   }
+  if (type === 'myocardial-bridging') {
+    const grade = f.bridgingGrade ? `${f.bridgingGrade} ` : ''
+    return `${grade}myocardial bridging`
+  }
   return `${formatStenosis(f)} ${type}`
 }
 
@@ -506,7 +512,13 @@ export function isChronicTotalOcclusion(
   f: Pick<AngioFinding, 'features' | 'findingType' | 'stenosis'>,
 ): boolean {
   const type = findingTypeOf(f)
-  if (type === 'plaque' || type === 'normal' || type === 'total-occlusion' || type === 'other') {
+  if (
+    type === 'plaque' ||
+    type === 'normal' ||
+    type === 'total-occlusion' ||
+    type === 'myocardial-bridging' ||
+    type === 'other'
+  ) {
     return false
   }
   if (f.features.includes('CTO')) return true
@@ -526,7 +538,10 @@ export function findingIssueLabel(f: AngioFinding): string {
   const body =
     type === 'normal'
       ? 'Normal'
-      : type === 'plaque' || type === 'total-occlusion' || type === 'other'
+      : type === 'plaque' ||
+          type === 'total-occlusion' ||
+          type === 'myocardial-bridging' ||
+          type === 'other'
         ? formatFindingPhrase(f)
         : formatStenosis(f)
   return seg ? `${seg} ${body}` : body
@@ -550,6 +565,14 @@ export function findingSeverity(f: AngioFinding): number {
     }
     return f.plaqueGrade ? rank[f.plaqueGrade] : 0
   }
+  if (type === 'myocardial-bridging') {
+    const rank: Record<BridgingGrade, number> = {
+      mild: 40,
+      moderate: 60,
+      severe: 85,
+    }
+    return f.bridgingGrade ? rank[f.bridgingGrade] : 0
+  }
   return stenosisMax(f)
 }
 
@@ -567,6 +590,7 @@ export function isUnremarkableFinding(f: AngioFinding): boolean {
     if (f.plaqueGrade === 'other') return !(f.plaqueOther ?? '').trim()
     return !f.plaqueGrade
   }
+  if (type === 'myocardial-bridging') return !f.bridgingGrade
   return stenosisMax(f) === 0
 }
 

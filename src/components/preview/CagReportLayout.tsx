@@ -1,6 +1,6 @@
 import { cagAdviceItems, cagArterialGraftLine, cagImpressionItems, fmtDisplayDate } from '@/lib/format'
 import { accessNarrative, accessSpecialNote } from '@/lib/access'
-import { mainVesselParagraph } from '@/lib/noteTemplate'
+import { mainVesselLabel, mainVesselParagraph } from '@/lib/noteTemplate'
 import type { Procedure } from '@/types/procedure'
 
 function FieldCell({ label, value }: { label: string; value: string }) {
@@ -46,6 +46,7 @@ export function CagReportLayout({ procedure }: { procedure: Procedure }) {
   const lmca = mainVesselParagraph(p.baselineAngio, 'LMCA')
   const lad = mainVesselParagraph(p.baselineAngio, 'LAD')
   const lcx = mainVesselParagraph(p.baselineAngio, 'LCX')
+  const lcxLabel = mainVesselLabel(p.baselineAngio, 'LCX')
   const rca = mainVesselParagraph(p.baselineAngio, 'RCA')
   const limaLine = cagArterialGraftLine('LIMA', p.cagLimaOn, p.cagLimaNote)
   const rimaLine = cagArterialGraftLine('RIMA', p.cagRimaOn, p.cagRimaNote)
@@ -111,7 +112,7 @@ export function CagReportLayout({ procedure }: { procedure: Procedure }) {
         </p>
         {limaLine ? <p>{limaLine}</p> : null}
         <p>
-          <span className="font-bold">LCX</span> : {lcx}
+          <span className="font-bold">{lcxLabel}</span> : {lcx}
         </p>
         {rimaLine ? <p>{rimaLine}</p> : null}
         <p>

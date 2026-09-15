@@ -97,10 +97,12 @@ export const FINDING_TYPES = [
   { id: 'stenosis', label: 'Stenosis' },
   { id: 'lesion', label: 'Lesion' },
   { id: 'total-occlusion', label: 'Total Occlusion' },
+  { id: 'myocardial-bridging', label: 'Myocardial Bridging' },
   { id: 'other', label: 'Other' },
 ] as const
 
 export const PLAQUE_GRADES = ['minor', 'mild', 'moderate', 'severe', 'other'] as const
+export const BRIDGING_GRADES = ['mild', 'moderate', 'severe'] as const
 
 export const ANGIO_FEATURES = [
   'discrete',

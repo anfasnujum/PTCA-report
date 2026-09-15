@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch'
 import { BottomSheet } from '@/components/ui/bottom-sheet'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ANGIO_FEATURES, DISTAL_SEGMENT_NOTES, FINDING_TYPES, LAD_BRANCHES, LAD_INVOLVEMENTS, LAD_VESSEL_TYPES, LCX_BRANCHES, LCX_DOMINANCE, PLAQUE_GRADES, RAMUS_SIZES, RCA_DISTAL_NOTES, RCA_DOMINANCE } from '@/lib/constants'
+import { ANGIO_FEATURES, BRIDGING_GRADES, DISTAL_SEGMENT_NOTES, FINDING_TYPES, LAD_BRANCHES, LAD_INVOLVEMENTS, LAD_VESSEL_TYPES, LCX_BRANCHES, LCX_DOMINANCE, PLAQUE_GRADES, RAMUS_SIZES, RCA_DISTAL_NOTES, RCA_DOMINANCE } from '@/lib/constants'
 import { downloadAngioPdf } from '@/lib/angioPdf'
 import { CORONARY_TREE, TREE_VIEWBOX, interactiveStroke } from '@/lib/coronaryTree'
 import {
@@ -820,6 +820,25 @@ function FindingSheet({
                 </span>
               </div>
             ) : null}
+          </Section>
+        ) : findingTypeOf(f) === 'myocardial-bridging' ? (
+          <Section title="Bridging">
+            <ChipScroller>
+              {BRIDGING_GRADES.map((g) => (
+                <Chip
+                  key={g}
+                  selected={f.bridgingGrade === g}
+                  onClick={() =>
+                    setF({
+                      ...f,
+                      bridgingGrade: f.bridgingGrade === g ? undefined : g,
+                    })
+                  }
+                >
+                  {g}
+                </Chip>
+              ))}
+            </ChipScroller>
           </Section>
         ) : findingTypeOf(f) === 'normal' ||
           findingTypeOf(f) === 'total-occlusion' ||

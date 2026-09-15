@@ -102,8 +102,16 @@ export type Access = {
 
 export type LmcaLengthMode = 'category' | 'mm'
 export type LmcaLengthCategory = 'short' | 'long'
-export type FindingType = 'normal' | 'plaque' | 'stenosis' | 'lesion' | 'total-occlusion' | 'other'
+export type FindingType =
+  | 'normal'
+  | 'plaque'
+  | 'stenosis'
+  | 'lesion'
+  | 'total-occlusion'
+  | 'myocardial-bridging'
+  | 'other'
 export type PlaqueGrade = 'minor' | 'mild' | 'moderate' | 'severe' | 'other'
+export type BridgingGrade = 'mild' | 'moderate' | 'severe'
 export type LadBranch = 'D1' | 'D2' | 'major diagonal'
 export type LadInvolvement = 'bifurcation' | 'ostium'
 export type LcxBranch = 'OM1' | 'OM2' | 'major OM'
@@ -131,6 +139,7 @@ export type AngioFinding = {
   findingType?: FindingType
   plaqueGrade?: PlaqueGrade
   plaqueOther?: string
+  bridgingGrade?: BridgingGrade
   findingOther?: string
   stenosis: number
   stenosisMode?: 'single' | 'range'

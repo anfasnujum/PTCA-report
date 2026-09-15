@@ -424,11 +424,17 @@ export function mainVesselParagraph(findings: AngioFinding[], vessel: Vessel): s
   if (vessel === 'RCA') {
     sentence = withAppendedFindings(sentence, findingsInOrder(byVessel, RCA_REPORT_BRANCHES))
   }
-  const name = vesselReportName(group[0] ?? { vessel })
+  const name = mainVesselLabel(findings, vessel)
   const labels = [...new Set([name, vessel])].map((label) =>
     label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
   )
   return sentence.replace(new RegExp(`^(?:${labels.join('|')})\\s*:\\s*`), '')
+}
+
+export function mainVesselLabel(findings: AngioFinding[], vessel: Vessel): string {
+  const group = findings.filter((f) => f.vessel === vessel)
+  if (!group.length) return vesselReportName({ vessel })
+  return vesselReportName(pickMetaSource(group))
 }
 
 function balloonPhrase(b: BalloonUse): string {

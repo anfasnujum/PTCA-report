@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { generateNote, mainVesselParagraph } from '@/lib/noteTemplate'
+import { generateNote, mainVesselLabel, mainVesselParagraph } from '@/lib/noteTemplate'
 import { demoProcedure, emptyProcedure } from '@/lib/seed'
 import type { Procedure, ProcedureEvent, StentUse } from '@/types/procedure'
 
@@ -1113,6 +1113,49 @@ describe('generateNote', () => {
     expect(note).toContain('Ostioproximal LMCA shows 30% plaques.')
   })
 
+  it('names myocardial bridging grade instead of a percent stenosis', () => {
+    const note = generateNote(
+      base({
+        baselineAngio: [
+          {
+            id: 'lad',
+            vessel: 'LAD',
+            segment: 'mid',
+            stenosis: 0,
+            findingType: 'myocardial-bridging',
+            bridgingGrade: 'mild',
+            timiFlow: 'none',
+            features: [],
+            isTarget: false,
+          },
+        ],
+      }),
+    )
+    expect(note).toContain('LAD: Mid LAD shows mild myocardial bridging.')
+    expect(note).not.toContain('Mid LAD shows 0%')
+  })
+
+  it('lists selected features before myocardial bridging', () => {
+    const note = generateNote(
+      base({
+        baselineAngio: [
+          {
+            id: 'lad',
+            vessel: 'LAD',
+            segment: 'mid',
+            stenosis: 0,
+            findingType: 'myocardial-bridging',
+            bridgingGrade: 'severe',
+            timiFlow: 3,
+            features: ['discrete'],
+            isTarget: false,
+          },
+        ],
+      }),
+    )
+    expect(note).toContain('LAD: Mid LAD shows discrete, severe myocardial bridging. TIMI III flow.')
+  })
+
   it('lists selected features comma-separated before plaque, stenosis or lesion', () => {
     const plaque = generateNote(
       base({
@@ -1254,28 +1297,27 @@ describe('generateNote', () => {
     expect(mainVesselParagraph(findings, 'LCX')).toBe(
       'Non dominant vessel. Proximal Parent LCX shows 70% stenosis.',
     )
+    expect(mainVesselLabel(findings, 'LCX')).toBe('Parent LCX')
   })
 
   it('keeps LCX when Parent is no', () => {
-    const note = generateNote(
-      base({
-        baselineAngio: [
-          {
-            id: '1',
-            vessel: 'LCX',
-            segment: 'mid',
-            stenosis: 40,
-            findingType: 'stenosis',
-            timiFlow: 'none',
-            features: [],
-            isTarget: false,
-            lcxParent: false,
-          },
-        ],
-      }),
-    )
+    const findings = [
+      {
+        id: '1',
+        vessel: 'LCX' as const,
+        segment: 'mid' as const,
+        stenosis: 40,
+        findingType: 'stenosis' as const,
+        timiFlow: 'none' as const,
+        features: [] as string[],
+        isTarget: false,
+        lcxParent: false,
+      },
+    ]
+    const note = generateNote(base({ baselineAngio: findings }))
     expect(note).toContain('LCX: Mid LCX shows 40% stenosis.')
     expect(note).not.toContain('Parent LCX')
+    expect(mainVesselLabel(findings, 'LCX')).toBe('LCX')
   })
 
   it('writes RCA dominance as the first clause, then the segment finding', () => {

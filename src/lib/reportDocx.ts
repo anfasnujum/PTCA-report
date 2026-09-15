@@ -21,7 +21,7 @@ import {
   fmtDisplayDate,
 } from '@/lib/format'
 import { accessNarrative, accessSpecialNote } from '@/lib/access'
-import { mainVesselParagraph, procedureSection } from '@/lib/noteTemplate'
+import { mainVesselLabel, mainVesselParagraph, procedureSection } from '@/lib/noteTemplate'
 import {
   ptcaAdjuvantsText,
   ptcaCommentSentence,
@@ -316,6 +316,7 @@ export async function buildCagReportDocx(procedure: Procedure): Promise<Blob> {
   const lmca = mainVesselParagraph(p.baselineAngio, 'LMCA')
   const lad = mainVesselParagraph(p.baselineAngio, 'LAD')
   const lcx = mainVesselParagraph(p.baselineAngio, 'LCX')
+  const lcxLabel = mainVesselLabel(p.baselineAngio, 'LCX')
   const rca = mainVesselParagraph(p.baselineAngio, 'RCA')
   const limaLine = cagArterialGraftLine('LIMA', p.cagLimaOn, p.cagLimaNote)
   const rimaLine = cagArterialGraftLine('RIMA', p.cagRimaOn, p.cagRimaNote)
@@ -382,7 +383,7 @@ export async function buildCagReportDocx(procedure: Procedure): Promise<Blob> {
     cagFindingParagraph('LAD', lad),
   ]
   if (limaLine) children.push(cagPlainParagraph(limaLine))
-  children.push(cagFindingParagraph('LCX', lcx))
+  children.push(cagFindingParagraph(lcxLabel, lcx))
   if (rimaLine) children.push(cagPlainParagraph(rimaLine))
   children.push(
     cagFindingParagraph('RCA', rca),
