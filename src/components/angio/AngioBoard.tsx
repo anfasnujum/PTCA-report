@@ -22,6 +22,7 @@ import {
   showsLadBranchNotes,
   showsLcxBranchNotes,
   isLadOtherSegment,
+  isDiagonalVessel,
   isOmVessel,
   isSizeVessel,
   vesselReportName,
@@ -547,7 +548,7 @@ function FindingSheet({
             ) : null}
           </Section>
         ) : null}
-        {isOmVessel(f.vessel) ? (
+        {isOmVessel(f.vessel) || isDiagonalVessel(f.vessel) ? (
           <Switch
             label="Major"
             yesNo

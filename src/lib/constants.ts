@@ -37,6 +37,19 @@ export const PCI_TYPES = [
   'Facilitated',
 ] as const
 
+export const CONSULTANTS = [
+  'Dr. Prasanth. S. MD, DM (Cardiology)',
+  'Dr. Santhosh Narayanan MD, DNB, DM (Cardiology)',
+  'Dr. Hariprasad.I DNB (Medicine), DrNB(Cardiology)',
+  'Dr. Kader Muneer. S. MD, DM (Cardiology)',
+] as const
+
+export function matchConsultant(name: string): (typeof CONSULTANTS)[number] | '' {
+  const trimmed = name.trim()
+  const spaced = trimmed.replace(/,([^\s])/g, ', $1')
+  return CONSULTANTS.find((c) => c === trimmed || c === spaced) ?? ''
+}
+
 export const CABG_GRAFTS = ['LIMA', 'RIMA', 'SVG', 'LRA', 'RRA', 'GEA'] as const
 
 export const PRIOR_PCI_TERRITORIES = [
@@ -118,6 +131,19 @@ export const COMPLICATION_CHIPS = [
 
 export const CONTRAST_AGENTS = ['Iohexol', 'Iodixanol', 'Iopromide', 'Ioversol'] as const
 
+export const ANGIO_CONTRAST_AGENTS = [
+  'Omnipaque',
+  'Visipaque',
+  'Xenetix',
+  'Ultravist',
+  'Iomeron',
+  'Optiray',
+  'Iopamiro',
+  'Isovue',
+] as const
+
+export const ANGIO_CONTRAST_VOLUMES = [30, 40, 50, 60, 70, 80, 90, 100, 120, 150, 200] as const
+
 export const GP2B3A = ['none', 'Tirofiban', 'Eptifibatide', 'Abciximab'] as const
 
 export const CLOSURE_METHODS = [
@@ -146,6 +172,22 @@ export const GUIDE_CURVES = [
 
 export const SHEATH_SIZES = ['4F', '5F', '6F', '7F', '8F', '9F', '10F'] as const
 export const GUIDE_SIZES = ['5F', '6F', '7F', '8F'] as const
+
+export const CATHETER_CURVES = [
+  'TIG',
+  'JL 3.5',
+  'JL 4',
+  'JR 3.5',
+  'JR 4',
+  'AR 1',
+  'AR 2',
+  'AL 1',
+  'AL 2',
+  'IM',
+  '3DRC',
+] as const
+
+export const CATHETER_SIZES = ['4F', '5F', '6F'] as const
 
 export const DISTAL_SEGMENT_NOTES = [
   'Involving LAD ostium',
@@ -265,6 +307,9 @@ export const CAG_IMPRESSIONS = [
   { id: 'svd', label: 'SVD', report: 'CAD - Single vessel disease' },
   { id: 'dvd', label: 'DVD', report: 'CAD - Double vessel disease' },
   { id: 'tvd', label: 'TVD', report: 'CAD - Triple vessel disease' },
+  { id: 'lm-svd', label: 'LM + SVD', report: 'LM + Single Vessel Disease' },
+  { id: 'lm-dvd', label: 'LM + DVD', report: 'LM + Double Vessel Disease' },
+  { id: 'lm-tvd', label: 'LM + TVD', report: 'LM + Triple Vessel Disease' },
   { id: 'ectasia', label: 'Coronary artery ectasia' },
   { id: 'ectasia-slow-flow', label: 'Coronary artery ectasia with slow flow' },
 ] as const

@@ -6,7 +6,8 @@ import { generateNote } from '@/lib/noteTemplate'
 import { buildCagReportDocx, buildPtcaReportDocx, buildReportDocx } from '@/lib/reportDocx'
 import { useProcedureStore } from '@/store/useProcedureStore'
 import { cn } from '@/lib/utils'
-import { Bold, Copy, Download, Italic, Printer, RotateCcw, Share2, Underline } from 'lucide-react'
+import { isLockedProcedure } from '@/lib/homeList'
+import { Bold, Check, Copy, Download, Italic, Printer, RotateCcw, Share2, Underline } from 'lucide-react'
 
 function downloadBlobFile(filename: string, blob: Blob) {
   const url = URL.createObjectURL(blob)
@@ -180,10 +181,18 @@ export function PreviewPage() {
     setEditing(false)
   }
 
+  const locked = isLockedProcedure(current)
+
   const toggleFinalised = () => {
     commitEdit()
     setEditing(false)
-    setStatus(current.status === 'finalised' ? 'draft' : 'finalised')
+    setStatus(locked ? 'draft' : 'finalised')
+  }
+
+  const toggleCompleted = () => {
+    commitEdit()
+    setEditing(false)
+    setStatus(current.status === 'completed' ? 'finalised' : 'completed')
   }
 
   const saveSelection = () => {
@@ -208,25 +217,34 @@ export function PreviewPage() {
       <div className="no-print flex flex-wrap items-center gap-2">
         <Button
           variant="secondary"
-          disabled={current.status === 'finalised'}
+          disabled={locked}
           onClick={toggleEditing}
         >
           {editing ? 'Done' : 'Edit in place'}
         </Button>
         <Button
           variant="ghost"
-          disabled={!hasOverride || current.status === 'finalised'}
+          disabled={!hasOverride || locked}
           onClick={regenerate}
         >
           <RotateCcw className="size-4" />
           Regenerate
         </Button>
         <Button
-          variant={current.status === 'finalised' ? 'secondary' : 'outline'}
+          variant={locked ? 'secondary' : 'outline'}
           onClick={toggleFinalised}
         >
-          {current.status === 'finalised' ? 'Reopen draft' : 'Finalise'}
+          {locked ? 'Reopen draft' : 'Finalise'}
         </Button>
+        {locked ? (
+          <Button
+            variant={current.status === 'completed' ? 'default' : 'outline'}
+            onClick={toggleCompleted}
+          >
+            <Check className="size-4" />
+            Completed
+          </Button>
+        ) : null}
       </div>
       <div className="relative">
         {editing ? <EditorToolbar onFontSize={applyFontSize} /> : null}

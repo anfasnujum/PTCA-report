@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import {
   queueCatalogueCloudPush,
+  queueProcedureCloudDelete,
   queueProcedureCloudPush,
   runFullSync,
   setCloudSyncErrorHandler,
@@ -20,6 +21,7 @@ type SyncState = {
   sync: () => Promise<void>
   testConnection: () => Promise<void>
   pushProcedure: (procedure: Procedure) => void
+  deleteProcedure: (id: string) => void
   pushCatalogue: () => void
 }
 
@@ -92,6 +94,15 @@ export const useSyncStore = create<SyncState>((set, get) => ({
   pushProcedure: (procedure) => {
     if (!isS3Ready()) return
     queueProcedureCloudPush(procedure)
+    set((state) => ({
+      status: state.status === 'error' ? state.status : 'ok',
+      lastPushAt: Date.now(),
+    }))
+  },
+
+  deleteProcedure: (id) => {
+    queueProcedureCloudDelete(id)
+    if (!isS3Ready()) return
     set((state) => ({
       status: state.status === 'error' ? state.status : 'ok',
       lastPushAt: Date.now(),

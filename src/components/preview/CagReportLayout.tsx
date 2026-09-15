@@ -1,4 +1,5 @@
-import { cagAdviceSentence, cagArterialGraftLine, cagImpressionSentence, fmtDisplayDate } from '@/lib/format'
+import { cagAdviceItems, cagArterialGraftLine, cagImpressionItems, fmtDisplayDate } from '@/lib/format'
+import { accessNarrative, accessSpecialNote } from '@/lib/access'
 import { mainVesselParagraph } from '@/lib/noteTemplate'
 import type { Procedure } from '@/types/procedure'
 
@@ -10,6 +11,36 @@ function FieldCell({ label, value }: { label: string; value: string }) {
   )
 }
 
+function ListedField({ label, items }: { label: string; items: string[] }) {
+  if (!items.length) {
+    return (
+      <p>
+        <span className="font-bold">{label}</span> : Not recorded.
+      </p>
+    )
+  }
+  return (
+    <div>
+      <p>
+        <span className="font-bold">{label}</span> :
+      </p>
+      <ul className="my-0 list-disc pl-8">
+        {items.map((item, i) => (
+          <li key={`${label}-${i}`}>{item}</li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function FieldLine({ label, value, tabs = 0 }: { label: string; value: string; tabs?: number }) {
+  return (
+    <p className="py-0.5 text-[10px] font-normal" style={{ paddingLeft: `${0.375 + tabs * 2}em` }}>
+      {label} : {value || '____'}
+    </p>
+  )
+}
+
 export function CagReportLayout({ procedure }: { procedure: Procedure }) {
   const p = procedure
   const lmca = mainVesselParagraph(p.baselineAngio, 'LMCA')
@@ -18,11 +49,15 @@ export function CagReportLayout({ procedure }: { procedure: Procedure }) {
   const rca = mainVesselParagraph(p.baselineAngio, 'RCA')
   const limaLine = cagArterialGraftLine('LIMA', p.cagLimaOn, p.cagLimaNote)
   const rimaLine = cagArterialGraftLine('RIMA', p.cagRimaOn, p.cagRimaNote)
-  const impression = cagImpressionSentence(p.cagImpressions, p.cagCustomImpressions)
-  const advice = cagAdviceSentence(p.cagAdvices, p.cagCustomAdvices)
-  const aorticPressure = p.lab.aorticPressureMmHg ? `${p.lab.aorticPressureMmHg} mmHg` : ''
-  const lvedp = p.lab.lvedp ? `${p.lab.lvedp} mmHg` : ''
-  const hasExtraHaemo = Boolean(p.lab.haemodynamicData.trim() || aorticPressure || lvedp)
+  const impressionItems = cagImpressionItems(p.cagImpressions, p.cagCustomImpressions)
+  const adviceItems = cagAdviceItems(p.cagAdvices, p.cagCustomAdvices)
+  const accessText = accessNarrative(p.access)
+  const specialNotes = accessSpecialNote(p.access)
+  const aorticPressure = p.lab.aorticPressureMmHg.trim()
+    ? /mm\s*hg$/i.test(p.lab.aorticPressureMmHg.trim())
+      ? p.lab.aorticPressureMmHg.trim()
+      : `${p.lab.aorticPressureMmHg.trim()} mmHg`
+    : ''
 
   return (
     <div
@@ -55,26 +90,19 @@ export function CagReportLayout({ procedure }: { procedure: Procedure }) {
         </tbody>
       </table>
 
-      <table className="w-full border-collapse border-y border-border">
-        <tbody>
-          <tr>
-            <FieldCell label="Inventory" value={p.lab.inventory} />
-            <FieldCell label="Access" value={p.lab.access} />
-            <FieldCell label="Catheter" value={p.lab.catheter} />
-            <FieldCell label="Contrast" value={p.lab.contrast} />
-          </tr>
-          {hasExtraHaemo ? (
-            <tr>
-              <FieldCell label="Haemodynamic Data" value={p.lab.haemodynamicData} />
-              <FieldCell label="Aortic Pressure" value={aorticPressure} />
-              <FieldCell label="LVEDP" value={lvedp} />
-              <td className="px-1.5 py-0.5" />
-            </tr>
-          ) : null}
-        </tbody>
-      </table>
+      <div className="border-t border-border pt-2">
+        <FieldLine label="Access" value={accessText} tabs={4} />
+        {specialNotes ? <FieldLine label="Special Notes" value={specialNotes} tabs={5} /> : null}
+        <FieldLine label="Catheter" value={p.lab.catheter} tabs={4} />
+        <FieldLine label="Contrast" value={p.lab.contrast} tabs={4} />
+        <p className="py-0.5 text-[10px] font-normal" style={{ paddingLeft: `${0.375 + 2 * 2}em` }}>
+          Haemodynamic Data : {p.lab.haemodynamicData.trim() || '____'}
+          <span className="inline-block w-6" />
+          Aortic Pressure : {aorticPressure || '____'}
+        </p>
+      </div>
 
-      <div className="space-y-0.5">
+      <div className="space-y-0.5 border-t border-border pt-2">
         <p>
           <span className="font-bold">LMCA</span> : {lmca}
         </p>
@@ -89,12 +117,8 @@ export function CagReportLayout({ procedure }: { procedure: Procedure }) {
         <p>
           <span className="font-bold">RCA</span> : {rca}
         </p>
-        <p>
-          <span className="font-bold">IMPRESSION</span> : {impression}
-        </p>
-        <p>
-          <span className="font-bold">ADVICE</span> : {advice}
-        </p>
+        <ListedField label="IMPRESSION" items={impressionItems} />
+        <ListedField label="ADVICE" items={adviceItems} />
         {p.notes.trim() ? (
           <p>
             <span className="font-bold">FINAL</span> : {p.notes.trim()}

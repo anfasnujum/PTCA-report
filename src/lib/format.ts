@@ -265,12 +265,17 @@ export function isOmVessel(vessel: Vessel): boolean {
   return vessel === 'OM1' || vessel === 'OM2' || vessel === 'OM3'
 }
 
+export function isDiagonalVessel(vessel: Vessel): boolean {
+  return vessel === 'D1' || vessel === 'D2' || vessel === 'D3'
+}
+
 export function isSizeVessel(vessel: Vessel): boolean {
   return SIZE_VESSELS.includes(vessel)
 }
 
 export function vesselReportName(f: Pick<AngioFinding, 'vessel' | 'omMajor'>): string {
-  if (isOmVessel(f.vessel) && f.omMajor) return `${f.vessel} - Major OM`
+  if (isOmVessel(f.vessel) && f.omMajor) return 'Major OM'
+  if (isDiagonalVessel(f.vessel) && f.omMajor) return 'Major Diagonal'
   return f.vessel
 }
 
@@ -569,13 +574,31 @@ function listedSentence(
   selected?: string[],
   custom?: string[],
 ): string {
+  const items = listedItems(options, selected, custom)
+  return items.length ? items.join('\n') : 'Not recorded.'
+}
+
+function listedItems(
+  options: readonly { id: string; label: string; report?: string }[],
+  selected?: string[],
+  custom?: string[],
+): string[] {
   const presets = options
     .filter((o) => (selected ?? []).includes(o.id))
     .map((o) => o.report ?? o.label)
   const extras = (custom ?? []).map((s) => s.trim().replace(/[.]+$/, '')).filter(Boolean)
-  const labels = [...presets, ...extras].map(listedLine).filter(Boolean)
-  if (!labels.length) return 'Not recorded.'
-  return labels.join('\n')
+  return [...presets, ...extras].map(listedLine).filter(Boolean)
+}
+
+export function cagImpressionItems(
+  selected?: CagImpression[],
+  custom?: string[],
+): string[] {
+  return listedItems(CAG_IMPRESSIONS, selected, custom)
+}
+
+export function cagAdviceItems(selected?: CagAdvice[], custom?: string[]): string[] {
+  return listedItems(CAG_ADVICES, selected, custom)
 }
 
 export function cagImpressionSentence(

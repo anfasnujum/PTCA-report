@@ -30,7 +30,7 @@ export type SegmentChoice = Segment | Segment[]
 export type TimiFlow = 0 | 1 | 2 | 3
 export type FindingTimiFlow = TimiFlow | 'none'
 
-export type ProcedureStatus = 'draft' | 'finalised'
+export type ProcedureStatus = 'draft' | 'finalised' | 'completed'
 export type ProcedureKind = 'ptca' | 'cag'
 export type CagImpression =
   | 'normal-epicardial'
@@ -38,6 +38,9 @@ export type CagImpression =
   | 'svd'
   | 'dvd'
   | 'tvd'
+  | 'lm-svd'
+  | 'lm-dvd'
+  | 'lm-tvd'
   | 'ectasia'
   | 'ectasia-slow-flow'
 export type CagAdvice =
@@ -275,6 +278,7 @@ export type Procedure = {
   createdAt: number
   updatedAt: number
   status: ProcedureStatus
+  completedAt?: number
   kind?: ProcedureKind
   patient: Patient
   indication: Indication
@@ -301,7 +305,7 @@ export type Procedure = {
   cagRimaNote?: string
 }
 
-export type CatalogueCategory = 'balloon' | 'stent' | 'wire' | 'guide' | 'operator'
+export type CatalogueCategory = 'balloon' | 'stent' | 'wire' | 'guide' | 'catheter' | 'operator'
 
 export type CatalogueItem = {
   id: string

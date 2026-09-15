@@ -2,10 +2,12 @@ import { db } from '@/db'
 import {
   catalogueObjectKey,
   procedureObjectKey,
+  s3Delete,
   s3GetJson,
   s3ListKeys,
   s3PutJson,
 } from '@/lib/s3Client'
+import { isDeletedProcedureId, rememberDeletedProcedure } from '@/lib/deletedProcedures'
 import { isS3Ready, loadS3Settings, type S3Settings } from '@/lib/s3Settings'
 import { isSeedProcedureId, mergeCatalogues, pickNewerProcedure } from '@/lib/syncMerge'
 import type { CatalogueItem, Procedure } from '@/types/procedure'
@@ -81,6 +83,18 @@ export async function runFullSync(): Promise<{ pulled: number; pushed: number }>
   let pushed = 0
 
   for (const id of ids) {
+    if (isDeletedProcedureId(id)) {
+      pendingProcedures.delete(id)
+      if (localById.has(id)) await db.procedures.delete(id)
+      if (remoteById.has(id)) {
+        try {
+          await s3Delete(procedureObjectKey(prefix, id), settings)
+        } catch (error) {
+          reportError(error)
+        }
+      }
+      continue
+    }
     if (dirtyProcedureIds.has(id)) continue
     const chosen = pickNewerProcedure(localById.get(id), remoteById.get(id))
     if (!chosen) continue
@@ -126,7 +140,7 @@ async function flushProcedures(): Promise<void> {
   pendingProcedures.clear()
   try {
     for (const procedure of batch) {
-      if (isSeedProcedureId(procedure.id)) continue
+      if (isSeedProcedureId(procedure.id) || isDeletedProcedureId(procedure.id)) continue
       await s3PutJson(procedureObjectKey(settings.prefix, procedure.id), procedure, settings)
     }
   } catch (error) {
@@ -151,12 +165,20 @@ async function flushCatalogue(): Promise<void> {
 }
 
 export function queueProcedureCloudPush(procedure: Procedure): void {
-  if (!isS3Ready() || isSeedProcedureId(procedure.id)) return
+  if (!isS3Ready() || isSeedProcedureId(procedure.id) || isDeletedProcedureId(procedure.id)) return
   pendingProcedures.set(procedure.id, procedure)
   if (procedureFlushTimer) clearTimeout(procedureFlushTimer)
   procedureFlushTimer = setTimeout(() => {
     procedureFlush = procedureFlush.then(flushProcedures, flushProcedures)
   }, 500)
+}
+
+export function queueProcedureCloudDelete(id: string): void {
+  rememberDeletedProcedure(id)
+  pendingProcedures.delete(id)
+  if (!isS3Ready() || isSeedProcedureId(id)) return
+  const settings = loadS3Settings()
+  void s3Delete(procedureObjectKey(settings.prefix, id), settings).catch(reportError)
 }
 
 export function queueCatalogueCloudPush(): void {

@@ -27,7 +27,7 @@ export function emptyProcedure(id = nid(), kind: ProcedureKind = 'ptca'): Proced
     kind,
     patient: {
       name: '',
-      title: 'Mr',
+      title: '',
       age: '',
       sex: '',
       hospitalId: '',
@@ -391,7 +391,7 @@ export function demoCagProcedure(): Procedure {
     mainOperator: 'Dr. Santhosh Narayanan',
     assistantOperator: '',
     lab: {
-      doctorName: 'Dr. Santhosh Narayanan MD,DNB, DM (Cardiology)',
+      doctorName: 'Dr. Santhosh Narayanan MD, DNB, DM (Cardiology)',
       technologist: 'Ramesh Kumar',
       scrubNurse: 'Anitha Joseph',
       access: 'RRA',
@@ -399,7 +399,7 @@ export function demoCagProcedure(): Procedure {
       contrast: '60 ml Omnipaque',
       haemodynamicData: 'Stable',
       aorticPressureMmHg: '128/76',
-      inventory: '5F Radial sheath, 0.035" J-tip guidewire',
+      inventory: '',
       lvedp: '12',
     },
     notes: '',
@@ -460,6 +460,16 @@ export function seedCatalogue(now = Date.now()): CatalogueItem[] {
     ['SAL', 'right'],
   ]
 
+  const catheters: Array<[string, string]> = [
+    ['TIG', '5F'],
+    ['JL 3.5', '5F'],
+    ['JL 4', '5F'],
+    ['JR 4', '5F'],
+    ['AR 1', '5F'],
+    ['AL 1', '5F'],
+    ['IM', '5F'],
+  ]
+
   const items: CatalogueItem[] = []
   const push = (
     category: CatalogueItem['category'],
@@ -481,6 +491,7 @@ export function seedCatalogue(now = Date.now()): CatalogueItem[] {
   stents.forEach(([name, type], i) => push('stent', name, { type }, i + 1))
   wires.forEach(([name, type], i) => push('wire', name, { type }, i + 1))
   guides.forEach(([name, coronary], i) => push('guide', name, { coronary }, i + 1))
+  catheters.forEach(([name, size], i) => push('catheter', name, { size }, i + 1))
   ;['Dr. A', 'Dr. B'].forEach((name, i) => push('operator', name, {}, i + 1))
   return items
 }
@@ -491,6 +502,27 @@ export function seedOperators(now = Date.now()): CatalogueItem[] {
     category: 'operator' as const,
     name,
     meta: {},
+    lastUsedAt: now - (i + 1) * 1000,
+    useCount: Math.max(0, 12 - (i + 1)),
+  }))
+}
+
+export function seedCatheters(now = Date.now()): CatalogueItem[] {
+  return (
+    [
+      ['TIG', '5F'],
+      ['JL 3.5', '5F'],
+      ['JL 4', '5F'],
+      ['JR 4', '5F'],
+      ['AR 1', '5F'],
+      ['AL 1', '5F'],
+      ['IM', '5F'],
+    ] as const
+  ).map(([name, size], i) => ({
+    id: `cat-catheter-${name.replace(/\s+/g, '-').toLowerCase()}`,
+    category: 'catheter' as const,
+    name,
+    meta: { size },
     lastUsedAt: now - (i + 1) * 1000,
     useCount: Math.max(0, 12 - (i + 1)),
   }))

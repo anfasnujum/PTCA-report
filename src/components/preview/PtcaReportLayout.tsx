@@ -1,7 +1,7 @@
 import { fmtDisplayDate } from '@/lib/format'
 import { procedureSection } from '@/lib/noteTemplate'
+import { accessNarrative, accessSpecialNote } from '@/lib/access'
 import {
-  accessShortCode,
   ptcaAdjuvantsText,
   ptcaCommentSentence,
   ptcaComplicationsText,
@@ -34,6 +34,7 @@ function DetailLine({ label, value, bold }: { label: string; value: string; bold
 export function PtcaReportLayout({ procedure }: { procedure: Procedure }) {
   const p = procedure
   const inventoryLines = ptcaInventoryLines(p)
+  const specialNotes = accessSpecialNote(p.access)
 
   return (
     <div
@@ -68,7 +69,8 @@ export function PtcaReportLayout({ procedure }: { procedure: Procedure }) {
 
       <div className="space-y-1">
         <DetailLine label="Premedication" value="Nil" />
-        <DetailLine label="Vascular Access" value={accessShortCode(p.access)} />
+        <DetailLine label="Vascular Access" value={accessNarrative(p.access)} />
+        {specialNotes ? <DetailLine label="Special Notes" value={specialNotes} /> : null}
         <DetailLine label="Target Vessel/lesions" value={targetVesselsShort(p)} />
         <DetailLine label="Inventory" value={ptcaInventorySummary(p)} bold />
         <div className="space-y-0.5 pl-6">

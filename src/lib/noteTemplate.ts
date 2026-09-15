@@ -33,13 +33,12 @@ import {
   VESSELS,
   timiRoman,
 } from '@/lib/format'
+import { accessNarrative, accessSpecialNoteLine, formatLabAccess } from '@/lib/access'
 import type {
-  Access,
   AngioFinding,
   BalloonUse,
   Closure,
   Indication,
-  LabDetails,
   Outcome,
   Periprocedural,
   Procedure,
@@ -112,26 +111,6 @@ function indicationNarrative(ind: Indication, opts?: { includePciType?: boolean 
     text = text ? `${text} — ${pci}` : pci
   }
   return text || '____'
-}
-
-function accessSpecialNoteLine(a: Access): string | null {
-  const choice = a.specialNote?.trim() ?? ''
-  if (!choice) return null
-  const value = choice === 'Other' ? (a.specialNoteCustom?.trim() ?? '') : choice
-  if (!value) return null
-  return `Special Notes: ${value}`
-}
-
-function accessNarrative(a: Access): string {
-  if (!a.site || !a.side || !a.sheathSize) {
-    const parts = [a.side, a.site, a.sheathSize].filter(Boolean)
-    return parts.length ? `${parts.join(' ')} access.` : 'Access not recorded.'
-  }
-  const artery =
-    a.site === 'distal radial'
-      ? 'distal radial artery'
-      : `${a.site} artery`
-  return `${capitalise(a.side)} ${artery} accessed; ${a.sheathSize} sheath inserted.`
 }
 
 function diseaseShowsSentence(f: AngioFinding, lead: string): string {
@@ -521,7 +500,8 @@ function operatorsLine(p: Procedure): string | null {
   return `Operators: ${parts.join(', ')}`
 }
 
-function labDetailLines(lab?: LabDetails): string[] {
+function labDetailLines(procedure: Procedure): string[] {
+  const lab = procedure.lab
   if (!lab) return []
   const pressure = (lab.aorticPressureMmHg ?? '').trim()
   const pressureLine = !pressure
@@ -529,11 +509,12 @@ function labDetailLines(lab?: LabDetails): string[] {
     : /mm\s*hg$/i.test(pressure)
       ? pressure
       : `${pressure} mmHg`
+  const access = formatLabAccess(procedure.access)
   const rows: Array<[string, string]> = [
     ['Doctor Name', lab.doctorName],
     ['Technologist', lab.technologist],
     ['Scrub Nurse', lab.scrubNurse],
-    ['Access', lab.access],
+    ['Access', access],
     ['Catheter', lab.catheter],
     ['Contrast', lab.contrast],
     ['Haemodynamic Data', lab.haemodynamicData],
@@ -571,7 +552,7 @@ export function generateNote(procedure: Procedure): string {
 
   const opLine = operatorsLine(procedure)
   if (opLine) blocks.push(opLine)
-  blocks.push(...labDetailLines(procedure.lab))
+  blocks.push(...labDetailLines(procedure))
 
   blocks.push('', 'ACCESS', accessNarrative(procedure.access))
   const specialNote = accessSpecialNoteLine(procedure.access)

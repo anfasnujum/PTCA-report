@@ -1429,7 +1429,7 @@ describe('generateNote', () => {
         ],
       }),
     )
-    expect(om1).toContain('LCX: Normal. OM1 - Major OM: Good sized vessel. Mid shows 80% stenosis.')
+    expect(om1).toContain('LCX: Normal. Major OM: Good sized vessel. Mid shows 80% stenosis.')
     expect(om1).not.toMatch(/\nOM1/)
 
     const pda = generateNote(
@@ -1488,8 +1488,9 @@ describe('generateNote', () => {
         ],
       }),
     )
-    expect(om1).toContain('LCX: Normal. OM1 - Major OM: Mid shows 80% stenosis.')
+    expect(om1).toContain('LCX: Normal. Major OM: Mid shows 80% stenosis.')
     expect(om1).not.toContain('OM1: Mid')
+    expect(om1).not.toContain('OM1 - Major OM')
     expect(om1).not.toMatch(/\nOM1/)
 
     const om2 = generateNote(
@@ -1528,9 +1529,75 @@ describe('generateNote', () => {
         ],
       }),
     )
-    expect(om3).toContain('LCX: Normal. OM3 - Major OM: Proximal: Normal.')
-    expect(om3).toContain('Target vessel: proximal OM3 - Major OM.')
+    expect(om3).toContain('LCX: Normal. Major OM: Proximal: Normal.')
+    expect(om3).toContain('Target vessel: proximal Major OM.')
+    expect(om3).not.toContain('OM3 - Major OM')
     expect(om3).not.toMatch(/\nOM3/)
+  })
+
+  it('prefixes a major diagonal vessel name, then the remaining finding', () => {
+    const d1 = generateNote(
+      base({
+        baselineAngio: [
+          {
+            id: '1',
+            vessel: 'D1',
+            segment: 'mid',
+            stenosis: 80,
+            findingType: 'stenosis',
+            timiFlow: 'none',
+            features: [],
+            isTarget: false,
+            omMajor: true,
+          },
+        ],
+      }),
+    )
+    expect(d1).toContain('LAD: Normal. Major Diagonal: Mid shows 80% stenosis.')
+    expect(d1).not.toContain('D1: Mid')
+    expect(d1).not.toContain('D1 - Major')
+    expect(d1).not.toMatch(/\nD1/)
+
+    const d2 = generateNote(
+      base({
+        baselineAngio: [
+          {
+            id: '2',
+            vessel: 'D2',
+            stenosis: 0,
+            findingType: 'normal',
+            timiFlow: 'none',
+            features: [],
+            isTarget: false,
+          },
+        ],
+      }),
+    )
+    expect(d2).toContain('LAD: Normal. D2: Normal.')
+    expect(d2).not.toContain('Major Diagonal')
+    expect(d2).not.toMatch(/\nD2/)
+
+    const d3 = generateNote(
+      base({
+        baselineAngio: [
+          {
+            id: '3',
+            vessel: 'D3',
+            segment: 'proximal',
+            stenosis: 0,
+            findingType: 'normal',
+            timiFlow: 'none',
+            features: [],
+            isTarget: true,
+            omMajor: true,
+          },
+        ],
+      }),
+    )
+    expect(d3).toContain('LAD: Normal. Major Diagonal: Proximal: Normal.')
+    expect(d3).toContain('Target vessel: proximal Major Diagonal.')
+    expect(d3).not.toContain('D3 - Major')
+    expect(d3).not.toMatch(/\nD3/)
   })
 
   it('prints vessels as LMCA, LAD, Ramus, LCX, RCA, folding diagonals into LAD and OMs into LCX', () => {
@@ -1635,7 +1702,7 @@ describe('generateNote', () => {
       'LAD: Mid shows 40% stenosis. TIMI III flow. D1: Ostial shows 90% stenosis. D2: Normal. S1: Ostial shows 50% stenosis.',
     )
     expect(note).toContain(
-      'LCX: Dominant vessel and Normal. OM1 - Major OM: Proximal shows 80% stenosis. OM2: Mid shows 70% stenosis.',
+      'LCX: Dominant vessel and Normal. Major OM: Proximal shows 80% stenosis. OM2: Mid shows 70% stenosis.',
     )
     expect(note).not.toMatch(/\nD1:/)
     expect(note).not.toMatch(/\nD2:/)
@@ -1893,6 +1960,25 @@ describe('generateNote', () => {
     expect(svd).not.toMatch(/\nPERIPROCEDURAL\n/)
     expect(svd).not.toMatch(/\nCLOSURE\n/)
 
+    const lmTvd = generateNote(
+      base({
+        kind: 'cag',
+        cagImpressions: ['lm-tvd'],
+      }),
+    )
+    expect(lmTvd).toContain('IMPRESSION\nLM + Triple Vessel Disease.')
+    expect(lmTvd).not.toContain('\nLM + TVD.')
+
+    const lmCombo = generateNote(
+      base({
+        kind: 'cag',
+        cagImpressions: ['lm-svd', 'lm-dvd'],
+      }),
+    )
+    expect(lmCombo).toContain(
+      'IMPRESSION\nLM + Single Vessel Disease.\nLM + Double Vessel Disease.',
+    )
+
     const both = generateNote(
       base({
         kind: 'cag',
@@ -1963,6 +2049,37 @@ describe('generateNote', () => {
     expect(empty).not.toContain('Doctor Name:')
     expect(empty).not.toContain('Technologist:')
     expect(empty).not.toContain('Aortic Pressure:')
+    expect(empty).toContain('Access: Right radial')
+
+    const fromAccessPage = generateNote(
+      base({
+        access: {
+          site: 'femoral',
+          side: 'left',
+          sheathSize: '6F',
+          punctures: 1,
+          singleAttempt: true,
+          specialNote: '',
+          specialNoteCustom: '',
+        },
+        lab: {
+          doctorName: '',
+          technologist: '',
+          scrubNurse: '',
+          access: 'RRA',
+          catheter: '5F TIG',
+          contrast: 'Omnipaque 30 mL',
+          haemodynamicData: '',
+          aorticPressureMmHg: '',
+          inventory: '',
+          lvedp: '',
+        },
+      }),
+    )
+    expect(fromAccessPage).toContain('Access: Left femoral')
+    expect(fromAccessPage).not.toContain('Access: RRA')
+    expect(fromAccessPage.indexOf('Access: Left femoral')).toBeLessThan(fromAccessPage.indexOf('Catheter: 5F TIG'))
+    expect(fromAccessPage.indexOf('Catheter: 5F TIG')).toBeLessThan(fromAccessPage.indexOf('Contrast: Omnipaque 30 mL'))
   })
 
   it('writes CAG advice options after impression, each on its own line', () => {

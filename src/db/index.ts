@@ -1,5 +1,6 @@
 import Dexie, { type Table } from 'dexie'
-import { demoCagProcedure, demoProcedure, seedCatalogue, seedOperators } from '@/lib/seed'
+import { isDeletedProcedureId } from '@/lib/deletedProcedures'
+import { demoCagProcedure, demoProcedure, seedCatalogue, seedCatheters, seedOperators } from '@/lib/seed'
 import type { CatalogueItem, Procedure } from '@/types/procedure'
 
 class CathNoteDB extends Dexie {
@@ -21,11 +22,11 @@ export async function ensureSeed(options?: { demoProcedures?: boolean }): Promis
   await db.open()
   if (options?.demoProcedures !== false) {
     const n = await db.procedures.count()
-    if (n === 0) {
+    if (n === 0 && !isDeletedProcedureId('seed-demo')) {
       await db.procedures.put(demoProcedure())
     }
     const hasCagDemo = await db.procedures.get('seed-demo-cag')
-    if (!hasCagDemo) {
+    if (!hasCagDemo && !isDeletedProcedureId('seed-demo-cag')) {
       await db.procedures.put(demoCagProcedure())
     }
   }
@@ -36,5 +37,9 @@ export async function ensureSeed(options?: { demoProcedures?: boolean }): Promis
   const ops = await db.catalogue.where('category').equals('operator').count()
   if (ops === 0) {
     await db.catalogue.bulkAdd(seedOperators())
+  }
+  const catheters = await db.catalogue.where('category').equals('catheter').count()
+  if (catheters === 0) {
+    await db.catalogue.bulkAdd(seedCatheters())
   }
 }

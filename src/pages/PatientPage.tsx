@@ -3,11 +3,9 @@ import { Input } from '@/components/ui/input'
 import { Section } from '@/components/ui/section'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
-import { CABG_GRAFTS, INDICATION_CHIPS, PCI_TYPES, PRIOR_PCI_TERRITORIES, STEMI_TERRITORIES, SYMPTOM_CHIPS, VALVE_SURGERIES } from '@/lib/constants'
+import { CABG_GRAFTS, CONSULTANTS, INDICATION_CHIPS, matchConsultant, PCI_TYPES, PRIOR_PCI_TERRITORIES, STEMI_TERRITORIES, SYMPTOM_CHIPS, VALVE_SURGERIES } from '@/lib/constants'
 import { emptyLab } from '@/lib/seed'
 import { useProcedureStore } from '@/store/useProcedureStore'
-import { useCatalogueStore } from '@/store/useCatalogueStore'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useState } from 'react'
 import type { LabDetails, Patient } from '@/types/procedure'
@@ -17,14 +15,10 @@ export function PatientPage() {
   const mutate = useProcedureStore((s) => s.mutate)
   const navigate = useNavigate()
   const { id } = useParams()
-  const [opDraft, setOpDraft] = useState('')
-  const doctorItems = useCatalogueStore((s) => s.items)
-  const addCustom = useCatalogueStore((s) => s.addCustom)
-  const remember = useCatalogueStore((s) => s.remember)
-  const doctors = doctorItems
-    .filter((i) => i.category === 'operator')
-    .slice()
-    .sort((a, b) => b.lastUsedAt - a.lastUsedAt || a.name.localeCompare(b.name))
+  const initialDoctor = current?.lab?.doctorName ?? ''
+  const [consultantOther, setConsultantOther] = useState(
+    () => Boolean(initialDoctor.trim()) && !matchConsultant(initialDoctor),
+  )
 
   if (!current) return null
 
@@ -35,15 +29,8 @@ export function PatientPage() {
     mutate((p) => ({ ...p, lab: { ...(p.lab ?? emptyLab()), ...patch } }))
 
   const lab = current.lab ?? emptyLab()
-
-  const setDoctors = (mainOperator: string, assistantOperator: string) => {
-    mutate((p) => ({
-      ...p,
-      mainOperator,
-      assistantOperator,
-      operators: [mainOperator, assistantOperator].filter(Boolean),
-    }))
-  }
+  const listedConsultant = matchConsultant(lab.doctorName)
+  const consultantSelect = consultantOther ? 'Other' : listedConsultant
 
   const toggleChip = (chip: string) => {
     mutate((p) => {
@@ -65,19 +52,6 @@ export function PatientPage() {
 
   return (
     <div className="grid gap-5 lg:grid-cols-2">
-      <Section title="Title">
-        <ChipScroller>
-          {(['Mr', 'Ms', 'Mrs', 'Dr'] as const).map((t) => (
-            <Chip
-              key={t}
-              selected={current.patient.title === t}
-              onClick={() => setPatient({ title: t })}
-            >
-              {t}
-            </Chip>
-          ))}
-        </ChipScroller>
-      </Section>
       <Section title="Name">
         <Input
           value={current.patient.name}
@@ -293,88 +267,36 @@ export function PatientPage() {
         </ChipScroller>
       </Section>
       </div>
-      <div className="lg:col-span-2">
-      <Section title="Operators">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-foreground">Main</p>
-            <Select
-              value={current.mainOperator ?? ''}
-              onChange={(e) => {
-                const v = e.target.value
-                setDoctors(v, current.assistantOperator ?? '')
-                if (v) void remember('operator', v)
-              }}
-            >
-              <option value="">Select main operator</option>
-              {doctors.map((d) => (
-                <option key={d.id} value={d.name}>
-                  {d.name}
-                </option>
-              ))}
-              {current.mainOperator &&
-              !doctors.some((d) => d.name === current.mainOperator) ? (
-                <option value={current.mainOperator}>{current.mainOperator}</option>
-              ) : null}
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-foreground">Assistant</p>
-            <Select
-              value={current.assistantOperator ?? ''}
-              onChange={(e) => {
-                const v = e.target.value
-                setDoctors(current.mainOperator ?? '', v)
-                if (v) void remember('operator', v)
-              }}
-            >
-              <option value="">Select assistant</option>
-              {doctors.map((d) => (
-                <option key={d.id} value={d.name}>
-                  {d.name}
-                </option>
-              ))}
-              {current.assistantOperator &&
-              !doctors.some((d) => d.name === current.assistantOperator) ? (
-                <option value={current.assistantOperator}>{current.assistantOperator}</option>
-              ) : null}
-            </Select>
-          </div>
-        </div>
-        <div className="mt-3 flex gap-2">
-          <Input
-            placeholder="Add doctor to list"
-            value={opDraft}
-            onChange={(e) => setOpDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                const v = opDraft.trim()
-                if (!v) return
-                void addCustom('operator', v)
-                setOpDraft('')
-              }
-            }}
-          />
-          <Button
-            variant="secondary"
-            onClick={() => {
-              const v = opDraft.trim()
-              if (!v) return
-              void addCustom('operator', v)
-              setOpDraft('')
-            }}
-          >
-            Add
-          </Button>
-        </div>
-      </Section>
-      </div>
       <Section title={current.kind === 'cag' ? 'Consultant' : 'Doctor Name'}>
-        <Input
-          value={lab.doctorName}
-          placeholder={current.kind === 'cag' ? 'Consultant name' : 'Doctor name'}
-          onChange={(e) => setLab({ doctorName: e.target.value })}
-        />
+        <Select
+          value={consultantSelect}
+          onChange={(e) => {
+            const v = e.target.value
+            if (v === 'Other') {
+              setConsultantOther(true)
+              setLab({ doctorName: listedConsultant ? '' : lab.doctorName })
+              return
+            }
+            setConsultantOther(false)
+            setLab({ doctorName: v })
+          }}
+        >
+          <option value="">Select</option>
+          {CONSULTANTS.map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
+          <option value="Other">Other</option>
+        </Select>
+        {consultantSelect === 'Other' ? (
+          <Input
+            className="mt-2"
+            value={lab.doctorName}
+            placeholder={current.kind === 'cag' ? 'Consultant name' : 'Doctor name'}
+            onChange={(e) => setLab({ doctorName: e.target.value })}
+          />
+        ) : null}
       </Section>
       <Section title="Technologist">
         <Input
@@ -389,58 +311,6 @@ export function PatientPage() {
           placeholder="Scrub nurse"
           onChange={(e) => setLab({ scrubNurse: e.target.value })}
         />
-      </Section>
-      <Section title="Access">
-        <Input
-          value={lab.access}
-          placeholder="e.g. Right radial"
-          onChange={(e) => setLab({ access: e.target.value })}
-        />
-      </Section>
-      <Section title="Catheter">
-        <Input
-          value={lab.catheter}
-          placeholder="e.g. 5F TIG"
-          onChange={(e) => setLab({ catheter: e.target.value })}
-        />
-      </Section>
-      <Section title="Contrast">
-        <Input
-          value={lab.contrast}
-          placeholder="e.g. Iohexol 40 mL"
-          onChange={(e) => setLab({ contrast: e.target.value })}
-        />
-      </Section>
-      {current.kind === 'cag' ? (
-        <Section title="Inventory">
-          <Input
-            value={lab.inventory}
-            placeholder="e.g. 5F Radial sheath, 0.035&quot; J-tip guidewire"
-            onChange={(e) => setLab({ inventory: e.target.value })}
-          />
-        </Section>
-      ) : null}
-      <div className="lg:col-span-2">
-        <Section title="Haemodynamic Data">
-          <Textarea
-            value={lab.haemodynamicData}
-            placeholder="Haemodynamic data"
-            onChange={(e) => setLab({ haemodynamicData: e.target.value })}
-          />
-        </Section>
-      </div>
-      <Section title="Aortic Pressure">
-        <div className="relative">
-          <Input
-            value={lab.aorticPressureMmHg}
-            placeholder="e.g. 120/80"
-            onChange={(e) => setLab({ aorticPressureMmHg: e.target.value })}
-            className="pr-16"
-          />
-          <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-muted">
-            mmHg
-          </span>
-        </div>
       </Section>
       {current.kind === 'cag' ? (
         <Section title="LVEDP">

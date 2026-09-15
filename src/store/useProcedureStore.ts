@@ -21,6 +21,7 @@ type ProcedureState = {
   removeEvent: (id: string) => void
   reorderEvents: (ids: string[]) => void
   setStatus: (status: Procedure['status']) => void
+  remove: (id: string) => Promise<void>
 }
 
 function withOperatorFields(p: Procedure): Procedure {
@@ -129,6 +130,17 @@ export const useProcedureStore = create<ProcedureState>((set, get) => ({
   },
 
   setStatus: (status) => {
-    get().mutate((p) => ({ ...p, status }))
+    get().mutate((p) => ({
+      ...p,
+      status,
+      completedAt: status === 'completed' ? Date.now() : undefined,
+    }))
+  },
+
+  remove: async (id) => {
+    useSyncStore.getState().deleteProcedure(id)
+    await db.procedures.delete(id)
+    const current = get().current
+    if (current?.id === id) set({ current: null, saveState: 'idle', loadError: null })
   },
 }))

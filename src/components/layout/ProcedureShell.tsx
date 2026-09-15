@@ -112,7 +112,7 @@ export function ProcedureShell() {
             <span
               className={cn(
                 'rounded-full px-3 py-1 text-xs font-semibold uppercase',
-                current.status === 'finalised' ? 'bg-accent-soft text-accent' : 'bg-background text-warn',
+                current.status === 'draft' ? 'bg-background text-warn' : 'bg-accent-soft text-accent',
               )}
             >
               {current.status}

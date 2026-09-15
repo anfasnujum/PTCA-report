@@ -51,6 +51,13 @@ export async function s3PutJson(key: string, body: unknown, settings: S3Settings
   if (!res.ok) throw new Error(await readError(res))
 }
 
+export async function s3Delete(key: string, settings: S3Settings = loadS3Settings()): Promise<void> {
+  const aws = clientFor(settings)
+  const res = await aws.fetch(endpoint(settings, encodeKey(key)), { method: 'DELETE' })
+  if (res.status === 404) return
+  if (!res.ok) throw new Error(await readError(res))
+}
+
 export async function s3GetJson<T>(key: string, settings: S3Settings = loadS3Settings()): Promise<T | undefined> {
   const aws = clientFor(settings)
   const res = await aws.fetch(endpoint(settings, encodeKey(key)), { method: 'GET' })

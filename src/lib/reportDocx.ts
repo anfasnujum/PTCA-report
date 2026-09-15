@@ -14,15 +14,15 @@ import {
   WidthType,
 } from 'docx'
 import {
-  cagAdviceSentence,
+  cagAdviceItems,
   cagArterialGraftLine,
-  cagImpressionSentence,
+  cagImpressionItems,
   DISCLAIMER,
   fmtDisplayDate,
 } from '@/lib/format'
+import { accessNarrative, accessSpecialNote } from '@/lib/access'
 import { mainVesselParagraph, procedureSection } from '@/lib/noteTemplate'
 import {
-  accessShortCode,
   ptcaAdjuvantsText,
   ptcaCommentSentence,
   ptcaComplicationsText,
@@ -173,6 +173,78 @@ function fieldRow(
   })
 }
 
+function fieldLineRow(
+  label: string,
+  value: string,
+  opts: { top?: boolean; bottom?: boolean; tabs?: number },
+): TableRow {
+  const tabTwips = 720
+  return new TableRow({
+    children: [
+      new TableCell({
+        columnSpan: 4,
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        borders: {
+          top: opts.top ? ROW_BORDER : NO_BORDER,
+          bottom: opts.bottom ? ROW_BORDER : NO_BORDER,
+          left: NO_BORDER,
+          right: NO_BORDER,
+        },
+        margins: { top: 20, bottom: 20, left: 100, right: 100 },
+        children: [
+          new Paragraph({
+            indent: opts.tabs ? { left: opts.tabs * tabTwips } : undefined,
+            spacing: { line: 216 },
+            children: [
+              new TextRun({
+                text: `${label} : ${value || '____'}`,
+                size: 18,
+                font: REPORT_FONT,
+              }),
+            ],
+          }),
+        ],
+      }),
+    ],
+  })
+}
+
+function fieldPairRow(
+  left: [string, string],
+  right: [string, string],
+  opts: { top?: boolean; bottom?: boolean; tabs?: number },
+): TableRow {
+  const tabTwips = 720
+  const pairCell = (label: string, value: string, indentLeft: boolean) =>
+    new TableCell({
+      columnSpan: 2,
+      width: { size: 50, type: WidthType.PERCENTAGE },
+      borders: {
+        top: opts.top ? ROW_BORDER : NO_BORDER,
+        bottom: opts.bottom ? ROW_BORDER : NO_BORDER,
+        left: NO_BORDER,
+        right: NO_BORDER,
+      },
+      margins: { top: 20, bottom: 20, left: 100, right: 100 },
+      children: [
+        new Paragraph({
+          indent: indentLeft && opts.tabs ? { left: opts.tabs * tabTwips } : undefined,
+          spacing: { line: 216 },
+          children: [
+            new TextRun({
+              text: `${label} : ${value || '____'}`,
+              size: 18,
+              font: REPORT_FONT,
+            }),
+          ],
+        }),
+      ],
+    })
+  return new TableRow({
+    children: [pairCell(left[0], left[1], true), pairCell(right[0], right[1], false)],
+  })
+}
+
 function cagTitleParagraph(): Paragraph {
   return new Paragraph({
     alignment: AlignmentType.CENTER,
@@ -203,6 +275,34 @@ function cagFindingParagraph(label: string, value: string): Paragraph {
   })
 }
 
+function cagBulletParagraphs(label: string, items: string[]): Paragraph[] {
+  if (!items.length) {
+    return [
+      new Paragraph({
+        spacing: { after: 20, line: 216 },
+        children: [
+          new TextRun({ text: `${label} : `, bold: true, size: 24, font: REPORT_FONT }),
+          new TextRun({ text: 'Not recorded.', size: 24, font: REPORT_FONT }),
+        ],
+      }),
+    ]
+  }
+  return [
+    new Paragraph({
+      spacing: { after: 20, line: 216 },
+      children: [new TextRun({ text: `${label} :`, bold: true, size: 24, font: REPORT_FONT })],
+    }),
+    ...items.map(
+      (item) =>
+        new Paragraph({
+          indent: { left: 360 },
+          spacing: { after: 20, line: 216 },
+          children: [new TextRun({ text: `• ${item}`, size: 24, font: REPORT_FONT })],
+        }),
+    ),
+  ]
+}
+
 function cagPlainParagraph(text: string): Paragraph {
   return new Paragraph({
     spacing: { after: 20, line: 216 },
@@ -218,11 +318,14 @@ export async function buildCagReportDocx(procedure: Procedure): Promise<Blob> {
   const rca = mainVesselParagraph(p.baselineAngio, 'RCA')
   const limaLine = cagArterialGraftLine('LIMA', p.cagLimaOn, p.cagLimaNote)
   const rimaLine = cagArterialGraftLine('RIMA', p.cagRimaOn, p.cagRimaNote)
-  const impression = cagImpressionSentence(p.cagImpressions, p.cagCustomImpressions)
-  const advice = cagAdviceSentence(p.cagAdvices, p.cagCustomAdvices)
-  const aorticPressure = p.lab.aorticPressureMmHg ? `${p.lab.aorticPressureMmHg} mmHg` : ''
-  const lvedp = p.lab.lvedp ? `${p.lab.lvedp} mmHg` : ''
-  const hasExtraHaemo = Boolean(p.lab.haemodynamicData.trim() || aorticPressure || lvedp)
+  const impressionItems = cagImpressionItems(p.cagImpressions, p.cagCustomImpressions)
+  const adviceItems = cagAdviceItems(p.cagAdvices, p.cagCustomAdvices)
+  const aorticPressure = p.lab.aorticPressureMmHg.trim()
+    ? /mm\s*hg$/i.test(p.lab.aorticPressureMmHg.trim())
+      ? p.lab.aorticPressureMmHg.trim()
+      : `${p.lab.aorticPressureMmHg.trim()} mmHg`
+    : ''
+  const specialNotes = accessSpecialNote(p.access)
 
   const patientTable = new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
@@ -250,28 +353,16 @@ export async function buildCagReportDocx(procedure: Procedure): Promise<Blob> {
   })
 
   const labRows = [
-    fieldRow(
-      [
-        ['Inventory', p.lab.inventory],
-        ['Access', p.lab.access],
-        ['Catheter', p.lab.catheter],
-        ['Contrast', p.lab.contrast],
-      ],
-      { top: true, bottom: !hasExtraHaemo },
+    fieldLineRow('Access', accessNarrative(p.access), { top: true, bottom: false, tabs: 4 }),
+    ...(specialNotes ? [fieldLineRow('Special Notes', specialNotes, { top: false, bottom: false, tabs: 5 })] : []),
+    fieldLineRow('Catheter', p.lab.catheter, { top: false, bottom: false, tabs: 4 }),
+    fieldLineRow('Contrast', p.lab.contrast, { top: false, bottom: false, tabs: 4 }),
+    fieldPairRow(
+      ['Haemodynamic Data', p.lab.haemodynamicData],
+      ['Aortic Pressure', aorticPressure],
+      { top: false, bottom: true, tabs: 2 },
     ),
   ]
-  if (hasExtraHaemo) {
-    labRows.push(
-      new TableRow({
-        children: [
-          fieldCell('Haemodynamic Data', p.lab.haemodynamicData, { bottom: true }),
-          fieldCell('Aortic Pressure', aorticPressure, { bottom: true }),
-          fieldCell('LVEDP', lvedp, { bottom: true }),
-          cell('', { bottom: true }),
-        ],
-      }),
-    )
-  }
   const labTable = new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
     borders: TableBorders.NONE,
@@ -294,8 +385,8 @@ export async function buildCagReportDocx(procedure: Procedure): Promise<Blob> {
   if (rimaLine) children.push(cagPlainParagraph(rimaLine))
   children.push(
     cagFindingParagraph('RCA', rca),
-    cagFindingParagraph('IMPRESSION', impression),
-    cagFindingParagraph('ADVICE', advice),
+    ...cagBulletParagraphs('IMPRESSION', impressionItems),
+    ...cagBulletParagraphs('ADVICE', adviceItems),
   )
   if (p.notes.trim()) children.push(cagFindingParagraph('FINAL', p.notes.trim()))
 
@@ -405,7 +496,10 @@ export async function buildPtcaReportDocx(procedure: Procedure): Promise<Blob> {
     patientTable,
     new Paragraph({ spacing: { before: 80, after: 20 }, children: [] }),
     ptcaPlainLineParagraph('Premedication', 'Nil'),
-    ptcaPlainLineParagraph('Vascular Access', accessShortCode(p.access)),
+    ptcaPlainLineParagraph('Vascular Access', accessNarrative(p.access)),
+    ...(accessSpecialNote(p.access)
+      ? [ptcaPlainLineParagraph('Special Notes', accessSpecialNote(p.access))]
+      : []),
     ptcaPlainLineParagraph('Target Vessel/lesions', targetVesselsShort(p)),
     ptcaBoldLineParagraph('Inventory', ptcaInventorySummary(p)),
     ...inventoryLines.map((line) => ptcaPlainLineParagraph(line.label, line.value, true)),
