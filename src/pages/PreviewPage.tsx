@@ -121,6 +121,7 @@ export function PreviewPage() {
   const [exportingDocx, setExportingDocx] = useState(false)
   const docRef = useRef<HTMLDivElement>(null)
   const savedRangeRef = useRef<Range | null>(null)
+  const editStartHtmlRef = useRef<string | null>(null)
 
   const generated = useMemo(() => (current ? generateNote(current) : ''), [current])
   const overrideText = useMemo(() => htmlToText(current?.docOverride ?? ''), [current])
@@ -167,12 +168,18 @@ export function PreviewPage() {
   const commitEdit = () => {
     if (editing && docRef.current) {
       const html = docRef.current.innerHTML
-      mutate((p) => ({ ...p, docOverride: html }))
+      if (html !== editStartHtmlRef.current) {
+        mutate((p) => ({ ...p, docOverride: html }))
+      }
     }
   }
 
   const toggleEditing = () => {
-    commitEdit()
+    if (editing) {
+      commitEdit()
+    } else {
+      editStartHtmlRef.current = docRef.current?.innerHTML ?? null
+    }
     setEditing((e) => !e)
   }
 
