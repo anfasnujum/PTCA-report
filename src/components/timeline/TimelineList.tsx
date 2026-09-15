@@ -52,7 +52,7 @@ export function TimelineList({
         <ol className="space-y-2">
           {events.map((e, i) => (
             <li key={e.id}>
-              <p className="mb-1 pl-3 text-[11px] font-semibold uppercase tracking-widest text-muted">
+              <p className="mb-1 pl-3 text-[11px] font-semibold uppercase tracking-widest text-foreground">
                 {String(i + 1).padStart(2, '0')}
               </p>
               <EventCard

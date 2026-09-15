@@ -297,7 +297,7 @@ export function PatientPage() {
       <Section title="Operators">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <p className="text-sm font-medium text-muted">Main</p>
+            <p className="text-sm font-medium text-foreground">Main</p>
             <Select
               value={current.mainOperator ?? ''}
               onChange={(e) => {
@@ -319,7 +319,7 @@ export function PatientPage() {
             </Select>
           </div>
           <div className="space-y-2">
-            <p className="text-sm font-medium text-muted">Assistant</p>
+            <p className="text-sm font-medium text-foreground">Assistant</p>
             <Select
               value={current.assistantOperator ?? ''}
               onChange={(e) => {

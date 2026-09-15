@@ -22,7 +22,7 @@ export function Switch({
       <span className="text-base font-medium">{label}</span>
       <span className="flex items-center gap-2">
         {yesNo ? (
-          <span className={cn('text-sm font-semibold', checked ? 'text-muted' : 'text-foreground')}>
+          <span className="text-sm font-semibold text-foreground">
             No
           </span>
         ) : null}
@@ -40,7 +40,7 @@ export function Switch({
           />
         </span>
         {yesNo ? (
-          <span className={cn('text-sm font-semibold', checked ? 'text-foreground' : 'text-muted')}>
+          <span className="text-sm font-semibold text-foreground">
             Yes
           </span>
         ) : null}

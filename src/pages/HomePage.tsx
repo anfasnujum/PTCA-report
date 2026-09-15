@@ -135,7 +135,7 @@ export function HomePage() {
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1">
                       <StatusBadge status={p.status} />
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground">
                         {p.kind === 'cag' ? 'CAG' : 'PTCA'}
                       </span>
                     </div>
@@ -176,7 +176,7 @@ function initials(name: string) {
 function Stat({ label, value }: { label: string; value: number }) {
   return (
     <div className="min-w-24 rounded-2xl bg-card px-4 py-3 shadow-card">
-      <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">{label}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-foreground">{label}</p>
       <p className="text-2xl font-semibold">{value}</p>
     </div>
   )
@@ -188,7 +188,7 @@ function MiniStat({ label, value }: { label: string; value: string | number }) {
       <div className="flex min-h-12 items-center justify-center rounded-full bg-background px-2">
         <p className="truncate text-sm font-semibold">{value}</p>
       </div>
-      <p className="mt-1.5 text-center text-[10px] font-medium uppercase tracking-wider text-muted">
+      <p className="mt-1.5 text-center text-[10px] font-medium uppercase tracking-wider text-foreground">
         {label}
       </p>
     </div>

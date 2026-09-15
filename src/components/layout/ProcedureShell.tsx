@@ -67,7 +67,7 @@ export function ProcedureShell() {
                   'rounded-2xl px-3 py-3',
                   isActive
                     ? 'bg-accent-soft text-foreground'
-                    : 'text-muted hover:bg-background hover:text-foreground',
+                    : 'text-foreground hover:bg-background',
                 )
               }
             >
@@ -118,7 +118,7 @@ export function ProcedureShell() {
                 className={({ isActive }) =>
                   cn(
                     'min-h-11 shrink-0 rounded-full px-4 text-sm font-semibold leading-[44px]',
-                    isActive ? 'bg-accent text-accent-fg' : 'bg-card text-muted shadow-card',
+                    isActive ? 'bg-accent text-accent-fg' : 'bg-card text-foreground shadow-card',
                   )
                 }
               >

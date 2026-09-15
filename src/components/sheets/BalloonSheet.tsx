@@ -118,7 +118,7 @@ export function BalloonSheet({
         {data.inflations.map((inf, i) => (
           <div key={i} className="space-y-3 rounded-2xl bg-background p-3">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-muted">Inflation {i + 1}</p>
+              <p className="text-sm font-semibold text-foreground">Inflation {i + 1}</p>
               {data.inflations.length > 1 ? (
                 <button
                   type="button"

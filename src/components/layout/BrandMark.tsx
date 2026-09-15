@@ -38,7 +38,7 @@ export function BrandMark({
           CathNote
         </p>
         {compact ? null : (
-          <p className="mt-1 text-[10px] font-medium uppercase tracking-[0.16em] text-muted">
+          <p className="mt-1 text-[10px] font-medium uppercase tracking-[0.16em] text-foreground">
             {subtitle}
           </p>
         )}

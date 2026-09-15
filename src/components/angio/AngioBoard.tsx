@@ -60,7 +60,7 @@ function StenosisValuePicker({
 }) {
   return (
     <div className="space-y-2">
-      {label ? <p className="text-sm font-medium text-muted">{label}</p> : null}
+      {label ? <p className="text-sm font-medium text-foreground">{label}</p> : null}
       <input
         type="range"
         min={0}
@@ -127,7 +127,7 @@ function PercentFields({
             }
           />
           <div>
-            <p className="mb-2 text-sm font-medium text-muted">Range</p>
+            <p className="mb-2 text-sm font-medium text-foreground">Range</p>
             <div className="relative">
               <Input
                 inputMode="numeric"
@@ -275,7 +275,7 @@ function CoronarySchematic({
   return (
     <div className="h-full rounded-2xl bg-card p-5 shadow-card">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-foreground">
           Coronary tree — tap a vessel
         </p>
         <Button
