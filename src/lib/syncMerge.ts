@@ -1,3 +1,4 @@
+import type { StaffSettings } from '@/lib/staffSettings'
 import type { CatalogueItem, Procedure } from '@/types/procedure'
 
 export function isSeedProcedureId(id: string): boolean {
@@ -36,4 +37,14 @@ export function mergeCatalogues(local: CatalogueItem[], remote: CatalogueItem[])
     byName.set(key, prev ? mergeCatalogueItem(prev, item) : item)
   }
   return [...byName.values()]
+}
+
+export function pickNewerStaff(
+  local: StaffSettings | undefined,
+  remote: StaffSettings | undefined,
+): StaffSettings | undefined {
+  if (!local) return remote
+  if (!remote) return local
+  if (remote.updatedAt > local.updatedAt) return remote
+  return local
 }

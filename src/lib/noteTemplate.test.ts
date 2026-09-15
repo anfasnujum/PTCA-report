@@ -1275,7 +1275,7 @@ describe('generateNote', () => {
     expect(co).toContain('LCX: Co-dominant vessel. Mid LCX shows 40% stenosis.')
   })
 
-  it('names LCX as Parent LCX when Parent is yes', () => {
+  it('keeps the LCX heading and writes Parent LCX in the finding when Parent is yes', () => {
     const findings = [
       {
         id: '1',
@@ -1291,13 +1291,56 @@ describe('generateNote', () => {
       },
     ]
     const note = generateNote(base({ baselineAngio: findings }))
-    expect(note).toContain('Parent LCX: Non dominant vessel. Proximal Parent LCX shows 70% stenosis.')
+    expect(note).toContain('LCX: Non dominant vessel. Proximal Parent LCX shows 70% stenosis.')
     expect(note).toContain('Target vessel: proximal Parent LCX.')
-    expect(note).not.toMatch(/\nLCX:/)
+    expect(note).not.toContain('Parent LCX:')
     expect(mainVesselParagraph(findings, 'LCX')).toBe(
       'Non dominant vessel. Proximal Parent LCX shows 70% stenosis.',
     )
-    expect(mainVesselLabel(findings, 'LCX')).toBe('Parent LCX')
+    expect(mainVesselLabel(findings, 'LCX')).toBe('LCX')
+  })
+
+  it('writes Parent LCX is normal when Parent is yes and the vessel is normal', () => {
+    const findings = [
+      {
+        id: '1',
+        vessel: 'LCX' as const,
+        stenosis: 0,
+        findingType: 'normal' as const,
+        timiFlow: 'none' as const,
+        features: [] as string[],
+        isTarget: false,
+        lcxParent: true,
+        lcxDominance: 'dominant' as const,
+      },
+    ]
+    const note = generateNote(base({ baselineAngio: findings }))
+    expect(note).toContain('LCX: Dominant vessel. Parent LCX is normal.')
+    expect(note).not.toContain('Parent LCX:')
+    expect(mainVesselParagraph(findings, 'LCX')).toBe('Dominant vessel. Parent LCX is normal.')
+  })
+
+  it('writes Parent LCX in plaque findings when Parent is yes', () => {
+    const note = generateNote(
+      base({
+        baselineAngio: [
+          {
+            id: '1',
+            vessel: 'LCX',
+            segment: 'mid',
+            stenosis: 0,
+            findingType: 'plaque',
+            plaqueGrade: 'mild',
+            timiFlow: 'none',
+            features: [],
+            isTarget: false,
+            lcxParent: true,
+          },
+        ],
+      }),
+    )
+    expect(note).toContain('LCX: Mid Parent LCX shows mild plaques.')
+    expect(note).not.toContain('Parent LCX:')
   })
 
   it('keeps LCX when Parent is no', () => {
@@ -1463,7 +1506,7 @@ describe('generateNote', () => {
         ],
       }),
     )
-    expect(medium).toContain('Ramus: Medium sized vessel. Proximal Ramus shows 30% stenosis.')
+    expect(medium).toContain('Ramus: Medium sized vessel and Proximal Ramus shows 30% stenosis.')
 
     const small = generateNote(
       base({
@@ -1482,7 +1525,7 @@ describe('generateNote', () => {
         ],
       }),
     )
-    expect(small).toContain('Ramus: Small sized vessels. Distal Ramus shows 70% stenosis.')
+    expect(small).toContain('Ramus: Small sized vessels and Distal Ramus shows 70% stenosis.')
   })
 
   it('writes D1, OM, PDA and PLV size as the first clause, like Ramus', () => {
@@ -1535,7 +1578,7 @@ describe('generateNote', () => {
       }),
     )
     expect(d1Disease).toContain(
-      'LAD: Mid LAD shows 40% stenosis. D1: Medium sized vessel. Ostial D1 shows 90% stenosis.',
+      'LAD: Mid LAD shows 40% stenosis. D1: Medium sized vessel and Ostial D1 shows 90% stenosis.',
     )
 
     const om1 = generateNote(
@@ -1556,8 +1599,33 @@ describe('generateNote', () => {
         ],
       }),
     )
-    expect(om1).toContain('LCX: Normal. OM1 - Major OM: Good sized vessel. Mid OM1 - Major OM shows 80% stenosis.')
+    expect(om1).toContain('LCX: Normal. OM1 - Major OM: Good sized vessel and Mid OM1 shows 80% stenosis.')
+    expect(om1).not.toContain('Mid OM1 - Major OM shows')
     expect(om1).not.toMatch(/\nOM1/)
+
+    const om1Plaque = generateNote(
+      base({
+        baselineAngio: [
+          {
+            id: 'om1',
+            vessel: 'OM1',
+            segment: 'ostioproximal',
+            stenosis: 0,
+            findingType: 'plaque',
+            plaqueGrade: 'minor',
+            timiFlow: 'none',
+            features: [],
+            isTarget: false,
+            omMajor: true,
+            ramusSize: 'good',
+          },
+        ],
+      }),
+    )
+    expect(om1Plaque).toContain(
+      'OM1 - Major OM: Good sized vessel and Ostioproximal OM1 shows minor plaques.',
+    )
+    expect(om1Plaque).not.toContain('Ostioproximal OM1 - Major OM')
 
     const pda = generateNote(
       base({
@@ -1594,7 +1662,7 @@ describe('generateNote', () => {
         ],
       }),
     )
-    expect(plv).toContain('PLV: Small sized vessels. Proximal PLV shows 70% stenosis.')
+    expect(plv).toContain('PLV: Small sized vessels and Proximal PLV shows 70% stenosis.')
   })
 
   it('prefixes a major OM vessel name, then the remaining finding', () => {
@@ -2407,7 +2475,7 @@ describe('generateNote', () => {
       }),
     )
     expect(note).toContain(
-      'LAD: Normal. D1: Good sized vessel. Ostial D1 shows 90% stenosis followed by mid D1 shows mild plaques.',
+      'LAD: Normal. D1: Good sized vessel and Ostial D1 shows 90% stenosis followed by mid D1 shows mild plaques.',
     )
   })
 

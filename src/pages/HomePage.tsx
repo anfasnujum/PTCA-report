@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Plus, Search, Settings, Trash2 } from 'lucide-react'
+import { Plus, Search, Settings, SlidersHorizontal, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import { db } from '@/db'
@@ -74,6 +74,15 @@ export function HomePage() {
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <CloudStatus />
+            <button
+              type="button"
+              className="flex size-11 items-center justify-center rounded-2xl text-foreground hover:bg-background"
+              onClick={() => navigate('/config')}
+              aria-label="Config"
+              title="Staff lists"
+            >
+              <SlidersHorizontal className="size-5" />
+            </button>
             <button
               type="button"
               className="flex size-11 items-center justify-center rounded-2xl text-foreground hover:bg-background"

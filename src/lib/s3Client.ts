@@ -95,3 +95,7 @@ export function procedureObjectKey(prefix: string, id: string): string {
 export function catalogueObjectKey(prefix: string): string {
   return `${prefix}catalogue.json`
 }
+
+export function staffObjectKey(prefix: string): string {
+  return `${prefix}staff.json`
+}

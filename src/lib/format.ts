@@ -296,13 +296,19 @@ export function isSizeVessel(vessel: Vessel): boolean {
   return SIZE_VESSELS.includes(vessel)
 }
 
-export function vesselReportName(
-  f: Pick<AngioFinding, 'vessel' | 'omMajor' | 'lcxParent'>,
+export function vesselBodyName(
+  f: Pick<AngioFinding, 'vessel' | 'omMajor'>,
 ): string {
   if (isOmVessel(f.vessel) && f.omMajor) return `${f.vessel} - Major OM`
   if (isDiagonalVessel(f.vessel) && f.omMajor) return 'Major Diagonal'
-  if (f.vessel === 'LCX' && f.lcxParent) return 'Parent LCX'
   return f.vessel
+}
+
+export function vesselReportName(
+  f: Pick<AngioFinding, 'vessel' | 'omMajor' | 'lcxParent'>,
+): string {
+  if (f.vessel === 'LCX' && f.lcxParent) return 'Parent LCX'
+  return vesselBodyName(f)
 }
 
 export const VESSEL_META_KEYS = [
@@ -349,6 +355,15 @@ export function findingLocationShort(
 ): string {
   const phrase = formatSegments(f.segment)
   const name = vesselReportName(f)
+  return phrase ? `${phrase} ${name}` : name
+}
+
+export function findingIssueLocation(
+  f: Pick<AngioFinding, 'vessel' | 'segment' | 'omMajor' | 'lcxParent'>,
+  underHeading = false,
+): string {
+  const phrase = formatSegments(f.segment)
+  const name = underHeading && isOmVessel(f.vessel) && f.omMajor ? f.vessel : vesselReportName(f)
   return phrase ? `${phrase} ${name}` : name
 }
 

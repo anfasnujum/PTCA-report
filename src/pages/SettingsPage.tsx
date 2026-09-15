@@ -74,10 +74,11 @@ export function SettingsPage() {
 
       <div className="mx-auto max-w-3xl space-y-6 px-4 py-6">
         <p className="text-sm leading-relaxed text-muted">
-          Keep using the app offline on this device. When S3 is enabled, procedures and the device
-          catalogue are copied to your private bucket so other phones or laptops with the same keys
-          see the same cases. Removing a case on Home also deletes its object from the bucket. The
-          later save wins if the same case is edited in two places at once.
+          Keep using the app offline on this device. When S3 is enabled, procedures, the device
+          catalogue, and staff lists (consultants, technologists, scrub nurses) are copied to your
+          private bucket so other phones or laptops with the same keys see the same cases. Removing a
+          case on Home also deletes its object from the bucket. The later save wins if the same case
+          or staff list is edited in two places at once.
         </p>
 
         <Switch
@@ -161,7 +162,9 @@ export function SettingsPage() {
             </li>
             <li>
               Create an IAM user with this policy, allow that user on the access point policy too, then paste its
-              access key above:
+              access key above. Removing a case from Home needs <code className="rounded bg-background px-1.5 py-0.5 text-[12px]">s3:DeleteObject</code>.
+              If AWS returns AccessDenied on delete, edit <code className="rounded bg-background px-1.5 py-0.5 text-[12px]">cathnote-s3-user</code> and
+              replace its policy with this:
               <pre className="mt-2 overflow-x-auto rounded-2xl bg-background p-4 text-[12px]">{iamExample}</pre>
             </li>
           </ol>

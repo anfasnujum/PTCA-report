@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { isSeedProcedureId, mergeCatalogues, pickNewerProcedure } from '@/lib/syncMerge'
+import { isSeedProcedureId, mergeCatalogues, pickNewerProcedure, pickNewerStaff } from '@/lib/syncMerge'
+import type { StaffSettings } from '@/lib/staffSettings'
 import type { CatalogueItem, Procedure } from '@/types/procedure'
 
 function proc(id: string, updatedAt: number): Procedure {
@@ -52,5 +53,25 @@ describe('syncMerge', () => {
     expect(isSeedProcedureId('seed-demo')).toBe(true)
     expect(isSeedProcedureId('seed-demo-cag')).toBe(true)
     expect(isSeedProcedureId('abc-123')).toBe(false)
+  })
+
+  it('keeps the later staff list', () => {
+    const older: StaffSettings = {
+      consultants: ['Dr A'],
+      technologists: [],
+      scrubNurses: [],
+      updatedAt: 10,
+    }
+    const newer: StaffSettings = {
+      consultants: ['Dr B'],
+      technologists: ['Anita'],
+      scrubNurses: ['Meera'],
+      updatedAt: 20,
+    }
+    expect(pickNewerStaff(older, newer)).toBe(newer)
+    expect(pickNewerStaff(newer, older)).toBe(newer)
+    expect(pickNewerStaff(older, { ...newer, updatedAt: 10 })).toBe(older)
+    expect(pickNewerStaff(older, undefined)).toBe(older)
+    expect(pickNewerStaff(undefined, newer)).toBe(newer)
   })
 })

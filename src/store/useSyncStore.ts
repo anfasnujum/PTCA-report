@@ -3,6 +3,7 @@ import {
   queueCatalogueCloudPush,
   queueProcedureCloudDelete,
   queueProcedureCloudPush,
+  queueStaffCloudPush,
   runFullSync,
   setCloudSyncErrorHandler,
   testS3Connection,
@@ -23,6 +24,7 @@ type SyncState = {
   pushProcedure: (procedure: Procedure) => void
   deleteProcedure: (id: string) => Promise<void>
   pushCatalogue: () => void
+  pushStaff: () => void
 }
 
 let started = false
@@ -37,6 +39,9 @@ function messageOf(error: unknown): string {
         : 'S3 sync failed.'
   if (/failed to fetch/i.test(message) || message === 'Load failed') {
     return 'Could not reach S3. Check the bucket name, region, and CORS origins (include this app URL).'
+  }
+  if (/DeleteObject/i.test(message) && /not authorized|AccessDenied/i.test(message)) {
+    return 'This IAM user cannot delete objects. Add s3:DeleteObject on cathnote-bucket/cathnote/* to cathnote-s3-user, then remove the case again.'
   }
   return message
 }
@@ -116,5 +121,14 @@ export const useSyncStore = create<SyncState>((set, get) => ({
   pushCatalogue: () => {
     if (!isS3Ready()) return
     queueCatalogueCloudPush()
+  },
+
+  pushStaff: () => {
+    if (!isS3Ready()) return
+    queueStaffCloudPush()
+    set((state) => ({
+      status: state.status === 'error' ? state.status : 'ok',
+      lastPushAt: Date.now(),
+    }))
   },
 }))

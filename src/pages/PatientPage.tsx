@@ -1,13 +1,14 @@
 import { Chip, ChipScroller } from '@/components/ui/chip'
+import { StaffSelect } from '@/components/fields/StaffSelect'
 import { Input } from '@/components/ui/input'
 import { Section } from '@/components/ui/section'
 import { Button } from '@/components/ui/button'
-import { Select } from '@/components/ui/select'
-import { CABG_GRAFTS, CONSULTANTS, INDICATION_CHIPS, matchConsultant, PCI_TYPES, PRIOR_PCI_TERRITORIES, STEMI_TERRITORIES, SYMPTOM_CHIPS, VALVE_SURGERIES } from '@/lib/constants'
+import { CABG_GRAFTS, INDICATION_CHIPS, PCI_TYPES, PRIOR_PCI_TERRITORIES, STEMI_TERRITORIES, SYMPTOM_CHIPS, VALVE_SURGERIES } from '@/lib/constants'
 import { emptyLab } from '@/lib/seed'
+import { loadStaffSettings } from '@/lib/staffSettings'
 import { useProcedureStore } from '@/store/useProcedureStore'
+import { useSyncStore } from '@/store/useSyncStore'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useState } from 'react'
 import type { LabDetails, Patient } from '@/types/procedure'
 
 export function PatientPage() {
@@ -15,10 +16,8 @@ export function PatientPage() {
   const mutate = useProcedureStore((s) => s.mutate)
   const navigate = useNavigate()
   const { id } = useParams()
-  const initialDoctor = current?.lab?.doctorName ?? ''
-  const [consultantOther, setConsultantOther] = useState(
-    () => Boolean(initialDoctor.trim()) && !matchConsultant(initialDoctor),
-  )
+  useSyncStore((s) => s.lastPullAt)
+  const staff = loadStaffSettings()
 
   if (!current) return null
 
@@ -29,8 +28,6 @@ export function PatientPage() {
     mutate((p) => ({ ...p, lab: { ...(p.lab ?? emptyLab()), ...patch } }))
 
   const lab = current.lab ?? emptyLab()
-  const listedConsultant = matchConsultant(lab.doctorName)
-  const consultantSelect = consultantOther ? 'Other' : listedConsultant
 
   const toggleChip = (chip: string) => {
     mutate((p) => {
@@ -267,51 +264,27 @@ export function PatientPage() {
         </ChipScroller>
       </Section>
       </div>
-      <Section title={current.kind === 'cag' ? 'Consultant' : 'Doctor Name'}>
-        <Select
-          value={consultantSelect}
-          onChange={(e) => {
-            const v = e.target.value
-            if (v === 'Other') {
-              setConsultantOther(true)
-              setLab({ doctorName: listedConsultant ? '' : lab.doctorName })
-              return
-            }
-            setConsultantOther(false)
-            setLab({ doctorName: v })
-          }}
-        >
-          <option value="">Select</option>
-          {CONSULTANTS.map((name) => (
-            <option key={name} value={name}>
-              {name}
-            </option>
-          ))}
-          <option value="Other">Other</option>
-        </Select>
-        {consultantSelect === 'Other' ? (
-          <Input
-            className="mt-2"
-            value={lab.doctorName}
-            placeholder={current.kind === 'cag' ? 'Consultant name' : 'Doctor name'}
-            onChange={(e) => setLab({ doctorName: e.target.value })}
-          />
-        ) : null}
-      </Section>
-      <Section title="Technologist">
-        <Input
-          value={lab.technologist}
-          placeholder="Technologist"
-          onChange={(e) => setLab({ technologist: e.target.value })}
-        />
-      </Section>
-      <Section title="Scrub Nurse">
-        <Input
-          value={lab.scrubNurse}
-          placeholder="Scrub nurse"
-          onChange={(e) => setLab({ scrubNurse: e.target.value })}
-        />
-      </Section>
+      <StaffSelect
+        title={current.kind === 'cag' ? 'Consultant' : 'Doctor Name'}
+        names={staff.consultants}
+        value={lab.doctorName}
+        placeholder={current.kind === 'cag' ? 'Consultant name' : 'Doctor name'}
+        onChange={(doctorName) => setLab({ doctorName })}
+      />
+      <StaffSelect
+        title="Technologist"
+        names={staff.technologists}
+        value={lab.technologist}
+        placeholder="Technologist"
+        onChange={(technologist) => setLab({ technologist })}
+      />
+      <StaffSelect
+        title="Scrub Nurse"
+        names={staff.scrubNurses}
+        value={lab.scrubNurse}
+        placeholder="Scrub nurse"
+        onChange={(scrubNurse) => setLab({ scrubNurse })}
+      />
       {current.kind === 'cag' ? (
         <Section title="LVEDP">
           <div className="relative">
