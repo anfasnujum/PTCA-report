@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { db } from '@/db'
 import { nid } from '@/lib/ids'
+import { useSyncStore } from '@/store/useSyncStore'
 import type { CatalogueCategory, CatalogueItem } from '@/types/procedure'
 
 type CatalogueState = {
@@ -39,6 +40,7 @@ export const useCatalogueStore = create<CatalogueState>((set, get) => ({
         meta: { ...existing.meta, ...meta },
       }
       await db.catalogue.put(next)
+      useSyncStore.getState().pushCatalogue()
       set({ items: get().items.map((i) => (i.id === next.id ? next : i)) })
       return
     }
@@ -55,6 +57,7 @@ export const useCatalogueStore = create<CatalogueState>((set, get) => ({
       useCount: 1,
     }
     await db.catalogue.put(item)
+    useSyncStore.getState().pushCatalogue()
     set({ items: [item, ...get().items] })
     return item
   },

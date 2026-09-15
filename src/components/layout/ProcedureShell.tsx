@@ -2,6 +2,7 @@ import { NavLink, Outlet, useLocation, useNavigate, useParams } from 'react-rout
 import { useEffect } from 'react'
 import { ArrowLeft } from 'lucide-react'
 import { useProcedureStore } from '@/store/useProcedureStore'
+import { useSyncStore } from '@/store/useSyncStore'
 import { SavedIndicator } from '@/components/ui/saved-indicator'
 import { BrandMark } from '@/components/layout/BrandMark'
 import { DISCLAIMER } from '@/lib/format'
@@ -17,11 +18,18 @@ export function ProcedureShell() {
   const current = useProcedureStore((s) => s.current)
   const saveState = useProcedureStore((s) => s.saveState)
   const loadError = useProcedureStore((s) => s.loadError)
+  const lastPullAt = useSyncStore((s) => s.lastPullAt)
   const showNotePanel = !location.pathname.endsWith('/preview')
 
   useEffect(() => {
     if (id) void load(id)
   }, [id, load])
+
+  useEffect(() => {
+    if (!id || !lastPullAt) return
+    if (useProcedureStore.getState().saveState === 'saving') return
+    void load(id)
+  }, [id, lastPullAt, load])
 
   useEffect(() => {
     if (!current || current.id !== id) return

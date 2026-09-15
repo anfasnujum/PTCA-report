@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react'
-import { Plus, Search } from 'lucide-react'
+import { Plus, Search, Settings } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import { db } from '@/db'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { BrandMark } from '@/components/layout/BrandMark'
+import { CloudStatus } from '@/components/layout/CloudStatus'
 import { useProcedureStore } from '@/store/useProcedureStore'
+import { useSyncStore } from '@/store/useSyncStore'
 import { fmtDisplayDate } from '@/lib/format'
 import type { Procedure, ProcedureKind } from '@/types/procedure'
 import { cn } from '@/lib/utils'
@@ -14,6 +16,7 @@ import { cn } from '@/lib/utils'
 export function HomePage() {
   const navigate = useNavigate()
   const create = useProcedureStore((s) => s.create)
+  const lastPullAt = useSyncStore((s) => s.lastPullAt)
   const [rows, setRows] = useState<Procedure[]>([])
   const [q, setQ] = useState('')
 
@@ -23,7 +26,7 @@ export function HomePage() {
 
   useEffect(() => {
     refresh()
-  }, [])
+  }, [lastPullAt])
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase()
@@ -59,6 +62,17 @@ export function HomePage() {
         <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3.5 lg:px-8">
           <div className="min-w-0 flex-1">
             <BrandMark subtitle="Procedure console" />
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <CloudStatus />
+            <button
+              type="button"
+              className="flex size-11 items-center justify-center rounded-2xl text-foreground hover:bg-background"
+              onClick={() => navigate('/settings')}
+              aria-label="Settings"
+            >
+              <Settings className="size-5" />
+            </button>
           </div>
           <div className="hidden gap-2 sm:flex">
             <Button onClick={() => openNew('ptca')}>

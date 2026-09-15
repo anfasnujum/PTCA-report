@@ -1,7 +1,9 @@
 import { create } from 'zustand'
 import { db } from '@/db'
+import { beginProcedureEdit, endProcedureEdit } from '@/lib/cloudSync'
 import { emptyLab, emptyProcedure } from '@/lib/seed'
 import { nid } from '@/lib/ids'
+import { useSyncStore } from '@/store/useSyncStore'
 import type { Procedure, ProcedureEvent, ProcedureKind } from '@/types/procedure'
 
 export type SaveState = 'idle' | 'saving' | 'saved'
@@ -43,18 +45,22 @@ let saveTimer: ReturnType<typeof setTimeout> | undefined
 
 function scheduleSave(procedure: Procedure) {
   const stamped = { ...procedure, updatedAt: Date.now() }
+  beginProcedureEdit(stamped.id)
   useProcedureStore.setState({ current: stamped, saveState: 'saving' })
   if (saveTimer) clearTimeout(saveTimer)
   saveTimer = setTimeout(() => {
     void db.procedures
       .put(stamped)
       .then(() => {
+        endProcedureEdit(stamped.id)
+        useSyncStore.getState().pushProcedure(stamped)
         const still = useProcedureStore.getState().current
         if (still?.id === stamped.id && still.updatedAt === stamped.updatedAt) {
           useProcedureStore.setState({ saveState: 'saved' })
         }
       })
       .catch(() => {
+        endProcedureEdit(stamped.id)
         useProcedureStore.setState({ saveState: 'idle' })
       })
   }, 220)
@@ -71,12 +77,19 @@ export const useProcedureStore = create<ProcedureState>((set, get) => ({
       set({ current: null, loadError: 'Procedure not found', saveState: 'idle' })
       return
     }
+    const current = get().current
+    if (get().saveState === 'saving' && current?.id === row.id) return
+    if (current?.id === row.id && current.updatedAt === row.updatedAt) {
+      if (get().loadError) set({ loadError: null })
+      return
+    }
     set({ current: withOperatorFields(row), loadError: null, saveState: 'saved' })
   },
 
   create: async (kind: ProcedureKind = 'ptca') => {
     const p = emptyProcedure(nid(), kind)
     await db.procedures.put(p)
+    useSyncStore.getState().pushProcedure(p)
     set({ current: p, loadError: null, saveState: 'saved' })
     return p.id
   },

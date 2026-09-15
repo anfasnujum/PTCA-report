@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { HomePage } from '@/pages/HomePage'
+import { SettingsPage } from '@/pages/SettingsPage'
 import { ProcedureShell } from '@/components/layout/ProcedureShell'
 import { PatientPage } from '@/pages/PatientPage'
 import { AccessPage } from '@/pages/AccessPage'
@@ -12,6 +13,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
+      <Route path="/settings" element={<SettingsPage />} />
       <Route path="/procedure/:id" element={<ProcedureShell />}>
         <Route index element={<Navigate to="timeline" replace />} />
         <Route path="patient" element={<PatientPage />} />

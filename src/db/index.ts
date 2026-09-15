@@ -17,15 +17,17 @@ class CathNoteDB extends Dexie {
 
 export const db = new CathNoteDB()
 
-export async function ensureSeed(): Promise<void> {
+export async function ensureSeed(options?: { demoProcedures?: boolean }): Promise<void> {
   await db.open()
-  const n = await db.procedures.count()
-  if (n === 0) {
-    await db.procedures.put(demoProcedure())
-  }
-  const hasCagDemo = await db.procedures.get('seed-demo-cag')
-  if (!hasCagDemo) {
-    await db.procedures.put(demoCagProcedure())
+  if (options?.demoProcedures !== false) {
+    const n = await db.procedures.count()
+    if (n === 0) {
+      await db.procedures.put(demoProcedure())
+    }
+    const hasCagDemo = await db.procedures.get('seed-demo-cag')
+    if (!hasCagDemo) {
+      await db.procedures.put(demoCagProcedure())
+    }
   }
   const c = await db.catalogue.count()
   if (c === 0) {
