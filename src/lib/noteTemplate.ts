@@ -37,7 +37,7 @@ import {
   freeTextSentence,
   issueJoinPhrase,
 } from '@/lib/format'
-import { accessNarrative, accessSpecialNoteLine, formatLabAccess } from '@/lib/access'
+import { accessNarrative, accessSpecialNoteLine } from '@/lib/access'
 import type {
   AngioFinding,
   BalloonUse,
@@ -651,12 +651,10 @@ function labDetailLines(procedure: Procedure): string[] {
     : /mm\s*hg$/i.test(pressure)
       ? pressure
       : `${pressure} mmHg`
-  const access = formatLabAccess(procedure.access)
   const rows: Array<[string, string]> = [
     ['Doctor Name', lab.doctorName],
     ['Technologist', lab.technologist],
     ['Scrub Nurse', lab.scrubNurse],
-    ['Access', access],
     ['Catheter', lab.catheter],
     ['Contrast', lab.contrast],
     ['Haemodynamic Data', lab.haemodynamicData],
@@ -696,7 +694,7 @@ export function generateNote(procedure: Procedure): string {
   if (opLine) blocks.push(opLine)
   blocks.push(...labDetailLines(procedure))
 
-  blocks.push('', 'ACCESS', accessNarrative(procedure.access))
+  blocks.push('', 'ACCESS', accessNarrative(procedure.access, { includeSheath: !isCag }))
   const specialNote = accessSpecialNoteLine(procedure.access)
   if (specialNote) blocks.push(specialNote)
   blocks.push(

@@ -22,6 +22,7 @@ export const CORONARY_TREE: TreeBranch[] = [
   { vessel: 'OM1', d: 'M132 118 L100 92', label: 'OM1', lx: 72, ly: 88 },
   { vessel: 'OM2', d: 'M102 142 L64 122', label: 'OM2', lx: 36, ly: 118 },
   { vessel: 'OM3', d: 'M78 168 L38 156', label: 'OM3', lx: 8, ly: 152 },
+  { vessel: 'LPDA', d: 'M58 192 C70 230 100 252 138 262', label: 'LPDA', lx: 148, ly: 268 },
   { vessel: 'Ramus', d: 'M156 112 L118 128', label: 'RI', lx: 108, ly: 118 },
   { vessel: 'RCA', d: 'M330 48 C344 96 338 156 308 250', label: 'RCA', lx: 356, ly: 142 },
   { vessel: 'Conus', d: 'M338 70 L386 54', label: 'Conus', lx: 360, ly: 48 },

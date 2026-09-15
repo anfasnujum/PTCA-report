@@ -355,7 +355,7 @@ export async function buildCagReportDocx(procedure: Procedure): Promise<Blob> {
   })
 
   const labRows = [
-    fieldLineRow('Access', accessNarrative(p.access), { top: true, bottom: false, tabs: 4 }),
+    fieldLineRow('Access', accessNarrative(p.access, { includeSheath: false }), { top: true, bottom: false, tabs: 4 }),
     ...(specialNotes ? [fieldLineRow('Special Notes', specialNotes, { top: false, bottom: false, tabs: 5 })] : []),
     fieldLineRow('Catheter', p.lab.catheter, { top: false, bottom: false, tabs: 4 }),
     fieldLineRow('Contrast', p.lab.contrast, { top: false, bottom: false, tabs: 4 }),

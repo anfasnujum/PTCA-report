@@ -67,6 +67,7 @@ export function AccessPage() {
           ))}
         </ChipScroller>
       </Section>
+      {current.kind === 'cag' ? null : (
       <Section title="Sheath">
         <ChipScroller>
           {SHEATH_SIZES.map((s) => (
@@ -80,6 +81,7 @@ export function AccessPage() {
           ))}
         </ChipScroller>
       </Section>
+      )}
       <Section title="Catheter">
         <button
           type="button"

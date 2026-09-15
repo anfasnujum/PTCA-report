@@ -9,6 +9,7 @@ export type Vessel =
   | 'OM1'
   | 'OM2'
   | 'OM3'
+  | 'LPDA'
   | 'Ramus'
   | 'RCA'
   | 'Conus'

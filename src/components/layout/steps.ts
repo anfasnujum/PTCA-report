@@ -17,7 +17,7 @@ export const PTCA_STEPS: ProcedureStep[] = [
 
 export const CAG_STEPS: ProcedureStep[] = [
   { to: 'patient', label: 'Patient', hint: 'Identity & indication' },
-  { to: 'access', label: 'Access', hint: 'Sheath, catheter & contrast' },
+  { to: 'access', label: 'Access', hint: 'Catheter & contrast' },
   { to: 'angiogram', label: 'Angio', hint: 'Baseline findings' },
   { to: 'result', label: 'Impression', hint: 'Summary' },
   { to: 'preview', label: 'Final', hint: 'Preview & export' },

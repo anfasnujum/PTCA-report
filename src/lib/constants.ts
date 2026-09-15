@@ -59,6 +59,7 @@ export const PRIOR_PCI_TERRITORIES = [
   'LCX',
   'OM',
   'Ramus',
+  'LPDA',
   'RCA',
   'PDA',
   'PLV',

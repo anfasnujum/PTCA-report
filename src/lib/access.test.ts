@@ -30,7 +30,21 @@ describe('access helpers', () => {
         specialNote: 'Radial artery calcification',
         specialNoteCustom: '',
       }),
-    ).toBe('Right ulnar artery accessed; 5F sheath inserted.')
+    ).toBe('Right ulnar artery; 5F sheath inserted.')
+    expect(
+      accessNarrative(
+        {
+          site: 'radial',
+          side: 'right',
+          sheathSize: '6F',
+          punctures: 1,
+          singleAttempt: true,
+          specialNote: '',
+          specialNoteCustom: '',
+        },
+        { includeSheath: false },
+      ),
+    ).toBe('Right radial artery.')
     expect(
       accessSpecialNoteLine({
         site: 'ulnar',

@@ -41,7 +41,7 @@ describe('generateNote', () => {
     expect(note).toContain('Indication: Acute inferior wall STEMI — primary PCI')
     expect(note).toContain('Symptoms: Chest Pain, Dyspnea')
     expect(note).toContain('Operators: Dr. A (main), Dr. B (assistant)')
-    expect(note).toContain('Right radial artery accessed; 6F sheath inserted.')
+    expect(note).toContain('Right radial artery; 6F sheath inserted.')
     expect(note).toContain('Right dominant coronary circulation.')
     expect(note).toContain('LMCA: Normal.')
     expect(note).toContain('LAD: Mid LAD shows 40% stenosis. TIMI III flow.')
@@ -1663,6 +1663,25 @@ describe('generateNote', () => {
       }),
     )
     expect(plv).toContain('PLV: Small sized vessels and Proximal PLV shows 70% stenosis.')
+
+    const lpda = generateNote(
+      base({
+        baselineAngio: [
+          {
+            id: 'lpda',
+            vessel: 'LPDA',
+            stenosis: 0,
+            findingType: 'normal',
+            timiFlow: 'none',
+            features: [],
+            isTarget: false,
+            ramusSize: 'good',
+          },
+        ],
+      }),
+    )
+    expect(lpda).toContain('LCX: Normal. LPDA: Good sized vessel and Normal.')
+    expect(lpda).not.toMatch(/\nLPDA:/)
   })
 
   it('prefixes a major OM vessel name, then the remaining finding', () => {
@@ -2120,6 +2139,10 @@ describe('generateNote', () => {
     expect(note).not.toContain('primary PCI')
     expect(note).toContain('LAD: Mid LAD shows 70% stenosis. TIMI III flow.')
     expect(note).not.toContain('Target vessel')
+    expect(note).toContain('ACCESS\nRight radial artery.')
+    expect(note).not.toContain('Access: Right radial')
+    expect(note).not.toContain('sheath inserted')
+    expect(note).not.toContain('accessed')
     expect(note).not.toMatch(/\nPROCEDURE\n/)
     expect(note).not.toContain('Supraflex Cruz')
     expect(note).not.toMatch(/\nRESULT\n/)
@@ -2231,7 +2254,8 @@ describe('generateNote', () => {
     expect(note).toContain('Doctor Name: Dr. Rao')
     expect(note).toContain('Technologist: Anita')
     expect(note).toContain('Scrub Nurse: Meera')
-    expect(note).toContain('Access: Right radial')
+    expect(note).not.toContain('Access: Right radial')
+    expect(note).toContain('ACCESS\nRight radial artery; 6F sheath inserted.')
     expect(note).toContain('Catheter: 5F TIG')
     expect(note).toContain('Contrast: Iohexol 40 mL')
     expect(note).toContain('Haemodynamic Data: Stable throughout')
@@ -2243,7 +2267,8 @@ describe('generateNote', () => {
     expect(empty).not.toContain('Doctor Name:')
     expect(empty).not.toContain('Technologist:')
     expect(empty).not.toContain('Aortic Pressure:')
-    expect(empty).toContain('Access: Right radial')
+    expect(empty).not.toContain('Access: Right radial')
+    expect(empty).toContain('ACCESS\nRight radial artery; 6F sheath inserted.')
 
     const fromAccessPage = generateNote(
       base({
@@ -2270,9 +2295,9 @@ describe('generateNote', () => {
         },
       }),
     )
-    expect(fromAccessPage).toContain('Access: Left femoral')
+    expect(fromAccessPage).not.toContain('Access: Left femoral')
     expect(fromAccessPage).not.toContain('Access: RRA')
-    expect(fromAccessPage.indexOf('Access: Left femoral')).toBeLessThan(fromAccessPage.indexOf('Catheter: 5F TIG'))
+    expect(fromAccessPage).toContain('ACCESS\nLeft femoral artery; 6F sheath inserted.')
     expect(fromAccessPage.indexOf('Catheter: 5F TIG')).toBeLessThan(fromAccessPage.indexOf('Contrast: Omnipaque 30 mL'))
   })
 
