@@ -119,6 +119,7 @@ export async function buildReportDocx(procedure: Procedure, noteText: string): P
   const kindLabel = procedure.kind === 'cag' ? 'CAG' : 'PTCA'
   const doc = new Document({
     title: `${kindLabel} procedure note`,
+    compatabilityModeVersion: 12,
     sections: [{ children: paragraphs }],
   })
 
@@ -410,6 +411,7 @@ export async function buildCagReportDocx(procedure: Procedure): Promise<Blob> {
 
   const doc = new Document({
     title: 'CAG procedure note',
+    compatabilityModeVersion: 12,
     sections: [
       {
         properties: {
@@ -549,6 +551,7 @@ export async function buildPtcaReportDocx(procedure: Procedure): Promise<Blob> {
 
   const doc = new Document({
     title: 'PTCA procedure note',
+    compatabilityModeVersion: 12,
     sections: [
       {
         properties: {
