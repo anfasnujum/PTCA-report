@@ -47,6 +47,7 @@ export type CagImpression =
 export type CagAdvice =
   | 'omt'
   | 'medical-management'
+  | 'primary-ptca-lad'
   | 'ptca-lad'
   | 'ptca-lcx'
   | 'ptca-rca'

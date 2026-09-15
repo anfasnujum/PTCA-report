@@ -2324,6 +2324,16 @@ describe('generateNote', () => {
     expect(vessels).toContain(
       'ADVICE\nPTCA to LAD.\nPTCA to LCX.\nEmergency CABG.\nReview in 2 weeks.',
     )
+
+    const primary = generateNote(
+      base({
+        kind: 'cag',
+        cagAdvices: ['primary-ptca-lad'],
+        cagCustomAdvices: ['PRIMARY PTCA -> LCX'],
+      }),
+    )
+    expect(primary).toContain('ADVICE\nPRIMARY PTCA → LAD.\nPRIMARY PTCA → LCX.')
+    expect(primary).not.toContain('->')
   })
 
   it('includes LIMA and RIMA lines only when their toggles are on', () => {

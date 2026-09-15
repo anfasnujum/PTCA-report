@@ -707,7 +707,7 @@ export function addCagCustomImpression(list: string[], value: string): string[] 
 }
 
 function listedLine(text: string): string {
-  const t = text.trim().replace(/[.]+$/, '')
+  const t = text.trim().replace(/[.]+$/, '').replace(/->/g, '→')
   if (!t) return ''
   return `${t}.`
 }
