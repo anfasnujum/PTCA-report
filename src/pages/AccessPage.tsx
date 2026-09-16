@@ -106,13 +106,6 @@ export function AccessPage() {
           <span className="text-sm font-semibold text-accent">{lab.contrast ? 'Edit' : 'Choose'}</span>
         </button>
       </Section>
-      <Section title="Haemodynamic Data">
-        <Input
-          value={lab.haemodynamicData}
-          placeholder="e.g. Stable"
-          onChange={(e) => setLab({ haemodynamicData: e.target.value })}
-        />
-      </Section>
       <Section title="Aortic Pressure">
         <div className="relative">
           <Input

@@ -46,7 +46,7 @@ describe('generateNote', () => {
     expect(note).toContain('LMCA: Normal.')
     expect(note).toContain('LAD: Mid LAD shows 40% stenosis. TIMI III flow.')
     expect(note).toContain('LCX: Normal.')
-    expect(note).toContain('RCA: Proximal RCA shows thrombotic, 95% stenosis. TIMI I flow.')
+    expect(note).toContain('RCA: Proximal RCA shows 95% thrombotic stenosis. TIMI I flow.')
     expect(note).toContain('Target vessel: proximal RCA.')
     expect(note).toContain(
       [
@@ -54,7 +54,7 @@ describe('generateNote', () => {
         'LMCA: Normal.',
         'LAD: Mid LAD shows 40% stenosis. TIMI III flow.',
         'LCX: Normal.',
-        'RCA: Proximal RCA shows thrombotic, 95% stenosis. TIMI I flow.',
+        'RCA: Proximal RCA shows 95% thrombotic stenosis. TIMI I flow.',
         'Target vessel: proximal RCA.',
       ].join('\n'),
     )
@@ -956,7 +956,7 @@ describe('generateNote', () => {
       }),
     )
     expect(stenosis).toContain(
-      'LAD: Type I Vessel, wrapping around the apex. Mid LAD shows 80% stenosis.',
+      'LAD: Type I wrapping around the apex Vessel. Mid LAD shows 80% stenosis.',
     )
 
     const normal = generateNote(
@@ -977,7 +977,7 @@ describe('generateNote', () => {
         ],
       }),
     )
-    expect(normal).toContain('LAD: Type II Vessel, wrapping around the apex and Normal.')
+    expect(normal).toContain('LAD: Type II wrapping around the apex Vessel and Normal.')
 
     const other = generateNote(
       base({
@@ -1000,8 +1000,29 @@ describe('generateNote', () => {
       }),
     )
     expect(other).toContain(
-      'LAD: Type I Vessel, wrapping around the apex. Gives a small vessel to the apex.',
+      'LAD: Type I wrapping around the apex Vessel. Gives a small vessel to the apex.',
     )
+
+    const ectatic = generateNote(
+      base({
+        baselineAngio: [
+          {
+            id: '1',
+            vessel: 'LAD',
+            segment: 'mid',
+            stenosis: 80,
+            findingType: 'stenosis',
+            timiFlow: 'none',
+            features: [],
+            isTarget: false,
+            ladType: 'I',
+            ladRemarkOpen: true,
+            ladRemark: 'ectatic',
+          },
+        ],
+      }),
+    )
+    expect(ectatic).toContain('LAD: Type I ectatic Vessel. Mid LAD shows 80% stenosis.')
   })
 
   it('uses LAD other-segment text as the second sentence and ignores the hidden findings', () => {
@@ -1156,7 +1177,7 @@ describe('generateNote', () => {
     expect(note).toContain('LAD: Mid LAD shows discrete, severe myocardial bridging. TIMI III flow.')
   })
 
-  it('lists selected features comma-separated before plaque, stenosis or lesion', () => {
+  it('lists selected features after the percent for stenosis or lesion', () => {
     const plaque = generateNote(
       base({
         baselineAngio: [
@@ -1192,7 +1213,7 @@ describe('generateNote', () => {
         ],
       }),
     )
-    expect(stenosis).toContain('RCA: Proximal RCA shows tubular, hazy, irregular, 80% stenosis.')
+    expect(stenosis).toContain('RCA: Proximal RCA shows 80% tubular, hazy, irregular stenosis.')
 
     const lesion = generateNote(
       base({
@@ -1212,7 +1233,63 @@ describe('generateNote', () => {
         ],
       }),
     )
-    expect(lesion).toContain('LCX: Mid-distal LCX shows diffuse, calcified, 70–80% lesion.')
+    expect(lesion).toContain('LCX: Mid-distal LCX shows 70–80% diffuse, calcified lesion.')
+
+    const selectedOrder = generateNote(
+      base({
+        baselineAngio: [
+          {
+            id: '1',
+            vessel: 'LAD',
+            segment: 'mid',
+            stenosis: 80,
+            findingType: 'stenosis',
+            timiFlow: 'none',
+            features: ['ulcerated', 'discrete', 'calcific'],
+            isTarget: false,
+          },
+        ],
+      }),
+    )
+    expect(selectedOrder).toContain('LAD: Mid LAD shows 80% ulcerated, discrete, calcific stenosis.')
+  })
+
+  it('appends slow flow features after stenosis or lesion', () => {
+    const distal = generateNote(
+      base({
+        baselineAngio: [
+          {
+            id: '1',
+            vessel: 'LAD',
+            segment: 'proximal',
+            stenosis: 80,
+            findingType: 'stenosis',
+            timiFlow: 'none',
+            features: ['ulcerated', 'slow-flow-distal'],
+            isTarget: false,
+          },
+        ],
+      }),
+    )
+    expect(distal).toContain('LAD: Proximal LAD shows 80% ulcerated stenosis with slow flow distally.')
+
+    const flow = generateNote(
+      base({
+        baselineAngio: [
+          {
+            id: '1',
+            vessel: 'RCA',
+            segment: 'mid',
+            stenosis: 70,
+            findingType: 'lesion',
+            timiFlow: 'none',
+            features: ['slow-flow'],
+            isTarget: false,
+          },
+        ],
+      }),
+    )
+    expect(flow).toContain('RCA: Mid RCA shows 70% lesion with slow flow.')
   })
 
   it('writes LCX dominance as the first clause, then the segment finding', () => {
@@ -1401,7 +1478,7 @@ describe('generateNote', () => {
         ],
       }),
     )
-    expect(disease).toContain('RCA: Non dominant vessel. Proximal RCA shows thrombotic, 95% stenosis.')
+    expect(disease).toContain('RCA: Non dominant vessel. Proximal RCA shows 95% thrombotic stenosis.')
 
     const co = generateNote(
       base({
@@ -2661,7 +2738,7 @@ describe('generateNote', () => {
       }),
     )
     expect(note).toContain(
-      'LAD: Type III Vessel. Ostial LAD shows minor plaques followed by proximal LAD shows 80% stenosis and mid LAD shows diffuse, 90% plaques. D1 shows 30% plaques.',
+      'LAD: Type III Vessel. Ostial LAD shows minor plaques followed by proximal LAD shows 80% stenosis and mid LAD shows 90% diffuse plaques. D1 shows 30% plaques.',
     )
     expect(note).not.toContain('D1: shows')
     expect(note).not.toContain('Ostial shows')

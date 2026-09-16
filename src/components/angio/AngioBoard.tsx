@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Download } from 'lucide-react'
 import type { AngioFinding, LadBranch, LadInvolvement, LadVesselType, LcxBranch, LcxDominance, RamusSize, RcaDominance, TimiFlow, Vessel } from '@/types/procedure'
 import { Chip, ChipScroller, NumberChips } from '@/components/ui/chip'
+import { Combobox } from '@/components/ui/combobox'
 import { Section } from '@/components/ui/section'
 import { Switch } from '@/components/ui/switch'
 import { BottomSheet } from '@/components/ui/bottom-sheet'
@@ -29,6 +30,7 @@ import {
   formatDescribedFinding,
   formatSegments,
   featureLabel,
+  featureRemarkText,
   formatStenosis,
   findingSeverity,
   findingTypeOf,
@@ -100,7 +102,6 @@ function PercentFields({
 }) {
   return (
     <Section
-      className="sm:col-span-2"
       title={`${title}  ${formatStenosis(f)}`}
       action={
         <ChipScroller>
@@ -550,17 +551,15 @@ function FindingForm({
   }
 
   return (
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-x-6 sm:gap-y-3 [&_section]:space-y-2 [&_section_button]:min-h-8 [&_section_button]:px-3">
+      <div className="space-y-4 [&_section]:space-y-2 [&_section_button]:min-h-8 [&_section_button]:px-3">
         {f.vessel === 'LMCA' ? (
           <>
-            <div className="sm:col-span-2">
             <Switch
               label="Separate origin of LAD and LCX"
               yesNo
               checked={!!f.separateOrigin}
               onChange={(separateOrigin) => setF({ ...f, separateOrigin })}
             />
-            </div>
             {!f.separateOrigin ? (
               <Section
                 title="Length"
@@ -640,10 +639,14 @@ function FindingForm({
               </Chip>
             </ChipScroller>
             {f.ladRemarkOpen ? (
-              <Input
-                placeholder="Enter remark"
+              <Combobox
+                placeholder="Type or choose a feature"
                 value={f.ladRemark ?? ''}
-                onChange={(e) => setF({ ...f, ladRemark: e.target.value })}
+                onChange={(ladRemark) => setF({ ...f, ladRemark })}
+                options={ANGIO_FEATURES.map((feat) => ({
+                  value: featureRemarkText(feat),
+                  label: featureLabel(feat),
+                }))}
               />
             ) : null}
           </Section>
@@ -668,14 +671,12 @@ function FindingForm({
                 ))}
               </ChipScroller>
             </Section>
-            <div className="sm:col-span-2">
             <Switch
               label="Parent"
               yesNo
               checked={!!f.lcxParent}
               onChange={(lcxParent) => setF({ ...f, lcxParent })}
             />
-            </div>
           </>
         ) : null}
         {isSizeVessel(f.vessel) ? (
@@ -732,14 +733,12 @@ function FindingForm({
           </Section>
         ) : null}
         {isOmVessel(f.vessel) || isDiagonalVessel(f.vessel) ? (
-          <div className="sm:col-span-2">
           <Switch
             label="Major"
             yesNo
             checked={!!f.omMajor}
             onChange={(omMajor) => setF({ ...f, omMajor })}
           />
-          </div>
         ) : null}
         <Section title="Segment">
           <ChipScroller>
@@ -861,7 +860,7 @@ function FindingForm({
           />
         )}
         {findingTypeOf(f) === 'normal' ? null : (
-          <Section title="Features" className="sm:col-span-2">
+          <Section title="Features">
             <ChipScroller>
               {ANGIO_FEATURES.map((feat) => (
                 <Chip
@@ -876,7 +875,7 @@ function FindingForm({
           </Section>
         )}
         {hideNotes ? null : showsLadBranchNotes(f.vessel, f.segment) ? (
-          <Section title="Notes" className="sm:col-span-2">
+          <Section title="Notes">
             <ChipScroller>
               {LAD_BRANCHES.map((b) => (
                 <Chip
@@ -908,7 +907,7 @@ function FindingForm({
             </ChipScroller>
           </Section>
         ) : showsLcxBranchNotes(f.vessel, f.segment) ? (
-          <Section title="Notes" className="sm:col-span-2">
+          <Section title="Notes">
             <ChipScroller>
               {LCX_BRANCHES.map((b) => (
                 <Chip
@@ -940,7 +939,7 @@ function FindingForm({
             </ChipScroller>
           </Section>
         ) : asSegments(f.segment).includes('distal') ? (
-          <Section title="Notes" className="sm:col-span-2">
+          <Section title="Notes">
             <ChipScroller>
               {(f.vessel === 'RCA' ? RCA_DISTAL_NOTES : DISTAL_SEGMENT_NOTES).map((n) => (
                 <Chip
@@ -963,13 +962,11 @@ function FindingForm({
         ) : null}
           </>
         )}
-        <div className="sm:col-span-2">
         <Switch
           label="Target vessel"
           checked={f.isTarget}
           onChange={(isTarget) => setF({ ...f, isTarget })}
         />
-        </div>
       </div>
   )
 }

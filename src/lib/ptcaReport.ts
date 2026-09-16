@@ -1,6 +1,6 @@
 import { fmtSize, formatSegments, vesselReportName } from '@/lib/format'
 import { hasStentEvents } from '@/lib/noteTemplate'
-import type { Access, AngioFinding, LabDetails, Outcome, Periprocedural, Procedure } from '@/types/procedure'
+import type { Access, AngioFinding, Outcome, Periprocedural, Procedure } from '@/types/procedure'
 
 function shortVesselCode(vessel: string): string {
   return vessel === 'LMCA' ? 'LM' : vessel
@@ -115,10 +115,6 @@ export function ptcaContrastText(peri: Periprocedural): string {
   if (!peri.contrastAgent && peri.contrastVolumeMl === '') return '____'
   const vol = peri.contrastVolumeMl === '' ? '' : ` ${peri.contrastVolumeMl} ml`
   return `${peri.contrastAgent || 'Contrast'}${vol}`
-}
-
-export function ptcaHemodynamicText(lab: LabDetails): string {
-  return lab.haemodynamicData.trim() || '____'
 }
 
 export function ptcaCommentSentence(procedure: Procedure): string {

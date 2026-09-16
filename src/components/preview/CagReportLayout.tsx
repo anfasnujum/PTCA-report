@@ -102,18 +102,9 @@ export function CagReportLayout({ procedure }: { procedure: Procedure }) {
         {specialNotes ? <FieldLine label="Special Notes" value={specialNotes} tabs={5} /> : null}
         <FieldLine label="Catheter" value={p.lab.catheter} tabs={4} />
         <FieldLine label="Contrast" value={p.lab.contrast} tabs={4} />
-        <table className="w-full border-collapse text-[10px] font-normal">
-          <tbody>
-            <tr>
-              <td className="w-1/2 py-0.5 pr-6 align-top" style={{ paddingLeft: `${0.375 + 4}em` }}>
-                Haemodynamic Data : {p.lab.haemodynamicData.trim() || '____'}
-              </td>
-              <td className="w-1/2 py-0.5 align-top">
-                Aortic Pressure : {aorticPressure || '____'}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <p className="py-0.5 text-[10px] font-normal whitespace-pre" style={{ paddingLeft: `${0.375 + 4}em` }}>
+          Haemodynamic Data :{'\t'}Aortic Pressure : {aorticPressure || '____'}
+        </p>
       </div>
 
       <div className="space-y-0.5 border-t border-border pt-2" style={pt(12)}>

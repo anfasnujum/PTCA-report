@@ -7,7 +7,6 @@ import {
   ptcaCommentSentence,
   ptcaComplicationsText,
   ptcaContrastText,
-  ptcaHemodynamicText,
   ptcaInventoryLines,
   ptcaInventorySummary,
   ptcaResultLabel,
@@ -95,19 +94,11 @@ export function PtcaReportLayout({ procedure }: { procedure: Procedure }) {
         <DetailLine label="Complications" value={ptcaComplicationsText(p.outcome)} bold />
         <DetailLine label="Adjuvants" value={ptcaAdjuvantsText(p.periprocedural)} bold />
         <DetailLine label="Contrast" value={ptcaContrastText(p.periprocedural)} bold />
-        <table className="w-full border-collapse">
-          <tbody>
-            <tr>
-              <td className="w-1/2 py-0.5 pr-6 align-top">
-                <span className="font-bold">Hemodynamic Data</span> : {ptcaHemodynamicText(p.lab)}
-              </td>
-              <td className="w-1/2 py-0.5 align-top">
-                <span className="font-bold">Aortic Pressure</span> :{' '}
-                {formatAorticPressureDisplay(p.lab.aorticPressureMmHg) || '____'}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <p className="whitespace-pre">
+          <span className="font-bold">Hemodynamic Data</span> :{'\t'}
+          <span className="font-bold">Aortic Pressure</span> :{' '}
+          {formatAorticPressureDisplay(p.lab.aorticPressureMmHg) || '____'}
+        </p>
       </div>
 
       <div>

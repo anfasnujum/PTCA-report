@@ -118,6 +118,8 @@ export const ANGIO_FEATURES = [
   'tortuous',
   'CTO',
   'ectatic',
+  'slow-flow',
+  'slow-flow-distal',
 ] as const
 
 export const COMPLICATION_CHIPS = [

@@ -1,4 +1,4 @@
-import { ANGIO_FEATURES, CAG_ADVICES, CAG_IMPRESSIONS, LAD_BRANCH_NOTE_SEGMENTS } from '@/lib/constants'
+import { CAG_ADVICES, CAG_IMPRESSIONS, LAD_BRANCH_NOTE_SEGMENTS } from '@/lib/constants'
 import type { AngioFinding, BridgingGrade, CagAdvice, CagImpression, FindingType, PlaqueGrade, Segment, SegmentChoice, TimiFlow, Vessel } from '@/types/procedure'
 
 export const DISCLAIMER =
@@ -515,15 +515,30 @@ export function formatFindingPhrase(
 }
 
 export function featureLabel(feat: string): string {
-  return feat === 'CTO' ? 'CTO' : capitalise(feat)
+  if (feat === 'CTO') return 'CTO'
+  if (feat === 'slow-flow') return 'Slow flow'
+  if (feat === 'slow-flow-distal') return 'Slow flow distal'
+  return capitalise(feat.replace(/-/g, ' '))
 }
 
+export function featureRemarkText(feat: string): string {
+  if (feat === 'CTO') return 'CTO'
+  return feat.replace(/-/g, ' ')
+}
+
+const SUFFIX_FEATURES = new Set(['CTO', 'slow-flow', 'slow-flow-distal'])
+
 export function formatFeatureList(features: string[]): string {
-  const known = ANGIO_FEATURES.filter((f) => f !== 'CTO' && features.includes(f))
-  const unknown = features.filter(
-    (f) => f !== 'CTO' && !(ANGIO_FEATURES as readonly string[]).includes(f),
-  )
-  return [...known, ...unknown].join(', ')
+  return features.filter((f) => !SUFFIX_FEATURES.has(f)).join(', ')
+}
+
+function formatSlowFlowSuffix(features: string[]): string {
+  const parts: string[] = []
+  for (const feat of features) {
+    if (feat === 'slow-flow') parts.push('slow flow')
+    if (feat === 'slow-flow-distal') parts.push('slow flow distally')
+  }
+  return parts.length ? `with ${parts.join(' and ')}` : ''
 }
 
 export function isChronicTotalOcclusion(
@@ -546,7 +561,16 @@ export function isChronicTotalOcclusion(
 export function formatDescribedFinding(f: AngioFinding): string {
   const feats = formatFeatureList(f.features)
   const finding = isChronicTotalOcclusion(f) ? 'chronic total occlusion' : formatFindingPhrase(f)
-  return feats ? `${feats}, ${finding}` : finding
+  const body = insertFeaturesAfterPercent(finding, feats)
+  const suffix = formatSlowFlowSuffix(f.features)
+  return suffix ? `${body} ${suffix}` : body
+}
+
+function insertFeaturesAfterPercent(finding: string, feats: string): string {
+  if (!feats) return finding
+  const m = /^(\d+(?:[–-]\d+)?%\s+)(.+)$/.exec(finding)
+  if (m) return `${m[1]}${feats} ${m[2]}`
+  return `${feats}, ${finding}`
 }
 
 export function findingIssueLabel(f: AngioFinding): string {
@@ -640,7 +664,10 @@ export function ladLeadClause(
 ): string {
   const type = ladTypeLabel(f)
   const remark = ladRemarkValue(f)
-  if (type && remark) return /^[,;:]/.test(remark) ? `${type}${remark}` : `${type}, ${remark}`
+  if (type && remark) {
+    const cleaned = remark.replace(/^[,;:]\s*/, '').replace(/[.!?]+$/, '')
+    return type.replace(/ Vessel$/, ` ${cleaned} Vessel`)
+  }
   if (type) return type
   if (remark) return capitalise(remark).replace(/[.!?]+$/, '')
   return ''
