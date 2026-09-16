@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Download, Plus } from 'lucide-react'
+import { Download } from 'lucide-react'
 import type { AngioFinding, LadBranch, LadInvolvement, LadVesselType, LcxBranch, LcxDominance, RamusSize, RcaDominance, TimiFlow, Vessel } from '@/types/procedure'
 import { Chip, ChipScroller, NumberChips } from '@/components/ui/chip'
 import { Section } from '@/components/ui/section'
@@ -394,6 +394,7 @@ function VesselSheet({
 
   const save = () => {
     persist(draft)
+    onClose()
   }
 
   const addIssue = () => {
@@ -436,19 +437,20 @@ function VesselSheet({
           : undefined
       }
       footer={
-        <div className="space-y-2">
-          <div className="flex gap-2">
-            <Button variant="secondary" className="flex-1" onClick={removeIssue}>
+        <div className="flex gap-2">
+            <Button variant="secondary" className="shrink-0 px-3 sm:flex-1 sm:px-5" onClick={removeIssue}>
               {otherCount > 0 || showSidebar ? 'Remove issue' : 'Clear'}
             </Button>
-            <Button className="flex-1" onClick={save}>
+            <Button className="min-w-0 flex-1 px-3 sm:px-5" onClick={save}>
               Save finding
             </Button>
-          </div>
-          <Button variant="outline" className="w-full" onClick={addIssue}>
-            <Plus className="size-4" />
-            Add another issue
-          </Button>
+            <Button
+              variant="outline"
+              className="min-w-0 flex-1 whitespace-normal px-3 text-center leading-tight sm:px-5"
+              onClick={addIssue}
+            >
+              Save and Add another
+            </Button>
         </div>
       }
     >
