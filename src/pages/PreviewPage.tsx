@@ -37,7 +37,7 @@ const FONT_SIZES = [
 
 function EditorToolbar({ onFontSize }: { onFontSize: (value: string) => void }) {
   return (
-    <div className="no-print absolute left-4 top-4 z-10 flex w-fit items-center gap-1 rounded-xl bg-card p-1 shadow-card">
+    <div className="no-print ml-auto flex w-fit items-center gap-1 rounded-xl bg-card p-1 shadow-card">
       <Button
         type="button"
         variant="ghost"
@@ -85,7 +85,7 @@ function EditorToolbar({ onFontSize }: { onFontSize: (value: string) => void }) 
         }}
       >
         <option value="" disabled>
-          Size
+          Aa
         </option>
         {FONT_SIZES.map((s) => (
           <option key={s.value} value={s.value}>
@@ -248,6 +248,12 @@ export function PreviewPage() {
     }
     document.execCommand('fontSize', false, value)
     docRef.current?.focus()
+    // execCommand rewraps the selected nodes, so the previously saved range
+    // may now point at detached nodes. Recapture it so the next size change
+    // (without reselecting text) still has a valid range to restore.
+    if (sel && sel.rangeCount > 0) {
+      savedRangeRef.current = sel.getRangeAt(0).cloneRange()
+    }
   }
 
   return (
@@ -283,9 +289,9 @@ export function PreviewPage() {
             Completed
           </Button>
         ) : null}
+        {editing ? <EditorToolbar onFontSize={applyFontSize} /> : null}
       </div>
       <div className="relative">
-        {editing ? <EditorToolbar onFontSize={applyFontSize} /> : null}
         <div
           ref={docRef}
           contentEditable={editing}
