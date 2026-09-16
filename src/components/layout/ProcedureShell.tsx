@@ -137,10 +137,10 @@ export function ProcedureShell() {
         </header>
 
         <div className="flex min-h-0 flex-1">
-          <main className="min-w-0 flex-1 overflow-y-auto px-4 py-4 lg:px-8 lg:py-6">
+          <main className="min-w-0 flex-1 overflow-y-auto px-4 py-4 lg:px-8 lg:py-6 print:p-0">
             <div
               className={cn(
-                'mx-auto w-full max-w-lg',
+                'mx-auto w-full max-w-lg print:mx-0 print:max-w-none',
                 location.pathname.endsWith('/angiogram') ? 'lg:max-w-5xl' : 'lg:max-w-3xl',
               )}
             >

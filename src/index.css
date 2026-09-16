@@ -63,9 +63,19 @@ body {
   box-shadow: var(--shadow-card);
 }
 
+/* Match the editor's text width to the print page: A4 width (21cm) minus the
+   left/right @page margins (2.54cm each) = 15.92cm. No margin/padding is
+   simulated on screen - only the resulting text width. */
+.report-doc {
+  max-width: 15.92cm;
+  margin-inline: auto;
+}
+
 @media print {
   @page {
     margin-top: 6cm;
+    margin-left: 2.54cm;
+    margin-right: 2.54cm;
   }
   html,
   body,
@@ -78,11 +88,16 @@ body {
     display: none !important;
   }
   .report-doc {
+    /* The real page margins come from @page above; cancel the on-screen page
+       simulation and the card padding so neither is applied twice. */
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
     color: #111 !important;
     background: #fff !important;
     box-shadow: none !important;
-    font-size: 12px;
-    line-height: 1.45;
+    font-size: 16px;
+    line-height: 1.375;
   }
   .report-doc table {
     border-collapse: collapse;
