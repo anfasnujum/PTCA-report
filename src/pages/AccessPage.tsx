@@ -7,7 +7,7 @@ import { Select } from '@/components/ui/select'
 import { CatheterSheet } from '@/components/sheets/CatheterSheet'
 import { ContrastSheet } from '@/components/sheets/ContrastSheet'
 import { ACCESS_SPECIAL_NOTES, SHEATH_SIZES } from '@/lib/constants'
-import { defaultCatheterSize, formatLabAccess, parseCatheterLabel, parseContrastLabel } from '@/lib/access'
+import { defaultCatheterSize, formatAorticPressureInput, formatLabAccess, parseCatheterLabel, parseContrastLabel } from '@/lib/access'
 import { emptyLab } from '@/lib/seed'
 import { useProcedureStore } from '@/store/useProcedureStore'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -118,7 +118,9 @@ export function AccessPage() {
           <Input
             value={lab.aorticPressureMmHg}
             placeholder="e.g. 120/80"
-            onChange={(e) => setLab({ aorticPressureMmHg: e.target.value })}
+            inputMode="numeric"
+            autoComplete="off"
+            onChange={(e) => setLab({ aorticPressureMmHg: formatAorticPressureInput(e.target.value) })}
             className="pr-16"
           />
           <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-muted">

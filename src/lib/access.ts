@@ -104,3 +104,16 @@ export function parseContrastLabel(value: string): { agent: string; volumeMl: nu
   }
   return { agent: normalizeContrastAgent(trimmed), volumeMl: '' }
 }
+
+/** Keeps systolic/diastolic as 120/80 by inserting `/` after the third digit. */
+export function formatAorticPressureInput(raw: string): string {
+  const digits = raw.replace(/\D/g, '').slice(0, 6)
+  if (digits.length <= 3) return digits
+  return `${digits.slice(0, 3)}/${digits.slice(3)}`
+}
+
+export function formatAorticPressureDisplay(raw: string): string {
+  const pressure = raw.trim()
+  if (!pressure) return ''
+  return /mm\s*hg$/i.test(pressure) ? pressure : `${pressure} mmHg`
+}

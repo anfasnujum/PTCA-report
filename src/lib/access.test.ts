@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { accessNarrative, accessSpecialNoteLine, defaultCatheterSize, formatCatheterLabel, formatContrastLabel, formatLabAccess, parseCatheterLabel, parseContrastLabel } from '@/lib/access'
+import { accessNarrative, accessSpecialNoteLine, defaultCatheterSize, formatAorticPressureInput, formatCatheterLabel, formatContrastLabel, formatLabAccess, parseCatheterLabel, parseContrastLabel } from '@/lib/access'
 
 describe('access helpers', () => {
   it('formats site and side for lab access', () => {
@@ -64,5 +64,14 @@ describe('access helpers', () => {
     expect(parseContrastLabel('60 ml Omnipaque')).toEqual({ agent: 'Omnipaque', volumeMl: 60 })
     expect(parseContrastLabel('Iohexol 40 mL')).toEqual({ agent: 'Omnipaque', volumeMl: 40 })
     expect(formatContrastLabel('', '')).toBe('')
+  })
+
+  it('inserts a slash after the third aortic-pressure digit', () => {
+    expect(formatAorticPressureInput('12')).toBe('12')
+    expect(formatAorticPressureInput('120')).toBe('120')
+    expect(formatAorticPressureInput('1208')).toBe('120/8')
+    expect(formatAorticPressureInput('12080')).toBe('120/80')
+    expect(formatAorticPressureInput('120/80')).toBe('120/80')
+    expect(formatAorticPressureInput('120/801')).toBe('120/801')
   })
 })

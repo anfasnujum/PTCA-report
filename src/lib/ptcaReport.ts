@@ -118,9 +118,7 @@ export function ptcaContrastText(peri: Periprocedural): string {
 }
 
 export function ptcaHemodynamicText(lab: LabDetails): string {
-  if (lab.haemodynamicData.trim()) return lab.haemodynamicData.trim()
-  if (lab.aorticPressureMmHg.trim()) return `Aortic: Pre PTCA: ${lab.aorticPressureMmHg} mmHg`
-  return '____'
+  return lab.haemodynamicData.trim() || '____'
 }
 
 export function ptcaCommentSentence(procedure: Procedure): string {

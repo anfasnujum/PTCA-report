@@ -37,7 +37,7 @@ import {
   freeTextSentence,
   issueJoinPhrase,
 } from '@/lib/format'
-import { accessNarrative, accessSpecialNoteLine } from '@/lib/access'
+import { accessNarrative, accessSpecialNoteLine, formatAorticPressureDisplay } from '@/lib/access'
 import type {
   AngioFinding,
   BalloonUse,
@@ -645,12 +645,7 @@ function operatorsLine(p: Procedure): string | null {
 function labDetailLines(procedure: Procedure): string[] {
   const lab = procedure.lab
   if (!lab) return []
-  const pressure = (lab.aorticPressureMmHg ?? '').trim()
-  const pressureLine = !pressure
-    ? ''
-    : /mm\s*hg$/i.test(pressure)
-      ? pressure
-      : `${pressure} mmHg`
+  const pressureLine = formatAorticPressureDisplay(lab.aorticPressureMmHg ?? '')
   const rows: Array<[string, string]> = [
     ['Doctor Name', lab.doctorName],
     ['Technologist', lab.technologist],

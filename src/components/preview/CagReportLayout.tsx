@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 import { cagAdviceItems, cagArterialGraftLine, cagImpressionItems, fmtDisplayDate } from '@/lib/format'
-import { accessNarrative, accessSpecialNote } from '@/lib/access'
+import { accessNarrative, accessSpecialNote, formatAorticPressureDisplay } from '@/lib/access'
 import { mainVesselLabel, mainVesselParagraph } from '@/lib/noteTemplate'
 import type { Procedure } from '@/types/procedure'
 
@@ -62,11 +62,7 @@ export function CagReportLayout({ procedure }: { procedure: Procedure }) {
   const adviceItems = cagAdviceItems(p.cagAdvices, p.cagCustomAdvices)
   const accessText = accessNarrative(p.access, { includeSheath: false })
   const specialNotes = accessSpecialNote(p.access)
-  const aorticPressure = p.lab.aorticPressureMmHg.trim()
-    ? /mm\s*hg$/i.test(p.lab.aorticPressureMmHg.trim())
-      ? p.lab.aorticPressureMmHg.trim()
-      : `${p.lab.aorticPressureMmHg.trim()} mmHg`
-    : ''
+  const aorticPressure = formatAorticPressureDisplay(p.lab.aorticPressureMmHg)
 
   return (
     <div
@@ -106,8 +102,18 @@ export function CagReportLayout({ procedure }: { procedure: Procedure }) {
         {specialNotes ? <FieldLine label="Special Notes" value={specialNotes} tabs={5} /> : null}
         <FieldLine label="Catheter" value={p.lab.catheter} tabs={4} />
         <FieldLine label="Contrast" value={p.lab.contrast} tabs={4} />
-        <FieldLine label="Haemodynamic Data" value={p.lab.haemodynamicData.trim()} tabs={2} />
-        <FieldLine label="Aortic Pressure" value={aorticPressure} tabs={2} />
+        <table className="w-full border-collapse text-[10px] font-normal">
+          <tbody>
+            <tr>
+              <td className="w-1/2 py-0.5 pr-6 align-top" style={{ paddingLeft: `${0.375 + 4}em` }}>
+                Haemodynamic Data : {p.lab.haemodynamicData.trim() || '____'}
+              </td>
+              <td className="w-1/2 py-0.5 align-top">
+                Aortic Pressure : {aorticPressure || '____'}
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <div className="space-y-0.5 border-t border-border pt-2" style={pt(12)}>

@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react'
 import { fmtDisplayDate } from '@/lib/format'
 import { procedureSection } from '@/lib/noteTemplate'
-import { accessNarrative, accessSpecialNote } from '@/lib/access'
+import { accessNarrative, accessSpecialNote, formatAorticPressureDisplay } from '@/lib/access'
 import {
   ptcaAdjuvantsText,
   ptcaCommentSentence,
@@ -95,7 +95,19 @@ export function PtcaReportLayout({ procedure }: { procedure: Procedure }) {
         <DetailLine label="Complications" value={ptcaComplicationsText(p.outcome)} bold />
         <DetailLine label="Adjuvants" value={ptcaAdjuvantsText(p.periprocedural)} bold />
         <DetailLine label="Contrast" value={ptcaContrastText(p.periprocedural)} bold />
-        <DetailLine label="Hemodynamic Data" value={ptcaHemodynamicText(p.lab)} bold />
+        <table className="w-full border-collapse">
+          <tbody>
+            <tr>
+              <td className="w-1/2 py-0.5 pr-6 align-top">
+                <span className="font-bold">Hemodynamic Data</span> : {ptcaHemodynamicText(p.lab)}
+              </td>
+              <td className="w-1/2 py-0.5 align-top">
+                <span className="font-bold">Aortic Pressure</span> :{' '}
+                {formatAorticPressureDisplay(p.lab.aorticPressureMmHg) || '____'}
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <div>
