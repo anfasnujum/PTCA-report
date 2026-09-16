@@ -60,7 +60,7 @@ export function CagReportLayout({ procedure }: { procedure: Procedure }) {
   const rimaLine = cagArterialGraftLine('RIMA', p.cagRimaOn, p.cagRimaNote)
   const impressionItems = cagImpressionItems(p.cagImpressions, p.cagCustomImpressions)
   const adviceItems = cagAdviceItems(p.cagAdvices, p.cagCustomAdvices)
-  const accessText = accessNarrative(p.access)
+  const accessText = accessNarrative(p.access, { includeSheath: false })
   const specialNotes = accessSpecialNote(p.access)
   const aorticPressure = p.lab.aorticPressureMmHg.trim()
     ? /mm\s*hg$/i.test(p.lab.aorticPressureMmHg.trim())

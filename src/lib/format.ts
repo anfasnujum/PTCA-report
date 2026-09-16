@@ -253,6 +253,7 @@ export const LEFT_VESSELS: Vessel[] = [
   'OM1',
   'OM2',
   'OM3',
+  'LPDA',
   'Ramus',
 ]
 export const RIGHT_VESSELS: Vessel[] = ['RCA', 'Conus', 'AM', 'PDA', 'PLV']
@@ -269,6 +270,7 @@ export const VESSEL_LONG: Record<Vessel, string> = {
   OM1: 'first obtuse marginal',
   OM2: 'second obtuse marginal',
   OM3: 'third obtuse marginal',
+  LPDA: 'left posterior descending artery',
   Ramus: 'ramus intermedius',
   RCA: 'right coronary artery',
   Conus: 'conus branch',
@@ -280,9 +282,9 @@ export const VESSEL_LONG: Record<Vessel, string> = {
 export const MAIN_VESSELS: Vessel[] = ['LMCA', 'LAD', 'LCX', 'RCA']
 export const REPORT_VESSEL_ORDER: Vessel[] = ['LMCA', 'LAD', 'Ramus', 'LCX', 'RCA']
 export const LAD_REPORT_BRANCHES: Vessel[] = ['D1', 'D2', 'D3', 'S1']
-export const LCX_REPORT_BRANCHES: Vessel[] = ['OM1', 'OM2', 'OM3']
+export const LCX_REPORT_BRANCHES: Vessel[] = ['OM1', 'OM2', 'OM3', 'LPDA']
 
-export const SIZE_VESSELS: Vessel[] = ['Ramus', 'D1', 'D2', 'D3', 'OM1', 'OM2', 'OM3', 'PDA', 'PLV']
+export const SIZE_VESSELS: Vessel[] = ['Ramus', 'D1', 'D2', 'D3', 'OM1', 'OM2', 'OM3', 'LPDA', 'PDA', 'PLV']
 
 export function isOmVessel(vessel: Vessel): boolean {
   return vessel === 'OM1' || vessel === 'OM2' || vessel === 'OM3'
@@ -705,7 +707,7 @@ export function addCagCustomImpression(list: string[], value: string): string[] 
 }
 
 function listedLine(text: string): string {
-  const t = text.trim().replace(/[.]+$/, '')
+  const t = text.trim().replace(/[.]+$/, '').replace(/->/g, '→')
   if (!t) return ''
   return `${t}.`
 }

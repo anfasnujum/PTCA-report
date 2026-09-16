@@ -6,14 +6,18 @@ export function formatLabAccess(access: Pick<Access, 'site' | 'side'>): string {
   return [side, access.site].filter(Boolean).join(' ')
 }
 
-export function accessNarrative(a: Access): string {
-  if (!a.site || !a.side || !a.sheathSize) {
-    const parts = [a.side, a.site, a.sheathSize].filter(Boolean)
+export function accessNarrative(a: Access, opts?: { includeSheath?: boolean }): string {
+  const includeSheath = opts?.includeSheath !== false
+  if (!a.site || !a.side) {
+    const parts = [a.side, a.site, includeSheath ? a.sheathSize : ''].filter(Boolean)
     return parts.length ? `${parts.join(' ')} access.` : 'Access not recorded.'
   }
   const artery = a.site === 'distal radial' ? 'distal radial artery' : `${a.site} artery`
   const side = `${a.side.charAt(0).toUpperCase()}${a.side.slice(1)}`
-  return `${side} ${artery} accessed; ${a.sheathSize} sheath inserted.`
+  if (includeSheath && a.sheathSize) {
+    return `${side} ${artery}; ${a.sheathSize} sheath inserted.`
+  }
+  return `${side} ${artery}.`
 }
 
 export function accessSpecialNote(a: Access): string {

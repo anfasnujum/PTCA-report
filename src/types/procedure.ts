@@ -9,6 +9,7 @@ export type Vessel =
   | 'OM1'
   | 'OM2'
   | 'OM3'
+  | 'LPDA'
   | 'Ramus'
   | 'RCA'
   | 'Conus'
@@ -46,6 +47,7 @@ export type CagImpression =
 export type CagAdvice =
   | 'omt'
   | 'medical-management'
+  | 'primary-ptca-lad'
   | 'ptca-lad'
   | 'ptca-lcx'
   | 'ptca-rca'

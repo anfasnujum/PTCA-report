@@ -201,63 +201,7 @@ export function AngioBoard({
   findings: AngioFinding[]
   onChange: (next: AngioFinding[]) => void
 }) {
-  const [hubVessel, setHubVessel] = useState<Vessel | null>(null)
-  const [editing, setEditing] = useState<{ finding: AngioFinding; fromHub: boolean } | null>(null)
-
-  const open = (v: Vessel) => {
-    const list = findingsForVessel(findings, v)
-    if (list.length > 1) {
-      setHubVessel(v)
-      setEditing(null)
-      return
-    }
-    setHubVessel(null)
-    setEditing({ finding: list[0] ?? emptyFinding(v, findings), fromHub: false })
-  }
-
-  const persist = (f: AngioFinding): AngioFinding[] => {
-    const rest = findings.filter((x) => x.id !== f.id)
-    const next = syncVesselMeta([...rest, f], f)
-    onChange(next)
-    return next
-  }
-
-  const save = (f: AngioFinding, andAdd = false) => {
-    const next = persist(f)
-    if (andAdd) {
-      setEditing({ finding: emptyFinding(f.vessel, next), fromHub: true })
-      setHubVessel(null)
-      return
-    }
-    if (editing?.fromHub || findingsForVessel(next, f.vessel).length > 1) {
-      setEditing(null)
-      setHubVessel(f.vessel)
-      return
-    }
-    setEditing(null)
-    setHubVessel(null)
-  }
-
-  const closeEditor = () => {
-    if (editing?.fromHub) {
-      setEditing(null)
-      setHubVessel(editing.finding.vessel)
-      return
-    }
-    setEditing(null)
-    setHubVessel(null)
-  }
-
-  const clearEditing = () => {
-    if (!editing) return
-    const vessel = editing.finding.vessel
-    const persisted = findings.some((x) => x.id === editing.finding.id)
-    const next = persisted ? findings.filter((x) => x.id !== editing.finding.id) : findings
-    if (persisted) onChange(next)
-    const remaining = findingsForVessel(next, vessel)
-    setEditing(null)
-    setHubVessel(editing.fromHub || remaining.length > 1 ? vessel : null)
-  }
+  const [openVessel, setOpenVessel] = useState<Vessel | null>(null)
 
   const renderGroup = (label: string, vessels: Vessel[]) => (
     <Section title={label}>
@@ -269,7 +213,7 @@ export function AngioBoard({
             <button
               key={v}
               type="button"
-              onClick={() => open(v)}
+              onClick={() => setOpenVessel(v)}
               className={cn(
                 'min-h-16 rounded-2xl border px-2 py-2 text-center',
                 stenosisColor(worst ? findingSeverity(worst) : 0),
@@ -295,36 +239,18 @@ export function AngioBoard({
   return (
     <div className="space-y-5">
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.7fr)_minmax(240px,1fr)] lg:items-start">
-        <CoronarySchematic onSelect={open} findings={findings} />
+        <CoronarySchematic onSelect={setOpenVessel} findings={findings} />
         <div className="space-y-5">
           {renderGroup('Left system', LEFT_VESSELS)}
           {renderGroup('Right system', RIGHT_VESSELS)}
         </div>
       </div>
-      {editing ? (
-        <FindingSheet
-          key={editing.finding.id}
-          finding={editing.finding}
-          otherCount={findingsForVessel(findings, editing.finding.vessel).filter((f) => f.id !== editing.finding.id).length}
-          onClose={closeEditor}
-          onSave={(f) => save(f)}
-          onAddAnother={(f) => save(f, true)}
-          onClear={clearEditing}
-        />
-      ) : hubVessel ? (
-        <VesselHubSheet
-          vessel={hubVessel}
-          findings={findingsForVessel(findings, hubVessel)}
-          onClose={() => setHubVessel(null)}
-          onEdit={(f) => setEditing({ finding: f, fromHub: true })}
-          onAdd={() => setEditing({ finding: emptyFinding(hubVessel, findings), fromHub: true })}
-          onJoinChange={(id, joinBefore) => {
-            onChange(findings.map((f) => (f.id === id ? { ...f, joinBefore } : f)))
-          }}
-          onClearAll={() => {
-            onChange(findings.filter((f) => f.vessel !== hubVessel))
-            setHubVessel(null)
-          }}
+      {openVessel ? (
+        <VesselSheet
+          vessel={openVessel}
+          findings={findings}
+          onChange={onChange}
+          onClose={() => setOpenVessel(null)}
         />
       ) : null}
     </div>
@@ -417,114 +343,192 @@ function VesselPath({
   )
 }
 
-function VesselHubSheet({
+function issueRowTitle(f: AngioFinding): string {
+  if (isLadOtherSegment(f)) return 'Other'
+  return formatSegments(f.segment) || 'No segment'
+}
+
+function issueRowSubtitle(f: AngioFinding): string {
+  if (isLadOtherSegment(f)) return f.segmentOther?.trim() || 'other'
+  return `${formatDescribedFinding(f)}${hasTimiFlow(f) ? ` · T${timiRoman(f.timiFlow)}` : ''}`
+}
+
+function VesselSheet({
   vessel,
   findings,
+  onChange,
   onClose,
-  onEdit,
-  onAdd,
-  onJoinChange,
-  onClearAll,
 }: {
   vessel: Vessel
   findings: AngioFinding[]
+  onChange: (next: AngioFinding[]) => void
   onClose: () => void
-  onEdit: (f: AngioFinding) => void
-  onAdd: () => void
-  onJoinChange: (id: string, joinBefore: string) => void
-  onClearAll: () => void
 }) {
-  const list = sortFindingsByAnatomy(findings)
-  const title = vesselReportName(list[0] ?? { vessel })
+  const persistedList = sortFindingsByAnatomy(findingsForVessel(findings, vessel))
+  const [selectedId, setSelectedId] = useState(
+    () => persistedList[0]?.id ?? emptyFinding(vessel, findings).id,
+  )
+  const [draft, setDraft] = useState<AngioFinding>(
+    () => persistedList.find((f) => f.id === selectedId) ?? emptyFinding(vessel, findings),
+  )
+  const draftIsNew = !persistedList.some((f) => f.id === draft.id)
+  const sidebarIssues =
+    draftIsNew && !persistedList.some((f) => f.id === selectedId)
+      ? [...persistedList, draft]
+      : persistedList
+  const showSidebar = sidebarIssues.length > 1
+
+  const persist = (f: AngioFinding): AngioFinding[] => {
+    const rest = findings.filter((x) => x.id !== f.id)
+    const next = syncVesselMeta([...rest, f], f)
+    onChange(next)
+    return next
+  }
+
+  const selectIssue = (f: AngioFinding) => {
+    if (f.id === selectedId) return
+    persist(draft)
+    setSelectedId(f.id)
+    setDraft(f)
+  }
+
+  const save = () => {
+    persist(draft)
+  }
+
+  const addIssue = () => {
+    const next = persist(draft)
+    const empty = emptyFinding(vessel, next)
+    setSelectedId(empty.id)
+    setDraft(empty)
+  }
+
+  const removeIssue = () => {
+    const persisted = findings.some((x) => x.id === draft.id)
+    const next = persisted ? findings.filter((x) => x.id !== draft.id) : findings
+    if (persisted) onChange(next)
+    const remaining = sortFindingsByAnatomy(findingsForVessel(next, vessel))
+    if (!remaining.length) {
+      onClose()
+      return
+    }
+    setSelectedId(remaining[0].id)
+    setDraft(remaining[0])
+  }
+
+  const clearAll = () => {
+    onChange(findings.filter((f) => f.vessel !== vessel))
+    onClose()
+  }
+
+  const otherCount = persistedList.filter((f) => f.id !== draft.id).length
+  const title = vesselReportName(persistedList[0] ?? draft)
+
   return (
     <BottomSheet
       open
+      wide={showSidebar}
       title={title}
       onClose={onClose}
+      bodyClassName={
+        showSidebar
+          ? 'flex min-h-0 flex-1 flex-col overflow-hidden px-4 pb-4'
+          : undefined
+      }
       footer={
-        <div className="flex gap-2">
-          <Button variant="secondary" className="flex-1" onClick={onClearAll}>
-            Clear all
-          </Button>
-          <Button className="flex-1" onClick={onAdd}>
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <Button variant="secondary" className="flex-1" onClick={removeIssue}>
+              {otherCount > 0 || showSidebar ? 'Remove issue' : 'Clear'}
+            </Button>
+            <Button className="flex-1" onClick={save}>
+              Save finding
+            </Button>
+          </div>
+          <Button variant="outline" className="w-full" onClick={addIssue}>
             <Plus className="size-4" />
-            Add issue
+            Add another issue
           </Button>
         </div>
       }
     >
-      <div className="space-y-3">
-        <p className="text-sm text-muted">
-          Each issue is one segment. Tap a row to edit, or add another diseased segment.
-        </p>
-        {list.map((f, i) => (
-          <div key={f.id} className="space-y-3">
-            {i > 0 ? (
-              <div className="flex items-center gap-2 px-1">
-                <span className="h-px flex-1 bg-border" />
-                <Input
-                  aria-label="Connector"
-                  value={f.joinBefore ?? defaultIssueJoin(i - 1)}
-                  onChange={(e) => onJoinChange(f.id, e.target.value)}
-                  className="min-h-9 max-w-[14rem] text-center text-sm"
-                />
-                <span className="h-px flex-1 bg-border" />
-              </div>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => onEdit(f)}
-              className={cn(
-                'w-full rounded-2xl border px-3 py-3 text-left',
-                stenosisColor(findingSeverity(f)),
-                f.isTarget && 'ring-2 ring-accent',
-              )}
-            >
-              <div className="text-sm font-semibold">
-                {isLadOtherSegment(f)
-                  ? 'Other'
-                  : formatSegments(f.segment) || 'No segment'}
-                {f.isTarget ? ' · target' : ''}
-              </div>
-              <div className="text-xs opacity-80">
-                {isLadOtherSegment(f)
-                  ? f.segmentOther?.trim() || 'other'
-                  : `${formatDescribedFinding(f)}${hasTimiFlow(f) ? ` · T${timiRoman(f.timiFlow)}` : ''}`}
-              </div>
-            </button>
+      {showSidebar ? (
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden lg:flex-row lg:gap-0">
+          <aside className="flex shrink-0 flex-col gap-2 lg:w-52 lg:min-h-0 lg:border-r lg:border-border lg:pr-3">
+            <div className="flex items-center justify-between gap-2 lg:px-1">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">Issues</p>
+              <button
+                type="button"
+                onClick={clearAll}
+                className="text-xs font-medium text-muted underline-offset-2 hover:text-foreground hover:underline"
+              >
+                Clear all
+              </button>
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1 lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden lg:pb-0">
+              {sidebarIssues.map((f, i) => (
+                <div key={f.id} className="shrink-0 space-y-2 lg:w-full">
+                  {i > 0 ? (
+                    <div className="hidden items-center gap-1 px-1 lg:flex">
+                      <span className="h-px flex-1 bg-border" />
+                      <Input
+                        aria-label="Connector"
+                        value={f.joinBefore ?? defaultIssueJoin(i - 1)}
+                        onChange={(e) => {
+                          onChange(
+                            findings.map((x) =>
+                              x.id === f.id ? { ...x, joinBefore: e.target.value } : x,
+                            ),
+                          )
+                        }}
+                        className="min-h-8 max-w-[5.5rem] text-center text-xs"
+                      />
+                      <span className="h-px flex-1 bg-border" />
+                    </div>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => selectIssue(f)}
+                    className={cn(
+                      'w-36 rounded-2xl border px-3 py-2.5 text-left transition-colors lg:w-full',
+                      stenosisColor(findingSeverity(f)),
+                      f.isTarget && 'ring-2 ring-accent',
+                      f.id === selectedId && 'ring-2 ring-accent ring-offset-1',
+                    )}
+                  >
+                    <div className="text-sm font-semibold">
+                      {f.id === draft.id && draftIsNew ? 'New issue' : issueRowTitle(f)}
+                      {f.isTarget ? ' · target' : ''}
+                    </div>
+                    <div className="text-xs opacity-80 line-clamp-2">
+                      {f.id === draft.id && draftIsNew
+                        ? 'unsaved'
+                        : issueRowSubtitle(f)}
+                    </div>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </aside>
+          <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-y-contain lg:pl-4">
+            <FindingForm f={draft} setF={setDraft} />
           </div>
-        ))}
-      </div>
+        </div>
+      ) : (
+        <FindingForm f={draft} setF={setDraft} />
+      )}
     </BottomSheet>
   )
 }
 
-function FindingSheet({
-  finding,
-  otherCount,
-  onClose,
-  onSave,
-  onAddAnother,
-  onClear,
+function FindingForm({
+  f,
+  setF,
 }: {
-  finding: AngioFinding
-  otherCount: number
-  onClose: () => void
-  onSave: (f: AngioFinding) => void
-  onAddAnother: (f: AngioFinding) => void
-  onClear: () => void
+  f: AngioFinding
+  setF: (next: AngioFinding) => void
 }) {
-  const [f, setF] = useState(finding)
   const ladOther = isLadOtherSegment(f)
-  const sheetTitle = (() => {
-    const name = vesselReportName(f)
-    if (otherCount > 0) {
-      if (isLadOtherSegment(f)) return `${name} · other`
-      const seg = formatSegments(f.segment)
-      return seg ? `${name} · ${seg}` : `${name} · new issue`
-    }
-    return name
-  })()
   const hideNotes =
     f.vessel === 'Ramus' ||
     (findingTypeOf(f) === 'normal' &&
@@ -539,27 +543,6 @@ function FindingSheet({
   }
 
   return (
-    <BottomSheet
-      open
-      title={sheetTitle}
-      onClose={onClose}
-      footer={
-        <div className="space-y-2">
-          <div className="flex gap-2">
-            <Button variant="secondary" className="flex-1" onClick={onClear}>
-              {otherCount > 0 ? 'Remove issue' : 'Clear'}
-            </Button>
-            <Button className="flex-1" onClick={() => onSave(f)}>
-              Save finding
-            </Button>
-          </div>
-          <Button variant="outline" className="w-full" onClick={() => onAddAnother(f)}>
-            <Plus className="size-4" />
-            Add another issue
-          </Button>
-        </div>
-      }
-    >
       <div className="space-y-5">
         {f.vessel === 'LMCA' ? (
           <>
@@ -973,6 +956,5 @@ function FindingSheet({
           onChange={(isTarget) => setF({ ...f, isTarget })}
         />
       </div>
-    </BottomSheet>
   )
 }
