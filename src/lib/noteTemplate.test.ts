@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { generateNote, mainVesselLabel, mainVesselParagraph } from '@/lib/noteTemplate'
+import { cagReportHeading } from '@/lib/format'
 import { demoProcedure, emptyProcedure } from '@/lib/seed'
 import type { Procedure, ProcedureEvent, StentUse } from '@/types/procedure'
 
@@ -29,6 +30,16 @@ function base(over: Partial<Procedure> = {}): Procedure {
     ...over,
   }
 }
+
+describe('cagReportHeading', () => {
+  it('keeps the CAG title unless Primary CAG is selected', () => {
+    expect(cagReportHeading()).toBe('CORONARY ANGIOGRAPHY REPORT')
+    expect(cagReportHeading({ cagProcedure: 'cag' })).toBe('CORONARY ANGIOGRAPHY REPORT')
+    expect(cagReportHeading({ cagProcedure: 'primary-cag' })).toBe(
+      'PRIMARY CORONARY ANGIOGRAPHY REPORT',
+    )
+  })
+})
 
 describe('generateNote', () => {
   it('renders the demo STEMI note as a sequential narrative', () => {
@@ -2268,7 +2279,7 @@ describe('generateNote', () => {
         cagImpressions: ['svd'],
       }),
     )
-    expect(svd).toContain('IMPRESSION\nCAD - Single vessel disease.')
+    expect(svd).toContain('IMPRESSION\nCAD - Single Vessel Disease.')
     expect(svd).not.toContain('\nSVD.')
     expect(svd).not.toContain('IMPRESSION\nNot recorded.')
     expect(svd).not.toMatch(/\nPERIPROCEDURAL\n/)
@@ -2299,7 +2310,7 @@ describe('generateNote', () => {
         cagImpressions: ['tvd', 'ectasia'],
       }),
     )
-    expect(both).toContain('IMPRESSION\nCAD - Triple vessel disease.\nCoronary artery ectasia.')
+    expect(both).toContain('IMPRESSION\nCAD - Triple Vessel Disease.\nCoronary artery ectasia.')
 
     const slow = generateNote(
       base({
@@ -2319,7 +2330,7 @@ describe('generateNote', () => {
       }),
     )
     expect(mixed).toContain(
-      'IMPRESSION\nCAD - Single vessel disease.\nCAD - Double vessel disease.\nCoronary artery ectasia.\nMyocardial bridging.\nSlow flow.',
+      'IMPRESSION\nCAD - Single Vessel Disease.\nCAD - Double Vessel Disease.\nCoronary artery ectasia.\nMyocardial bridging.\nSlow flow.',
     )
 
     const normal = generateNote(
@@ -2417,7 +2428,7 @@ describe('generateNote', () => {
         cagCustomAdvices: ['Review in 2 weeks'],
       }),
     )
-    expect(vessels).toContain('IMPRESSION\nCAD - Single vessel disease.')
+    expect(vessels).toContain('IMPRESSION\nCAD - Single Vessel Disease.')
     expect(vessels).toContain(
       'ADVICE\nPTCA to LAD.\nPTCA to LCX.\nEmergency CABG.\nReview in 2 weeks.',
     )
@@ -2662,6 +2673,27 @@ describe('generateNote', () => {
     expect(note).toContain('LAD: Proximal LAD shows total occlusion. TIMI 0 flow.')
     expect(note).not.toContain('chronic total occlusion')
     expect(note).not.toContain('Proximal shows 0%')
+  })
+
+  it('writes mildly ectatic vessel without a percent', () => {
+    const note = generateNote(
+      base({
+        baselineAngio: [
+          {
+            id: '1',
+            vessel: 'LCX',
+            segment: 'proximal',
+            stenosis: 0,
+            findingType: 'mildly-ectatic-vessel',
+            timiFlow: 'none',
+            features: [],
+            isTarget: false,
+          },
+        ],
+      }),
+    )
+    expect(note).toContain('LCX: Proximal LCX shows mildly ectatic vessel.')
+    expect(note).not.toContain('Proximal LCX shows 0%')
   })
 
   it('appends condition Other text after shows', () => {

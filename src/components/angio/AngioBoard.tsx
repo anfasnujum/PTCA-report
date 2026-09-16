@@ -851,6 +851,7 @@ function FindingForm({
             </ChipScroller>
           </Section>
         ) : findingTypeOf(f) === 'normal' ||
+          findingTypeOf(f) === 'mildly-ectatic-vessel' ||
           findingTypeOf(f) === 'total-occlusion' ||
           findingTypeOf(f) === 'other' ? null : (
           <PercentFields

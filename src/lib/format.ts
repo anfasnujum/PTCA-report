@@ -1,5 +1,5 @@
 import { CAG_ADVICES, CAG_IMPRESSIONS, LAD_BRANCH_NOTE_SEGMENTS } from '@/lib/constants'
-import type { AngioFinding, BridgingGrade, CagAdvice, CagImpression, FindingType, PlaqueGrade, Segment, SegmentChoice, TimiFlow, Vessel } from '@/types/procedure'
+import type { AngioFinding, BridgingGrade, CagAdvice, CagImpression, CagProcedureType, FindingType, Patient, PlaqueGrade, Segment, SegmentChoice, TimiFlow, Vessel } from '@/types/procedure'
 
 export const DISCLAIMER =
   'Not a medical device — documentation aid only. Verify all entries before signing.'
@@ -21,6 +21,16 @@ export function timiRoman(n: TimiFlow): string {
 
 export function hasTimiFlow(f: Pick<AngioFinding, 'timiFlow'>): f is AngioFinding & { timiFlow: TimiFlow } {
   return f.timiFlow === 0 || f.timiFlow === 1 || f.timiFlow === 2 || f.timiFlow === 3
+}
+
+export function cagReportHeading(patient?: Pick<Patient, 'cagProcedure'>): string {
+  return patient?.cagProcedure === 'primary-cag'
+    ? 'PRIMARY CORONARY ANGIOGRAPHY REPORT'
+    : 'CORONARY ANGIOGRAPHY REPORT'
+}
+
+export function cagProcedureTypeOf(patient?: Pick<Patient, 'cagProcedure'>): CagProcedureType {
+  return patient?.cagProcedure === 'primary-cag' ? 'primary-cag' : 'cag'
 }
 
 export function fmtDisplayDate(iso: string): string {
@@ -464,6 +474,7 @@ export function formatStenosis(f: StenosisFields): string {
 export function findingTypeOf(f: Pick<AngioFinding, 'findingType'>): FindingType {
   if (
     f.findingType === 'plaque' ||
+    f.findingType === 'mildly-ectatic-vessel' ||
     f.findingType === 'lesion' ||
     f.findingType === 'normal' ||
     f.findingType === 'stenosis' ||
@@ -496,6 +507,7 @@ export function formatFindingPhrase(
 ): string {
   const type = findingTypeOf(f)
   if (type === 'normal') return 'Normal'
+  if (type === 'mildly-ectatic-vessel') return 'mildly ectatic vessel'
   if (type === 'total-occlusion') return 'total occlusion'
   if (type === 'other') return (f.findingOther ?? '').trim() || 'other'
   if (type === 'plaque') {
@@ -548,6 +560,7 @@ export function isChronicTotalOcclusion(
   if (
     type === 'plaque' ||
     type === 'normal' ||
+    type === 'mildly-ectatic-vessel' ||
     type === 'total-occlusion' ||
     type === 'myocardial-bridging' ||
     type === 'other'
@@ -581,6 +594,7 @@ export function findingIssueLabel(f: AngioFinding): string {
     type === 'normal'
       ? 'Normal'
       : type === 'plaque' ||
+          type === 'mildly-ectatic-vessel' ||
           type === 'total-occlusion' ||
           type === 'myocardial-bridging' ||
           type === 'other'
@@ -592,6 +606,7 @@ export function findingIssueLabel(f: AngioFinding): string {
 export function findingSeverity(f: AngioFinding): number {
   const type = findingTypeOf(f)
   if (type === 'normal') return 0
+  if (type === 'mildly-ectatic-vessel') return 40
   if (type === 'total-occlusion') return 100
   if (type === 'other') return (f.findingOther ?? '').trim() ? 50 : 20
   if (type === 'plaque') {
@@ -626,7 +641,7 @@ export function worstFinding(findings: AngioFinding[]): AngioFinding | undefined
 export function isUnremarkableFinding(f: AngioFinding): boolean {
   const type = findingTypeOf(f)
   if (type === 'normal') return f.features.length === 0
-  if (type === 'total-occlusion' || type === 'other') return false
+  if (type === 'mildly-ectatic-vessel' || type === 'total-occlusion' || type === 'other') return false
   if (f.features.length) return false
   if (type === 'plaque') {
     if (f.plaqueGrade === 'other') return !(f.plaqueOther ?? '').trim()

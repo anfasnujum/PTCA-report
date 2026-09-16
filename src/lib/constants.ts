@@ -26,6 +26,11 @@ export const STEMI_TERRITORIES = [
   'RV',
 ] as const
 
+export const CAG_PROCEDURE_TYPES = [
+  { id: 'cag', label: 'CAG' },
+  { id: 'primary-cag', label: 'Primary CAG' },
+] as const
+
 export const PCI_TYPES = [
   'Primary',
   'Planned',
@@ -95,6 +100,7 @@ export const DOMINANCE_OPTIONS = [
 export const FINDING_TYPES = [
   { id: 'normal', label: 'Normal' },
   { id: 'plaque', label: 'Plaques' },
+  { id: 'mildly-ectatic-vessel', label: 'Mildly ectatic vessel' },
   { id: 'stenosis', label: 'Stenosis' },
   { id: 'lesion', label: 'Lesion' },
   { id: 'total-occlusion', label: 'Total Occlusion' },
@@ -311,9 +317,9 @@ export const BALLOON_RESULTS = [
 export const CAG_IMPRESSIONS = [
   { id: 'normal-epicardial', label: 'Normal epicardial coronary arteries' },
   { id: 'mild-cad', label: 'Mild CAD' },
-  { id: 'svd', label: 'SVD', report: 'CAD - Single vessel disease' },
-  { id: 'dvd', label: 'DVD', report: 'CAD - Double vessel disease' },
-  { id: 'tvd', label: 'TVD', report: 'CAD - Triple vessel disease' },
+  { id: 'svd', label: 'SVD', report: 'CAD - Single Vessel Disease' },
+  { id: 'dvd', label: 'DVD', report: 'CAD - Double Vessel Disease' },
+  { id: 'tvd', label: 'TVD', report: 'CAD - Triple Vessel Disease' },
   { id: 'lm-svd', label: 'LM + SVD', report: 'LM + Single Vessel Disease' },
   { id: 'lm-dvd', label: 'LM + DVD', report: 'LM + Double Vessel Disease' },
   { id: 'lm-tvd', label: 'LM + TVD', report: 'LM + Triple Vessel Disease' },

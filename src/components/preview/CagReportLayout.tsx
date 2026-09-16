@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import { cagAdviceItems, cagArterialGraftLine, cagImpressionItems, fmtDisplayDate } from '@/lib/format'
+import { cagAdviceItems, cagArterialGraftLine, cagImpressionItems, cagReportHeading, fmtDisplayDate } from '@/lib/format'
 import { accessNarrative, accessSpecialNote, formatAorticPressureDisplay } from '@/lib/access'
 import { mainVesselLabel, mainVesselParagraph } from '@/lib/noteTemplate'
 import type { Procedure } from '@/types/procedure'
@@ -23,18 +23,20 @@ function ListedField({ label, items }: { label: string; items: string[] }) {
   if (!items.length) {
     return (
       <p>
-        <span className="font-bold">{label}</span> : Not recorded.
+        <strong className="font-bold">{label}</strong> : Not recorded.
       </p>
     )
   }
   return (
     <div>
       <p>
-        <span className="font-bold">{label}</span> :
+        <strong className="font-bold">{label}</strong> :
       </p>
-      <ul className="my-0 list-disc pl-8">
+      <ul className="my-0 list-disc pl-8 font-bold">
         {items.map((item, i) => (
-          <li key={`${label}-${i}`}>{item}</li>
+          <li key={`${label}-${i}`}>
+            <strong>{item}</strong>
+          </li>
         ))}
       </ul>
     </div>
@@ -71,7 +73,7 @@ export function CagReportLayout({ procedure }: { procedure: Procedure }) {
     >
       <div className="text-center">
         <h2 className="text-lg font-bold tracking-wide" style={pt(16)}>
-          CORONARY ANGIOGRAPHY REPORT
+          {cagReportHeading(p.patient)}
         </h2>
         <p className="mt-1" style={pt(13)}>
           <span className="font-semibold">Consultant: </span>

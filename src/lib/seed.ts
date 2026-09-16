@@ -34,6 +34,7 @@ export function emptyProcedure(id = nid(), kind: ProcedureKind = 'ptca'): Proced
       ipNo: '',
       date: todayIso(),
       startTime: nowHm(),
+      cagProcedure: kind === 'cag' ? 'cag' : undefined,
     },
     indication: { chips: [], symptoms: [], grafts: [], valveSurgeries: [], stentTerritories: [] },
     access: {

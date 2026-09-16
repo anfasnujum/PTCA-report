@@ -33,6 +33,7 @@ export type FindingTimiFlow = TimiFlow | 'none'
 
 export type ProcedureStatus = 'draft' | 'finalised' | 'completed'
 export type ProcedureKind = 'ptca' | 'cag'
+export type CagProcedureType = 'cag' | 'primary-cag'
 export type CagImpression =
   | 'normal-epicardial'
   | 'mild-cad'
@@ -65,6 +66,7 @@ export type Patient = {
   ipNo: string
   date: string
   startTime: string
+  cagProcedure?: CagProcedureType
 }
 
 export type LabDetails = {
@@ -107,6 +109,7 @@ export type LmcaLengthCategory = 'short' | 'long'
 export type FindingType =
   | 'normal'
   | 'plaque'
+  | 'mildly-ectatic-vessel'
   | 'stenosis'
   | 'lesion'
   | 'total-occlusion'

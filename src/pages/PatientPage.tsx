@@ -3,13 +3,14 @@ import { StaffSelect } from '@/components/fields/StaffSelect'
 import { Input } from '@/components/ui/input'
 import { Section } from '@/components/ui/section'
 import { Button } from '@/components/ui/button'
-import { CABG_GRAFTS, INDICATION_CHIPS, PCI_TYPES, PRIOR_PCI_TERRITORIES, STEMI_TERRITORIES, SYMPTOM_CHIPS, VALVE_SURGERIES } from '@/lib/constants'
+import { CABG_GRAFTS, CAG_PROCEDURE_TYPES, INDICATION_CHIPS, PCI_TYPES, PRIOR_PCI_TERRITORIES, STEMI_TERRITORIES, SYMPTOM_CHIPS, VALVE_SURGERIES } from '@/lib/constants'
+import { cagProcedureTypeOf } from '@/lib/format'
 import { emptyLab } from '@/lib/seed'
 import { loadStaffSettings } from '@/lib/staffSettings'
 import { useProcedureStore } from '@/store/useProcedureStore'
 import { useSyncStore } from '@/store/useSyncStore'
 import { useNavigate, useParams } from 'react-router-dom'
-import type { LabDetails, Patient } from '@/types/procedure'
+import type { CagProcedureType, LabDetails, Patient } from '@/types/procedure'
 
 export function PatientPage() {
   const current = useProcedureStore((s) => s.current)
@@ -49,6 +50,23 @@ export function PatientPage() {
 
   return (
     <div className="grid gap-5 lg:grid-cols-2">
+      {current.kind === 'cag' ? (
+        <div className="lg:col-span-2">
+          <Section title="Procedure">
+            <ChipScroller>
+              {CAG_PROCEDURE_TYPES.map((t) => (
+                <Chip
+                  key={t.id}
+                  selected={cagProcedureTypeOf(current.patient) === t.id}
+                  onClick={() => setPatient({ cagProcedure: t.id as CagProcedureType })}
+                >
+                  {t.label}
+                </Chip>
+              ))}
+            </ChipScroller>
+          </Section>
+        </div>
+      ) : null}
       <Section title="Name">
         <Input
           value={current.patient.name}
