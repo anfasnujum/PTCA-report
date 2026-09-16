@@ -61,7 +61,7 @@ function EditorToolbar({
         variant="ghost"
         size="icon"
         title="Bold"
-        className={cn(format.bold && 'bg-accent-soft text-accent')}
+        className={cn(format.bold && 'bg-neutral-800 text-white hover:bg-neutral-700 hover:text-white')}
         onMouseDown={(e) => {
           e.preventDefault()
           onFormat('bold')
@@ -74,7 +74,7 @@ function EditorToolbar({
         variant="ghost"
         size="icon"
         title="Italic"
-        className={cn(format.italic && 'bg-accent-soft text-accent')}
+        className={cn(format.italic && 'bg-neutral-800 text-white hover:bg-neutral-700 hover:text-white')}
         onMouseDown={(e) => {
           e.preventDefault()
           onFormat('italic')
@@ -87,7 +87,7 @@ function EditorToolbar({
         variant="ghost"
         size="icon"
         title="Underline"
-        className={cn(format.underline && 'bg-accent-soft text-accent')}
+        className={cn(format.underline && 'bg-neutral-800 text-white hover:bg-neutral-700 hover:text-white')}
         onMouseDown={(e) => {
           e.preventDefault()
           onFormat('underline')
@@ -323,6 +323,11 @@ export function PreviewPage() {
   }
 
   const applyFontSize = (value: string) => {
+    // execCommand only reliably applies to the contenteditable region while
+    // it's actually focused - the toolbar's select/input currently has focus
+    // (that's how the user picked the size), so focus docRef back FIRST,
+    // then restore the selection into it, then run the command.
+    docRef.current?.focus()
     const sel = window.getSelection()
     if (sel && savedRangeRef.current) {
       sel.removeAllRanges()
@@ -336,7 +341,6 @@ export function PreviewPage() {
       font.removeAttribute('size')
       font.style.fontSize = `${value}px`
     })
-    docRef.current?.focus()
     // execCommand rewraps the selected nodes, so the previously saved range
     // may now point at detached nodes. Recapture it so the next size change
     // (without reselecting text) still has a valid range to restore.
