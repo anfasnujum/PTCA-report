@@ -3,7 +3,6 @@ import {
   BorderStyle,
   convertMillimetersToTwip,
   Document,
-  HeadingLevel,
   Packer,
   Paragraph,
   Table,
@@ -13,545 +12,266 @@ import {
   TextRun,
   WidthType,
 } from 'docx'
-import {
-  cagAdviceItems,
-  cagArterialGraftLine,
-  cagImpressionItems,
-  DISCLAIMER,
-  fmtDisplayDate,
-} from '@/lib/format'
-import { accessNarrative, accessSpecialNote } from '@/lib/access'
-import { mainVesselLabel, mainVesselParagraph, procedureSection } from '@/lib/noteTemplate'
-import {
-  ptcaAdjuvantsText,
-  ptcaCommentSentence,
-  ptcaComplicationsText,
-  ptcaContrastText,
-  ptcaHemodynamicText,
-  ptcaInventoryLines,
-  ptcaInventorySummary,
-  ptcaResultLabel,
-  ptcaTitle,
-  targetVesselsShort,
-} from '@/lib/ptcaReport'
 import type { Procedure } from '@/types/procedure'
 
-const MONO_FONT = 'Courier New'
-
-const SECTION_HEADERS = new Set([
-  'ACCESS',
-  'CORONARY ANGIOGRAM',
-  'PROCEDURE',
-  'RESULT',
-  'PERIPROCEDURAL',
-  'CLOSURE',
-  'IMPRESSION',
-  'ADVICE',
-  'NOTES',
-  'FINAL',
-])
-
-function titleParagraph(text: string): Paragraph {
-  return new Paragraph({
-    heading: HeadingLevel.TITLE,
-    alignment: AlignmentType.CENTER,
-    spacing: { after: 200 },
-    children: [new TextRun({ text, bold: true, font: MONO_FONT, size: 28 })],
-  })
-}
-
-function sectionHeaderParagraph(text: string): Paragraph {
-  return new Paragraph({
-    spacing: { before: 200, after: 80 },
-    children: [new TextRun({ text, bold: true, font: MONO_FONT, size: 22 })],
-  })
-}
-
-function disclaimerParagraph(text: string): Paragraph {
-  return new Paragraph({
-    spacing: { before: 200 },
-    children: [new TextRun({ text, italics: true, font: MONO_FONT, size: 18 })],
-  })
-}
-
-function bodyParagraph(text: string): Paragraph {
-  return new Paragraph({
-    children: [new TextRun({ text, font: MONO_FONT, size: 21 })],
-  })
-}
-
-function spacerParagraph(): Paragraph {
-  return new Paragraph({ children: [] })
-}
-
-export async function buildReportDocx(procedure: Procedure, noteText: string): Promise<Blob> {
-  const lines = noteText.split('\n')
-  const paragraphs: Paragraph[] = []
-  let titleUsed = false
-
-  for (const rawLine of lines) {
-    const line = rawLine.trim()
-
-    if (!line) {
-      paragraphs.push(spacerParagraph())
-      continue
-    }
-
-    if (!titleUsed) {
-      paragraphs.push(titleParagraph(line))
-      titleUsed = true
-      continue
-    }
-
-    if (line === DISCLAIMER) {
-      paragraphs.push(disclaimerParagraph(line))
-      continue
-    }
-
-    if (SECTION_HEADERS.has(line)) {
-      paragraphs.push(sectionHeaderParagraph(line))
-      continue
-    }
-
-    paragraphs.push(bodyParagraph(rawLine))
-  }
-
-  const kindLabel = procedure.kind === 'cag' ? 'CAG' : 'PTCA'
-  const doc = new Document({
-    title: `${kindLabel} procedure note`,
-    compatabilityModeVersion: 12,
-    sections: [{ children: paragraphs }],
-  })
-
-  return Packer.toBlob(doc)
-}
-
-const ROW_BORDER = { style: BorderStyle.SINGLE, size: 4, color: 'AAAAAA' }
 const NO_BORDER = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }
 const REPORT_FONT = 'Times New Roman'
 
-function cell(
-  text: string,
-  opts?: { width?: number; top?: boolean; bottom?: boolean; size?: number },
-): TableCell {
-  return new TableCell({
-    width: opts?.width ? { size: opts.width, type: WidthType.PERCENTAGE } : undefined,
-    borders: {
-      top: opts?.top ? ROW_BORDER : NO_BORDER,
-      bottom: opts?.bottom ? ROW_BORDER : NO_BORDER,
-      left: NO_BORDER,
-      right: NO_BORDER,
-    },
-    margins: { top: 20, bottom: 20, left: 100, right: 100 },
-    children: [
-      new Paragraph({
-        spacing: { line: 216 },
-        children: [new TextRun({ text, size: opts?.size ?? 18, font: REPORT_FONT })],
-      }),
-    ],
-  })
+const LEGACY_FONT_SIZE_HALF_PT: Record<string, number> = {
+  '1': 16,
+  '2': 20,
+  '3': 24,
+  '4': 28,
+  '5': 36,
+  '6': 48,
+  '7': 72,
 }
 
-function fieldCell(
-  label: string,
-  value: string,
-  opts?: { top?: boolean; bottom?: boolean; size?: number },
-): TableCell {
-  return cell(label ? `${label} : ${value || '____'}` : '', {
-    width: 25,
-    top: opts?.top,
-    bottom: opts?.bottom,
-    size: opts?.size,
-  })
+type RunStyle = { bold?: boolean; italics?: boolean; underline?: boolean; size?: number }
+type Alignment = (typeof AlignmentType)[keyof typeof AlignmentType]
+type BlockContext = { align?: Alignment; indent?: number; style: RunStyle }
+
+function hasClass(el: Element, name: string): boolean {
+  return el.classList?.contains(name) ?? false
 }
 
-function fieldRow(
-  fields: Array<[string, string]>,
-  opts: { top?: boolean; bottom?: boolean; size?: number },
-): TableRow {
-  return new TableRow({
-    children: fields.map(([label, value]) => fieldCell(label, value, opts)),
-  })
+function inlineStyle(el: Element): CSSStyleDeclaration | undefined {
+  return (el as HTMLElement).style
 }
 
-function fieldLineRow(
-  label: string,
-  value: string,
-  opts: { top?: boolean; bottom?: boolean; tabs?: number },
-): TableRow {
-  const tabTwips = 720
-  return new TableRow({
-    children: [
-      new TableCell({
-        columnSpan: 4,
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        borders: {
-          top: opts.top ? ROW_BORDER : NO_BORDER,
-          bottom: opts.bottom ? ROW_BORDER : NO_BORDER,
-          left: NO_BORDER,
-          right: NO_BORDER,
-        },
-        margins: { top: 20, bottom: 20, left: 100, right: 100 },
-        children: [
-          new Paragraph({
-            indent: opts.tabs ? { left: opts.tabs * tabTwips } : undefined,
-            spacing: { line: 216 },
-            children: [
-              new TextRun({
-                text: `${label} : ${value || '____'}`,
-                size: 18,
-                font: REPORT_FONT,
-              }),
-            ],
-          }),
-        ],
-      }),
-    ],
-  })
+function pxToHalfPt(value: string | undefined): number | undefined {
+  const m = value ? /^([\d.]+)px$/.exec(value.trim()) : null
+  return m ? Math.round(parseFloat(m[1]) * 1.5) : undefined
 }
 
-function fieldPairRow(
-  left: [string, string],
-  right: [string, string],
-  opts: { top?: boolean; bottom?: boolean; tabs?: number },
-): TableRow {
-  const tabTwips = 720
-  const pairCell = (label: string, value: string, indentLeft: boolean) =>
-    new TableCell({
-      columnSpan: 2,
-      width: { size: 50, type: WidthType.PERCENTAGE },
-      borders: {
-        top: opts.top ? ROW_BORDER : NO_BORDER,
-        bottom: opts.bottom ? ROW_BORDER : NO_BORDER,
-        left: NO_BORDER,
-        right: NO_BORDER,
-      },
-      margins: { top: 20, bottom: 20, left: 100, right: 100 },
-      children: [
-        new Paragraph({
-          indent: indentLeft && opts.tabs ? { left: opts.tabs * tabTwips } : undefined,
-          spacing: { line: 216 },
-          children: [
-            new TextRun({
-              text: `${label} : ${value || '____'}`,
-              size: 18,
-              font: REPORT_FONT,
-            }),
-          ],
-        }),
-      ],
-    })
-  return new TableRow({
-    children: [pairCell(left[0], left[1], true), pairCell(right[0], right[1], false)],
-  })
-}
-
-function cagTitleParagraph(): Paragraph {
-  return new Paragraph({
-    alignment: AlignmentType.CENTER,
-    spacing: { after: 40, line: 216 },
-    children: [new TextRun({ text: 'CORONARY ANGIOGRAPHY REPORT', bold: true, size: 32, font: REPORT_FONT })],
-  })
-}
-
-function cagConsultantParagraph(doctorName: string): Paragraph {
-  return new Paragraph({
-    alignment: AlignmentType.CENTER,
-    border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: '000000', space: 4 } },
-    spacing: { after: 80, line: 216 },
-    children: [
-      new TextRun({ text: 'Consultant: ', bold: true, size: 26, font: REPORT_FONT }),
-      new TextRun({ text: doctorName || '____', size: 26, font: REPORT_FONT }),
-    ],
-  })
-}
-
-function cagFindingParagraph(label: string, value: string): Paragraph {
-  return new Paragraph({
-    spacing: { after: 20, line: 216 },
-    children: [
-      new TextRun({ text: `${label} : `, bold: true, size: 24, font: REPORT_FONT }),
-      new TextRun({ text: value, size: 24, font: REPORT_FONT }),
-    ],
-  })
-}
-
-function cagBulletParagraphs(label: string, items: string[]): Paragraph[] {
-  if (!items.length) {
-    return [
-      new Paragraph({
-        spacing: { after: 20, line: 216 },
-        children: [
-          new TextRun({ text: `${label} : `, bold: true, size: 24, font: REPORT_FONT }),
-          new TextRun({ text: 'Not recorded.', size: 24, font: REPORT_FONT }),
-        ],
-      }),
-    ]
+function inlineFontSizeHalfPt(el: Element): number | undefined {
+  // The layout annotates its intended .docx point size via a `--pt` custom property
+  // (see `pt()` in CagReportLayout/PtcaReportLayout) — prefer that exact value over
+  // deriving one from the on-screen pixel size, which is tuned separately for screen
+  // legibility and isn't proportional to the print point sizes.
+  const ptValue = inlineStyle(el)?.getPropertyValue('--pt')?.trim()
+  if (ptValue) {
+    const n = parseFloat(ptValue)
+    if (!Number.isNaN(n)) return Math.round(n * 2)
   }
-  return [
-    new Paragraph({
-      spacing: { after: 20, line: 216 },
-      children: [new TextRun({ text: `${label} :`, bold: true, size: 24, font: REPORT_FONT })],
-    }),
-    ...items.map(
-      (item) =>
+  return pxToHalfPt(inlineStyle(el)?.fontSize)
+}
+
+function styleAddsBold(el: Element): boolean {
+  const tag = el.tagName.toLowerCase()
+  if (tag === 'b' || tag === 'strong') return true
+  const fw = inlineStyle(el)?.fontWeight
+  if (fw) {
+    if (fw === 'bold' || fw === 'bolder') return true
+    if (fw === 'normal' || fw === 'lighter') return false
+    const n = Number(fw)
+    if (!Number.isNaN(n)) return n >= 600
+  }
+  return hasClass(el, 'font-bold') || hasClass(el, 'font-semibold')
+}
+
+function styleAddsItalic(el: Element): boolean {
+  const tag = el.tagName.toLowerCase()
+  if (tag === 'i' || tag === 'em') return true
+  const fs = inlineStyle(el)?.fontStyle
+  if (fs === 'italic' || fs === 'oblique') return true
+  if (fs === 'normal') return false
+  return hasClass(el, 'italic')
+}
+
+function styleAddsUnderline(el: Element): boolean {
+  const tag = el.tagName.toLowerCase()
+  if (tag === 'u') return true
+  const td = inlineStyle(el)?.textDecorationLine
+  if (td && /underline/.test(td)) return true
+  if (td === 'none') return false
+  return hasClass(el, 'underline')
+}
+
+function elementAlignment(el: Element): Alignment | undefined {
+  const ta = inlineStyle(el)?.textAlign
+  if (ta === 'center') return AlignmentType.CENTER
+  if (ta === 'right' || ta === 'end') return AlignmentType.RIGHT
+  if (ta === 'justify') return AlignmentType.JUSTIFIED
+  if (hasClass(el, 'text-center')) return AlignmentType.CENTER
+  if (hasClass(el, 'text-right')) return AlignmentType.RIGHT
+  if (hasClass(el, 'text-justify')) return AlignmentType.JUSTIFIED
+  return undefined
+}
+
+function pxToTwips(value: string | undefined): number | undefined {
+  const m = value ? /^([\d.]+)px$/.exec(value.trim()) : null
+  return m ? Math.round(parseFloat(m[1]) * 15) : undefined
+}
+
+function inlineIndentTwips(el: Element): number | undefined {
+  return pxToTwips(inlineStyle(el)?.paddingLeft)
+}
+
+function hasTopRule(el: Element): boolean {
+  const w = inlineStyle(el)?.borderTopWidth
+  return Boolean(w && w !== '0px')
+}
+
+function mergeContext(ctx: BlockContext, el: Element): BlockContext {
+  const nextStyle: RunStyle = {
+    bold: ctx.style.bold || styleAddsBold(el),
+    italics: ctx.style.italics || styleAddsItalic(el),
+    underline: ctx.style.underline || styleAddsUnderline(el),
+    size: inlineFontSizeHalfPt(el) ?? ctx.style.size,
+  }
+  if (el.tagName.toLowerCase() === 'font') {
+    const sizeAttr = el.getAttribute('size')
+    if (sizeAttr && LEGACY_FONT_SIZE_HALF_PT[sizeAttr]) nextStyle.size = LEGACY_FONT_SIZE_HALF_PT[sizeAttr]
+  }
+  return {
+    align: elementAlignment(el) ?? ctx.align,
+    indent: inlineIndentTwips(el) ?? ctx.indent,
+    style: nextStyle,
+  }
+}
+
+function collectRuns(node: Node, style: RunStyle, runs: TextRun[]): void {
+  if (node.nodeType === Node.TEXT_NODE) {
+    const text = node.textContent ?? ''
+    if (text) {
+      runs.push(
+        new TextRun({
+          text,
+          bold: style.bold,
+          italics: style.italics,
+          underline: style.underline ? {} : undefined,
+          size: style.size ?? 24,
+          font: REPORT_FONT,
+        }),
+      )
+    }
+    return
+  }
+  if (node.nodeType !== Node.ELEMENT_NODE) return
+  const el = node as Element
+  const tag = el.tagName.toLowerCase()
+  if (tag === 'br') {
+    runs.push(new TextRun({ text: '', break: 1, size: style.size ?? 24, font: REPORT_FONT }))
+    return
+  }
+  if (tag === 'script' || tag === 'style') return
+  const nextStyle = mergeContext({ style }, el).style
+  for (const child of Array.from(el.childNodes)) {
+    collectRuns(child, nextStyle, runs)
+  }
+}
+
+function elementToTableCell(el: Element, style: RunStyle, widthPercent?: number): TableCell {
+  const runs: TextRun[] = []
+  collectRuns(el, style, runs)
+  if (!runs.length) runs.push(new TextRun({ text: '', size: style.size ?? 24, font: REPORT_FONT }))
+  return new TableCell({
+    width: widthPercent ? { size: widthPercent, type: WidthType.PERCENTAGE } : undefined,
+    borders: { top: NO_BORDER, bottom: NO_BORDER, left: NO_BORDER, right: NO_BORDER },
+    margins: { top: 20, bottom: 20, left: 100, right: 100 },
+    children: [new Paragraph({ children: runs })],
+  })
+}
+
+function elementToTable(tableEl: Element, style: RunStyle): Table | null {
+  const rows: TableRow[] = []
+  for (const tr of Array.from(tableEl.querySelectorAll('tr'))) {
+    const cellEls = Array.from(tr.children).filter((c) => ['TD', 'TH'].includes(c.tagName))
+    if (!cellEls.length) continue
+    const width = Math.floor(100 / cellEls.length)
+    rows.push(new TableRow({ children: cellEls.map((c) => elementToTableCell(c, style, width)) }))
+  }
+  if (!rows.length) return null
+  return new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: TableBorders.NONE, rows })
+}
+
+const BLOCK_TAGS = new Set(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
+const CONTAINER_TAGS = new Set(['div', 'section', 'article', 'header', 'footer'])
+
+function walkBlocks(container: Node, ctx: BlockContext, out: (Paragraph | Table)[]): void {
+  for (const child of Array.from(container.childNodes)) {
+    if (child.nodeType !== Node.ELEMENT_NODE) continue
+    const el = child as Element
+    const tag = el.tagName.toLowerCase()
+
+    if (tag === 'table') {
+      const table = elementToTable(el, ctx.style)
+      if (table) out.push(table)
+      continue
+    }
+    if (tag === 'hr') {
+      out.push(
         new Paragraph({
-          indent: { left: 360 },
-          spacing: { after: 20, line: 216 },
-          children: [new TextRun({ text: `• ${item}`, size: 24, font: REPORT_FONT })],
+          border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: '000000' } },
+          children: [],
         }),
-    ),
-  ]
+      )
+      continue
+    }
+    if (CONTAINER_TAGS.has(tag)) {
+      if (hasTopRule(el)) {
+        out.push(
+          new Paragraph({
+            border: { top: { style: BorderStyle.SINGLE, size: 6, color: '000000' } },
+            spacing: { before: 80 },
+            children: [],
+          }),
+        )
+      }
+      walkBlocks(el, mergeContext(ctx, el), out)
+      continue
+    }
+    if (tag === 'ul' || tag === 'ol') {
+      const listCtx = mergeContext(ctx, el)
+      const liEls = Array.from(el.children).filter((c) => c.tagName === 'LI')
+      liEls.forEach((li, i) => {
+        const liCtx = mergeContext(listCtx, li)
+        const prefix = tag === 'ol' ? `${i + 1}. ` : '• '
+        const runs: TextRun[] = [
+          new TextRun({ text: prefix, size: liCtx.style.size ?? 24, font: REPORT_FONT }),
+        ]
+        collectRuns(li, liCtx.style, runs)
+        out.push(
+          new Paragraph({
+            indent: { left: liCtx.indent ?? 360 },
+            alignment: liCtx.align,
+            spacing: { after: 40, line: 216 },
+            children: runs,
+          }),
+        )
+      })
+      continue
+    }
+    if (BLOCK_TAGS.has(tag) || el.textContent?.trim()) {
+      const nextCtx = mergeContext(ctx, el)
+      const runs: TextRun[] = []
+      collectRuns(el, nextCtx.style, runs)
+      if (runs.length) {
+        out.push(
+          new Paragraph({
+            alignment: nextCtx.align,
+            indent: nextCtx.indent ? { left: nextCtx.indent } : undefined,
+            spacing: { after: 40, line: 216 },
+            children: runs,
+          }),
+        )
+      }
+    }
+  }
 }
 
-function cagPlainParagraph(text: string): Paragraph {
-  return new Paragraph({
-    spacing: { after: 20, line: 216 },
-    children: [new TextRun({ text, size: 24, font: REPORT_FONT })],
-  })
+export function htmlToDocxChildren(html: string): (Paragraph | Table)[] {
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  const out: (Paragraph | Table)[] = []
+  walkBlocks(doc.body, { style: { size: 24 } }, out)
+  return out.length ? out : [new Paragraph({ children: [] })]
 }
 
-export async function buildCagReportDocx(procedure: Procedure): Promise<Blob> {
-  const p = procedure
-  const lmca = mainVesselParagraph(p.baselineAngio, 'LMCA')
-  const lad = mainVesselParagraph(p.baselineAngio, 'LAD')
-  const lcx = mainVesselParagraph(p.baselineAngio, 'LCX')
-  const lcxLabel = mainVesselLabel(p.baselineAngio, 'LCX')
-  const rca = mainVesselParagraph(p.baselineAngio, 'RCA')
-  const limaLine = cagArterialGraftLine('LIMA', p.cagLimaOn, p.cagLimaNote)
-  const rimaLine = cagArterialGraftLine('RIMA', p.cagRimaOn, p.cagRimaNote)
-  const impressionItems = cagImpressionItems(p.cagImpressions, p.cagCustomImpressions)
-  const adviceItems = cagAdviceItems(p.cagAdvices, p.cagCustomAdvices)
-  const aorticPressure = p.lab.aorticPressureMmHg.trim()
-    ? /mm\s*hg$/i.test(p.lab.aorticPressureMmHg.trim())
-      ? p.lab.aorticPressureMmHg.trim()
-      : `${p.lab.aorticPressureMmHg.trim()} mmHg`
-    : ''
-  const specialNotes = accessSpecialNote(p.access)
-
-  const patientTable = new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    borders: TableBorders.NONE,
-    rows: [
-      fieldRow(
-        [
-          ['Name', p.patient.name.toUpperCase()],
-          ['Age', p.patient.age === '' ? '' : String(p.patient.age)],
-          ['Sex', p.patient.sex],
-          ['Cath no', p.patient.hospitalId],
-        ],
-        {},
-      ),
-      fieldRow(
-        [
-          ['Date', fmtDisplayDate(p.patient.date)],
-          ['Cath Tech', p.lab.technologist],
-          ['IP No', p.patient.ipNo],
-          ['Scrub nurse', p.lab.scrubNurse],
-        ],
-        {},
-      ),
-    ],
-  })
-
-  const labRows = [
-    fieldLineRow('Access', accessNarrative(p.access, { includeSheath: false }), { top: true, bottom: false, tabs: 4 }),
-    ...(specialNotes ? [fieldLineRow('Special Notes', specialNotes, { top: false, bottom: false, tabs: 5 })] : []),
-    fieldLineRow('Catheter', p.lab.catheter, { top: false, bottom: false, tabs: 4 }),
-    fieldLineRow('Contrast', p.lab.contrast, { top: false, bottom: false, tabs: 4 }),
-    fieldPairRow(
-      ['Haemodynamic Data', p.lab.haemodynamicData],
-      ['Aortic Pressure', aorticPressure],
-      { top: false, bottom: true, tabs: 2 },
-    ),
-  ]
-  const labTable = new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    borders: TableBorders.NONE,
-    rows: labRows,
-  })
-
-  const children: (Paragraph | Table)[] = [
-    cagTitleParagraph(),
-    cagConsultantParagraph(p.lab.doctorName),
-    new Paragraph({ spacing: { after: 80 }, children: [] }),
-    patientTable,
-    new Paragraph({ spacing: { after: 80 }, children: [] }),
-    labTable,
-    new Paragraph({ spacing: { before: 80, after: 20 }, children: [] }),
-    cagFindingParagraph('LMCA', lmca),
-    cagFindingParagraph('LAD', lad),
-  ]
-  if (limaLine) children.push(cagPlainParagraph(limaLine))
-  children.push(cagFindingParagraph(lcxLabel, lcx))
-  if (rimaLine) children.push(cagPlainParagraph(rimaLine))
-  children.push(
-    cagFindingParagraph('RCA', rca),
-    ...cagBulletParagraphs('IMPRESSION', impressionItems),
-    ...cagBulletParagraphs('ADVICE', adviceItems),
-  )
-  if (p.notes.trim()) children.push(cagFindingParagraph('FINAL', p.notes.trim()))
-
-  children.push(
-    new Paragraph({
-      alignment: AlignmentType.RIGHT,
-      spacing: { before: 120 },
-      children: [new TextRun({ text: p.lab.doctorName || '____', bold: true, size: 24, font: REPORT_FONT })],
-    }),
-    new Paragraph({
-      alignment: AlignmentType.RIGHT,
-      children: [
-        new TextRun({
-          text: 'Consultant Interventional Cardiologist & Asst. Professor',
-          size: 20,
-          font: REPORT_FONT,
-        }),
-      ],
-    }),
-  )
-
+export async function buildReportDocxFromHtml(procedure: Procedure, html: string): Promise<Blob> {
+  const children = htmlToDocxChildren(html)
   const doc = new Document({
-    title: 'CAG procedure note',
-    compatabilityModeVersion: 12,
-    sections: [
-      {
-        properties: {
-          page: { margin: { top: convertMillimetersToTwip(60) } },
-        },
-        children,
-      },
-    ],
-  })
-
-  return Packer.toBlob(doc)
-}
-
-function ptcaTitleParagraph(text: string): Paragraph {
-  return new Paragraph({
-    alignment: AlignmentType.CENTER,
-    spacing: { after: 40, line: 216 },
-    children: [new TextRun({ text, underline: {}, size: 32, font: REPORT_FONT })],
-  })
-}
-
-function ptcaConsultantParagraph(doctorName: string): Paragraph {
-  return new Paragraph({
-    alignment: AlignmentType.CENTER,
-    spacing: { after: 80, line: 216 },
-    children: [new TextRun({ text: `Consultant: ${doctorName || '____'}`, bold: true, size: 24, font: REPORT_FONT })],
-  })
-}
-
-function ptcaBoldLineParagraph(label: string, value: string): Paragraph {
-  return new Paragraph({
-    spacing: { after: 20, line: 216 },
-    children: [new TextRun({ text: `${label} : ${value}`, bold: true, size: 24, font: REPORT_FONT })],
-  })
-}
-
-function ptcaPlainLineParagraph(label: string, value: string, indent = false): Paragraph {
-  return new Paragraph({
-    indent: indent ? { left: 400 } : undefined,
-    spacing: { after: 20, line: 216 },
-    children: [new TextRun({ text: `${label} : ${value}`, size: 24, font: REPORT_FONT })],
-  })
-}
-
-export async function buildPtcaReportDocx(procedure: Procedure): Promise<Blob> {
-  const p = procedure
-  const inventoryLines = ptcaInventoryLines(p)
-
-  const patientTable = new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    borders: TableBorders.NONE,
-    rows: [
-      fieldRow(
-        [
-          ['Name', p.patient.name.toUpperCase()],
-          ['Age', p.patient.age === '' ? '' : `${p.patient.age}/${p.patient.sex || '—'}`],
-          ['IP No', p.patient.ipNo],
-        ],
-        { size: 24 },
-      ),
-      fieldRow(
-        [
-          ['Cath No', p.patient.hospitalId],
-          ['Date', fmtDisplayDate(p.patient.date)],
-          ['', ''],
-        ],
-        { size: 24 },
-      ),
-      fieldRow(
-        [
-          ['Cath Tech', p.lab.technologist],
-          ['Scrub nurse', p.lab.scrubNurse],
-          ['', ''],
-        ],
-        { size: 24 },
-      ),
-    ],
-  })
-
-  const children: (Paragraph | Table)[] = [
-    ptcaTitleParagraph(ptcaTitle(p)),
-    ptcaConsultantParagraph(p.lab.doctorName),
-    new Paragraph({ spacing: { after: 80 }, children: [] }),
-    patientTable,
-    new Paragraph({ spacing: { before: 80, after: 20 }, children: [] }),
-    ptcaPlainLineParagraph('Premedication', 'Nil'),
-    ptcaPlainLineParagraph('Vascular Access', accessNarrative(p.access)),
-    ...(accessSpecialNote(p.access)
-      ? [ptcaPlainLineParagraph('Special Notes', accessSpecialNote(p.access))]
-      : []),
-    ptcaPlainLineParagraph('Target Vessel/lesions', targetVesselsShort(p)),
-    ptcaBoldLineParagraph('Inventory', ptcaInventorySummary(p)),
-    ...inventoryLines.map((line) => ptcaPlainLineParagraph(line.label, line.value, true)),
-    new Paragraph({ spacing: { before: 80, after: 20 }, children: [] }),
-    ptcaBoldLineParagraph('Result', ptcaResultLabel(p.outcome)),
-    ptcaBoldLineParagraph('Complications', ptcaComplicationsText(p.outcome)),
-    ptcaBoldLineParagraph('Adjuvants', ptcaAdjuvantsText(p.periprocedural)),
-    ptcaBoldLineParagraph('Contrast', ptcaContrastText(p.periprocedural)),
-    ptcaBoldLineParagraph('Hemodynamic Data', ptcaHemodynamicText(p.lab)),
-    new Paragraph({ spacing: { before: 80, after: 20 }, children: [] }),
-    new Paragraph({
-      spacing: { after: 20, line: 216 },
-      children: [new TextRun({ text: 'PROCEDURE:', bold: true, size: 24, font: REPORT_FONT })],
-    }),
-    new Paragraph({
-      alignment: AlignmentType.JUSTIFIED,
-      spacing: { after: 160, line: 216 },
-      children: [new TextRun({ text: procedureSection(p.events), size: 24, font: REPORT_FONT })],
-    }),
-    new Paragraph({
-      spacing: { after: 160, line: 216 },
-      children: [
-        new TextRun({
-          text: `COMMENT: ${p.notes.trim() || ptcaCommentSentence(p)}`,
-          bold: true,
-          size: 24,
-          font: REPORT_FONT,
-        }),
-      ],
-    }),
-    new Paragraph({
-      alignment: AlignmentType.RIGHT,
-      spacing: { before: 120 },
-      children: [new TextRun({ text: p.lab.doctorName || '____', bold: true, size: 24, font: REPORT_FONT })],
-    }),
-    new Paragraph({
-      alignment: AlignmentType.RIGHT,
-      children: [
-        new TextRun({
-          text: 'Consultant Interventional Cardiologist & Asst. Professor',
-          size: 20,
-          font: REPORT_FONT,
-        }),
-      ],
-    }),
-  ]
-
-  const doc = new Document({
-    title: 'PTCA procedure note',
+    title: procedure.kind === 'cag' ? 'CAG procedure note' : 'PTCA procedure note',
     compatabilityModeVersion: 12,
     sections: [
       {

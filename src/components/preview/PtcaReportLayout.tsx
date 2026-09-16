@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { fmtDisplayDate } from '@/lib/format'
 import { procedureSection } from '@/lib/noteTemplate'
 import { accessNarrative, accessSpecialNote } from '@/lib/access'
@@ -14,6 +15,13 @@ import {
   targetVesselsShort,
 } from '@/lib/ptcaReport'
 import type { Procedure } from '@/types/procedure'
+
+// Marks the intended .docx point size for a section, independent of its on-screen
+// pixel size (tuned separately for screen legibility). Read back by the doc-editor's
+// style-baking step so exported formatting matches the non-edited .docx exactly.
+function pt(n: number): CSSProperties {
+  return { '--pt': n } as CSSProperties
+}
 
 function FieldCell({ label, value }: { label: string; value: string }) {
   return (
@@ -39,10 +47,12 @@ export function PtcaReportLayout({ procedure }: { procedure: Procedure }) {
   return (
     <div
       className="report-doc ptca-report space-y-3 rounded-2xl bg-card p-6 text-[13px] leading-snug shadow-card"
-      style={{ fontFamily: "'Times New Roman', Times, serif" }}
+      style={{ fontFamily: "'Times New Roman', Times, serif", ...pt(12) }}
     >
       <div className="text-center">
-        <h2 className="text-lg uppercase tracking-wide underline">{ptcaTitle(p)}</h2>
+        <h2 className="text-lg uppercase tracking-wide underline" style={pt(16)}>
+          {ptcaTitle(p)}
+        </h2>
         <p className="mt-1 font-bold">Consultant: {p.lab.doctorName || '____'}</p>
       </div>
       <hr className="border-t border-border" />
@@ -99,7 +109,9 @@ export function PtcaReportLayout({ procedure }: { procedure: Procedure }) {
 
       <div className="text-right">
         <p className="font-bold">{p.lab.doctorName || '____'}</p>
-        <p className="text-[11px] text-muted">Consultant Interventional Cardiologist &amp; Asst. Professor</p>
+        <p className="text-[11px] text-muted" style={pt(10)}>
+          Consultant Interventional Cardiologist &amp; Asst. Professor
+        </p>
       </div>
     </div>
   )

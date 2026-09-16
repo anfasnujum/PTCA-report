@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { CagReportLayout } from '@/components/preview/CagReportLayout'
 import { PtcaReportLayout } from '@/components/preview/PtcaReportLayout'
 import { generateNote } from '@/lib/noteTemplate'
-import { buildCagReportDocx, buildPtcaReportDocx, buildReportDocx } from '@/lib/reportDocx'
+import { buildReportDocxFromHtml } from '@/lib/reportDocx'
 import { useProcedureStore } from '@/store/useProcedureStore'
 import { cn } from '@/lib/utils'
 import { isLockedProcedure } from '@/lib/homeList'
@@ -97,6 +97,32 @@ function EditorToolbar({ onFontSize }: { onFontSize: (value: string) => void }) 
   )
 }
 
+function bakeComputedStyles(live: Element, clone: Element) {
+  const cs = window.getComputedStyle(live)
+  const el = clone as HTMLElement
+  el.style.fontSize = cs.fontSize
+  el.style.fontWeight = cs.fontWeight
+  el.style.fontStyle = cs.fontStyle
+  el.style.textDecorationLine = cs.textDecorationLine || cs.textDecoration
+  el.style.textAlign = cs.textAlign
+  if (parseFloat(cs.borderTopWidth) > 0 && cs.borderTopStyle !== 'none') {
+    el.style.borderTopWidth = cs.borderTopWidth
+    el.style.borderTopStyle = cs.borderTopStyle
+  }
+  if (parseFloat(cs.paddingLeft) > 0) {
+    el.style.paddingLeft = cs.paddingLeft
+  }
+  // Carries the layout's intended .docx point size (set via the `pt()` helper in
+  // CagReportLayout/PtcaReportLayout), independent of the on-screen pixel size.
+  const docxPt = cs.getPropertyValue('--pt').trim()
+  if (docxPt) el.style.setProperty('--pt', docxPt)
+  const liveChildren = live.children
+  const cloneChildren = clone.children
+  for (let i = 0; i < liveChildren.length; i++) {
+    bakeComputedStyles(liveChildren[i], cloneChildren[i])
+  }
+}
+
 function htmlToText(html: string): string {
   if (!html.trim()) return ''
   const withBreaks = html
@@ -152,13 +178,16 @@ export function PreviewPage() {
   }
 
   const exportDocx = async () => {
+    if (!docRef.current) return
     setExportingDocx(true)
     try {
-      const blob = current.docOverride?.trim()
-        ? await buildReportDocx(current, note)
-        : isCag
-          ? await buildCagReportDocx(current)
-          : await buildPtcaReportDocx(current)
+      // Always derive the .docx from what's actually rendered on screen (baking
+      // computed styles the same way an edit-commit does), so a freshly generated
+      // export and a hand-edited one are built through the exact same pipeline and
+      // can never drift apart.
+      const clone = docRef.current.cloneNode(true) as HTMLElement
+      bakeComputedStyles(docRef.current, clone)
+      const blob = await buildReportDocxFromHtml(current, clone.innerHTML)
       downloadBlobFile(`${stem}.docx`, blob)
     } finally {
       setExportingDocx(false)
@@ -167,9 +196,11 @@ export function PreviewPage() {
 
   const commitEdit = () => {
     if (editing && docRef.current) {
-      const html = docRef.current.innerHTML
-      if (html !== editStartHtmlRef.current) {
-        mutate((p) => ({ ...p, docOverride: html }))
+      const rawHtml = docRef.current.innerHTML
+      if (rawHtml !== editStartHtmlRef.current) {
+        const clone = docRef.current.cloneNode(true) as HTMLElement
+        bakeComputedStyles(docRef.current, clone)
+        mutate((p) => ({ ...p, docOverride: clone.innerHTML }))
       }
     }
   }
