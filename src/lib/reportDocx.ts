@@ -270,8 +270,11 @@ export function htmlToDocxChildren(html: string): (Paragraph | Table)[] {
 
 export async function buildReportDocxFromHtml(procedure: Procedure, html: string): Promise<Blob> {
   const children = htmlToDocxChildren(html)
+  const title = procedure.kind === 'cag' ? 'CAG procedure note' : 'PTCA procedure note'
   const doc = new Document({
-    title: procedure.kind === 'cag' ? 'CAG procedure note' : 'PTCA procedure note',
+    title,
+    creator: 'CathNote',
+    description: title,
     compatabilityModeVersion: 12,
     sections: [
       {
