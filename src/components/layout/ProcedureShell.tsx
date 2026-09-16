@@ -9,6 +9,7 @@ import { DISCLAIMER } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { stepsFor } from '@/components/layout/steps'
 import { NotePanel } from '@/components/layout/NotePanel'
+import { useEnterNextButton } from '@/hooks/useEnterNextButton'
 
 export function ProcedureShell() {
   const { id } = useParams()
@@ -20,6 +21,7 @@ export function ProcedureShell() {
   const loadError = useProcedureStore((s) => s.loadError)
   const lastPullAt = useSyncStore((s) => s.lastPullAt)
   const showNotePanel = !location.pathname.endsWith('/preview')
+  useEnterNextButton()
 
   useEffect(() => {
     if (id) void load(id)

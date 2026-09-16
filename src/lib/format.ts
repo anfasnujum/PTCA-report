@@ -365,6 +365,7 @@ export function findingIssueLocation(
   underHeading = false,
 ): string {
   const phrase = formatSegments(f.segment)
+  if (underHeading && isSizeVessel(f.vessel)) return phrase
   const name = underHeading && isOmVessel(f.vessel) && f.omMajor ? f.vessel : vesselReportName(f)
   return phrase ? `${phrase} ${name}` : name
 }

@@ -16,6 +16,7 @@ import { defaultBalloon, lastLocation, targetVessels } from '@/lib/location'
 import { GUIDE_SIZES } from '@/lib/constants'
 import { defaultDiameter, isRightCoronary } from '@/lib/format'
 import { suggestedPostDil } from '@/lib/noteTemplate'
+import { useNavigate, useParams } from 'react-router-dom'
 import type {
   AdjunctUse,
   BalloonUse,
@@ -42,6 +43,8 @@ export function TimelinePage() {
   const updateEvent = useProcedureStore((s) => s.updateEvent)
   const removeEvent = useProcedureStore((s) => s.removeEvent)
   const reorderEvents = useProcedureStore((s) => s.reorderEvents)
+  const navigate = useNavigate()
+  const { id } = useParams()
   const [sheet, setSheet] = useState<Sheet | null>(null)
   const [postDil, setPostDil] = useState<BalloonUse | null>(null)
 
@@ -178,6 +181,14 @@ export function TimelinePage() {
         onRepeat={repeatInflation}
         onDuplicate={duplicate}
       />
+      <Button
+        size="lg"
+        className="mt-4 w-full"
+        data-enter-next
+        onClick={() => navigate(`/procedure/${id}/result`)}
+      >
+        Next — Result
+      </Button>
       <ActionBar onAdd={openNew} />
 
       <GuideSheet

@@ -110,6 +110,27 @@ export function PatientPage() {
           />
         </Section>
       )}
+      <StaffSelect
+        title={current.kind === 'cag' ? 'Consultant' : 'Doctor Name'}
+        names={staff.consultants}
+        value={lab.doctorName}
+        placeholder={current.kind === 'cag' ? 'Consultant name' : 'Doctor name'}
+        onChange={(doctorName) => setLab({ doctorName })}
+      />
+      <StaffSelect
+        title="Scrub Nurse"
+        names={staff.scrubNurses}
+        value={lab.scrubNurse}
+        placeholder="Scrub nurse"
+        onChange={(scrubNurse) => setLab({ scrubNurse })}
+      />
+      <StaffSelect
+        title="Technologist"
+        names={staff.technologists}
+        value={lab.technologist}
+        placeholder="Technologist"
+        onChange={(technologist) => setLab({ technologist })}
+      />
       <div className="lg:col-span-2">
       <Section title="Symptoms">
         <ChipScroller>
@@ -264,27 +285,6 @@ export function PatientPage() {
         </ChipScroller>
       </Section>
       </div>
-      <StaffSelect
-        title={current.kind === 'cag' ? 'Consultant' : 'Doctor Name'}
-        names={staff.consultants}
-        value={lab.doctorName}
-        placeholder={current.kind === 'cag' ? 'Consultant name' : 'Doctor name'}
-        onChange={(doctorName) => setLab({ doctorName })}
-      />
-      <StaffSelect
-        title="Technologist"
-        names={staff.technologists}
-        value={lab.technologist}
-        placeholder="Technologist"
-        onChange={(technologist) => setLab({ technologist })}
-      />
-      <StaffSelect
-        title="Scrub Nurse"
-        names={staff.scrubNurses}
-        value={lab.scrubNurse}
-        placeholder="Scrub nurse"
-        onChange={(scrubNurse) => setLab({ scrubNurse })}
-      />
       {current.kind === 'cag' ? (
         <Section title="LVEDP">
           <div className="relative">
@@ -300,7 +300,12 @@ export function PatientPage() {
           </div>
         </Section>
       ) : null}
-      <Button size="lg" className="w-full lg:col-span-2" onClick={() => navigate(`/procedure/${id}/access`)}>
+      <Button
+        size="lg"
+        className="w-full lg:col-span-2"
+        data-enter-next
+        onClick={() => navigate(`/procedure/${id}/access`)}
+      >
         Next — Access
       </Button>
     </div>

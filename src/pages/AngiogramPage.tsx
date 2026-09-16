@@ -43,6 +43,7 @@ export function AngiogramPage() {
       <Button
         size="lg"
         className="w-full"
+        data-enter-next
         onClick={() =>
           navigate(`/procedure/${id}/${current.kind === 'cag' ? 'result' : 'timeline'}`)
         }

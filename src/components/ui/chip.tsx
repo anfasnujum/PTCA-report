@@ -38,17 +38,19 @@ export function NumberChips({
   onChange,
   format,
   suffix = '',
+  chipClassName,
 }: {
   values: readonly number[]
   value: number
   onChange: (n: number) => void
   format?: (n: number) => string
   suffix?: string
+  chipClassName?: string
 }) {
   return (
     <ChipScroller>
       {values.map((v) => (
-        <Chip key={v} selected={v === value} onClick={() => onChange(v)}>
+        <Chip key={v} className={chipClassName} selected={v === value} onClick={() => onChange(v)}>
           {(format ? format(v) : String(v)) + suffix}
         </Chip>
       ))}

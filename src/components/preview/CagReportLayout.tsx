@@ -123,14 +123,14 @@ export function CagReportLayout({ procedure }: { procedure: Procedure }) {
         <p>
           <span className="font-bold">LAD</span> : {lad}
         </p>
-        {limaLine ? <p>{limaLine}</p> : null}
         <p>
           <span className="font-bold">{lcxLabel}</span> : {lcx}
         </p>
-        {rimaLine ? <p>{rimaLine}</p> : null}
         <p>
           <span className="font-bold">RCA</span> : {rca}
         </p>
+        {limaLine ? <p>{limaLine}</p> : null}
+        {rimaLine ? <p>{rimaLine}</p> : null}
         <ListedField label="IMPRESSION" items={impressionItems} />
         <ListedField label="ADVICE" items={adviceItems} />
         {p.notes.trim() ? (

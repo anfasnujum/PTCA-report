@@ -78,7 +78,13 @@ function StenosisValuePicker({
         onChange={(e) => onChange(Number(e.target.value))}
         className="w-full accent-accent"
       />
-      <NumberChips values={STENOSIS_PRESETS} value={value} onChange={onChange} suffix="%" />
+      <NumberChips
+        values={STENOSIS_PRESETS}
+        value={value}
+        onChange={onChange}
+        suffix="%"
+        chipClassName={MODE_CHIP}
+      />
     </div>
   )
 }
@@ -94,6 +100,7 @@ function PercentFields({
 }) {
   return (
     <Section
+      className="sm:col-span-2"
       title={`${title}  ${formatStenosis(f)}`}
       action={
         <ChipScroller>
@@ -428,14 +435,10 @@ function VesselSheet({
   return (
     <BottomSheet
       open
-      wide={showSidebar}
+      wide
       title={title}
       onClose={onClose}
-      bodyClassName={
-        showSidebar
-          ? 'flex min-h-0 flex-1 flex-col overflow-hidden px-4 pb-4'
-          : undefined
-      }
+      bodyClassName="flex min-h-0 flex-1 flex-col overflow-hidden px-4 pb-3"
       footer={
         <div className="flex gap-2">
             <Button variant="secondary" className="shrink-0 px-3 sm:flex-1 sm:px-5" onClick={removeIssue}>
@@ -455,9 +458,9 @@ function VesselSheet({
       }
     >
       {showSidebar ? (
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden lg:flex-row lg:gap-0">
-          <aside className="flex shrink-0 flex-col gap-2 lg:w-52 lg:min-h-0 lg:border-r lg:border-border lg:pr-3">
-            <div className="flex items-center justify-between gap-2 lg:px-1">
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden md:flex-row md:gap-0">
+          <aside className="flex shrink-0 flex-col gap-2 md:w-48 md:min-h-0 md:border-r md:border-border md:pr-3">
+            <div className="flex items-center justify-between gap-2 md:px-1">
               <p className="text-xs font-medium uppercase tracking-wide text-muted">Issues</p>
               <button
                 type="button"
@@ -467,11 +470,11 @@ function VesselSheet({
                 Clear all
               </button>
             </div>
-            <div className="flex gap-2 overflow-x-auto pb-1 lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden lg:pb-0">
+            <div className="flex gap-2 overflow-x-auto pb-1 md:min-h-0 md:flex-1 md:flex-col md:overflow-y-auto md:overflow-x-hidden md:pb-0">
               {sidebarIssues.map((f, i) => (
-                <div key={f.id} className="shrink-0 space-y-2 lg:w-full">
+                <div key={f.id} className="shrink-0 space-y-2 md:w-full">
                   {i > 0 ? (
-                    <div className="hidden items-center gap-1 px-1 lg:flex">
+                    <div className="hidden items-center gap-1 px-1 md:flex">
                       <span className="h-px flex-1 bg-border" />
                       <Input
                         aria-label="Connector"
@@ -492,7 +495,7 @@ function VesselSheet({
                     type="button"
                     onClick={() => selectIssue(f)}
                     className={cn(
-                      'w-36 rounded-2xl border px-3 py-2.5 text-left transition-colors lg:w-full',
+                      'w-36 rounded-2xl border px-3 py-2 text-left transition-colors md:w-full',
                       stenosisColor(findingSeverity(f)),
                       f.isTarget && 'ring-2 ring-accent',
                       f.id === selectedId && 'ring-2 ring-accent ring-offset-1',
@@ -512,12 +515,14 @@ function VesselSheet({
               ))}
             </div>
           </aside>
-          <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-y-contain lg:pl-4">
+          <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-y-contain md:pl-5">
             <FindingForm f={draft} setF={setDraft} />
           </div>
         </div>
       ) : (
-        <FindingForm f={draft} setF={setDraft} />
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
+          <FindingForm f={draft} setF={setDraft} />
+        </div>
       )}
     </BottomSheet>
   )
@@ -545,15 +550,17 @@ function FindingForm({
   }
 
   return (
-      <div className="space-y-5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-x-6 sm:gap-y-3 [&_section]:space-y-2 [&_section_button]:min-h-8 [&_section_button]:px-3">
         {f.vessel === 'LMCA' ? (
           <>
+            <div className="sm:col-span-2">
             <Switch
               label="Separate origin of LAD and LCX"
               yesNo
               checked={!!f.separateOrigin}
               onChange={(separateOrigin) => setF({ ...f, separateOrigin })}
             />
+            </div>
             {!f.separateOrigin ? (
               <Section
                 title="Length"
@@ -661,12 +668,14 @@ function FindingForm({
                 ))}
               </ChipScroller>
             </Section>
+            <div className="sm:col-span-2">
             <Switch
               label="Parent"
               yesNo
               checked={!!f.lcxParent}
               onChange={(lcxParent) => setF({ ...f, lcxParent })}
             />
+            </div>
           </>
         ) : null}
         {isSizeVessel(f.vessel) ? (
@@ -723,12 +732,14 @@ function FindingForm({
           </Section>
         ) : null}
         {isOmVessel(f.vessel) || isDiagonalVessel(f.vessel) ? (
+          <div className="sm:col-span-2">
           <Switch
             label="Major"
             yesNo
             checked={!!f.omMajor}
             onChange={(omMajor) => setF({ ...f, omMajor })}
           />
+          </div>
         ) : null}
         <Section title="Segment">
           <ChipScroller>
@@ -773,6 +784,21 @@ function FindingForm({
               onChange={(e) => setF({ ...f, findingOther: e.target.value })}
             />
           ) : null}
+        </Section>
+        <Section title="TIMI flow">
+          <ChipScroller>
+            <Chip
+              selected={!hasTimiFlow(f)}
+              onClick={() => setF({ ...f, timiFlow: 'none' })}
+            >
+              None
+            </Chip>
+            {([0, 1, 2, 3] as TimiFlow[]).map((t) => (
+              <Chip key={t} selected={f.timiFlow === t} onClick={() => setF({ ...f, timiFlow: t })}>
+                TIMI {t === 0 ? '0' : t === 1 ? 'I' : t === 2 ? 'II' : 'III'}
+              </Chip>
+            ))}
+          </ChipScroller>
         </Section>
         {findingTypeOf(f) === 'plaque' ? (
           <Section title="Plaque">
@@ -835,7 +861,7 @@ function FindingForm({
           />
         )}
         {findingTypeOf(f) === 'normal' ? null : (
-          <Section title="Features">
+          <Section title="Features" className="sm:col-span-2">
             <ChipScroller>
               {ANGIO_FEATURES.map((feat) => (
                 <Chip
@@ -850,7 +876,7 @@ function FindingForm({
           </Section>
         )}
         {hideNotes ? null : showsLadBranchNotes(f.vessel, f.segment) ? (
-          <Section title="Notes">
+          <Section title="Notes" className="sm:col-span-2">
             <ChipScroller>
               {LAD_BRANCHES.map((b) => (
                 <Chip
@@ -882,7 +908,7 @@ function FindingForm({
             </ChipScroller>
           </Section>
         ) : showsLcxBranchNotes(f.vessel, f.segment) ? (
-          <Section title="Notes">
+          <Section title="Notes" className="sm:col-span-2">
             <ChipScroller>
               {LCX_BRANCHES.map((b) => (
                 <Chip
@@ -914,7 +940,7 @@ function FindingForm({
             </ChipScroller>
           </Section>
         ) : asSegments(f.segment).includes('distal') ? (
-          <Section title="Notes">
+          <Section title="Notes" className="sm:col-span-2">
             <ChipScroller>
               {(f.vessel === 'RCA' ? RCA_DISTAL_NOTES : DISTAL_SEGMENT_NOTES).map((n) => (
                 <Chip
@@ -935,28 +961,15 @@ function FindingForm({
             ) : null}
           </Section>
         ) : null}
-        <Section title="TIMI flow">
-          <ChipScroller>
-            <Chip
-              selected={!hasTimiFlow(f)}
-              onClick={() => setF({ ...f, timiFlow: 'none' })}
-            >
-              None
-            </Chip>
-            {([0, 1, 2, 3] as TimiFlow[]).map((t) => (
-              <Chip key={t} selected={f.timiFlow === t} onClick={() => setF({ ...f, timiFlow: t })}>
-                TIMI {t === 0 ? '0' : t === 1 ? 'I' : t === 2 ? 'II' : 'III'}
-              </Chip>
-            ))}
-          </ChipScroller>
-        </Section>
           </>
         )}
+        <div className="sm:col-span-2">
         <Switch
           label="Target vessel"
           checked={f.isTarget}
           onChange={(isTarget) => setF({ ...f, isTarget })}
         />
+        </div>
       </div>
   )
 }

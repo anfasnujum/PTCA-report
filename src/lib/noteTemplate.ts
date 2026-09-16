@@ -125,7 +125,8 @@ function diseaseShowsSentence(f: AngioFinding, lead: string): string {
 }
 
 function findingShowsLead(f: AngioFinding, underHeading = false): string {
-  return `${capitalise(findingIssueLocation(f, underHeading))} shows`
+  const loc = capitalise(findingIssueLocation(f, underHeading))
+  return loc ? `${loc} shows` : 'shows'
 }
 
 function findingDiseaseClause(f: AngioFinding, underHeading = false): string {

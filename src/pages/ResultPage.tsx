@@ -206,7 +206,7 @@ export function ResultPage() {
             </Button>
           </div>
         </Section>
-        <Button size="lg" className="w-full" onClick={() => navigate(`/procedure/${id}/preview`)}>
+        <Button size="lg" className="w-full" data-enter-next onClick={() => navigate(`/procedure/${id}/preview`)}>
           Next — Final
         </Button>
       </div>
@@ -414,7 +414,12 @@ export function ResultPage() {
           </Button>
         </div>
       </Section>
-      <Button size="lg" className="w-full lg:col-span-2" onClick={() => navigate(`/procedure/${id}/preview`)}>
+      <Button
+        size="lg"
+        className="w-full lg:col-span-2"
+        data-enter-next
+        onClick={() => navigate(`/procedure/${id}/preview`)}
+      >
         Next — Final
       </Button>
     </div>

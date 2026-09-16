@@ -148,7 +148,12 @@ export function AccessPage() {
           ) : null}
         </Section>
       </div>
-      <Button size="lg" className="w-full lg:col-span-2" onClick={() => navigate(`/procedure/${id}/angiogram`)}>
+      <Button
+        size="lg"
+        className="w-full lg:col-span-2"
+        data-enter-next
+        onClick={() => navigate(`/procedure/${id}/angiogram`)}
+      >
         Next — Angiogram
       </Button>
       <CatheterSheet
