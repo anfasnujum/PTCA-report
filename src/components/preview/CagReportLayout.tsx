@@ -66,7 +66,7 @@ export function CagReportLayout({ procedure }: { procedure: Procedure }) {
 
   return (
     <div
-      className="report-doc cag-report space-y-2 rounded-2xl bg-card p-6 text-[13px] leading-snug shadow-card"
+      className="report-doc cag-report space-y-2 rounded-2xl bg-card p-6 text-[13px] leading-[2] shadow-card"
       style={{ fontFamily: "'Times New Roman', Times, serif" }}
     >
       <div className="text-center">

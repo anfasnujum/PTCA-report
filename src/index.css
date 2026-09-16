@@ -76,7 +76,7 @@ body {
 
 @media print {
   @page {
-    margin-top: 6cm;
+    margin-top: 9.3cm;
     margin-left: 2.54cm;
     margin-right: 2.54cm;
   }
@@ -99,7 +99,7 @@ body {
     color: #111 !important;
     background: #fff !important;
     box-shadow: none !important;
-    line-height: 1.375;
+    line-height: 2;
   }
   /* Match the exported .docx sizing exactly: each element uses its own --pt
      value (set via the pt() helper in the report layouts), falling back to
