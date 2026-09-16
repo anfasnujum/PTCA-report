@@ -438,6 +438,10 @@ export function PreviewPage() {
       const font = el as HTMLElement
       font.removeAttribute('size')
       font.style.fontSize = `${value}px`
+      // Print and the .docx export both size elements off --pt (points), not
+      // the on-screen px, so a manual size change needs to update both or it
+      // gets silently overridden by the ancestor's --pt when printed/exported.
+      font.style.setProperty('--pt', String(Number(value) * 0.75))
     })
     // execCommand rewraps the selected nodes, so the previously saved range
     // may now point at detached nodes. Recapture it so the next size change

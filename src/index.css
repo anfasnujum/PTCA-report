@@ -64,10 +64,13 @@ body {
 }
 
 /* Match the editor's text width to the print page: A4 width (21cm) minus the
-   left/right @page margins (2.54cm each) = 15.92cm. No margin/padding is
-   simulated on screen - only the resulting text width. */
+   left/right @page margins (2.54cm each) = 15.92cm of actual content width.
+   .report-doc also carries its own p-6 card padding (1.5rem each side) which
+   print doesn't have, so grow max-width by that padding here too - otherwise
+   the padding eats into the 15.92cm and text wraps sooner on screen than it
+   does when printed. */
 .report-doc {
-  max-width: 15.92cm;
+  max-width: calc(15.92cm + 3rem);
   margin-inline: auto;
 }
 
