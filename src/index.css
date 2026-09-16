@@ -64,6 +64,9 @@ body {
 }
 
 @media print {
+  @page {
+    margin: 6cm;
+  }
   html,
   body,
   #root {

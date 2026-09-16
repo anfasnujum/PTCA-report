@@ -16,6 +16,11 @@ import type { Procedure } from '@/types/procedure'
 
 const NO_BORDER = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }
 const REPORT_FONT = 'Times New Roman'
+// A4 page width (11906 dxa) minus default 1" left/right margins (1440 dxa each).
+// Absolute (dxa) widths are used instead of WidthType.PERCENTAGE — the docx library
+// serializes percentage widths as a literal "N%" string, a representation some
+// older Word versions' stricter OOXML schema validation rejects outright.
+const PAGE_CONTENT_WIDTH_DXA = 11906 - 1440 - 1440
 
 const LEGACY_FONT_SIZE_HALF_PT: Record<string, number> = {
   '1': 16,
@@ -162,12 +167,12 @@ function collectRuns(node: Node, style: RunStyle, runs: TextRun[]): void {
   }
 }
 
-function elementToTableCell(el: Element, style: RunStyle, widthPercent?: number): TableCell {
+function elementToTableCell(el: Element, style: RunStyle, widthDxa?: number): TableCell {
   const runs: TextRun[] = []
   collectRuns(el, style, runs)
   if (!runs.length) runs.push(new TextRun({ text: '', size: style.size ?? 24, font: REPORT_FONT }))
   return new TableCell({
-    width: widthPercent ? { size: widthPercent, type: WidthType.PERCENTAGE } : undefined,
+    width: widthDxa ? { size: widthDxa, type: WidthType.DXA } : undefined,
     borders: { top: NO_BORDER, bottom: NO_BORDER, left: NO_BORDER, right: NO_BORDER },
     margins: { top: 20, bottom: 20, left: 100, right: 100 },
     children: [new Paragraph({ children: runs })],
@@ -179,11 +184,15 @@ function elementToTable(tableEl: Element, style: RunStyle): Table | null {
   for (const tr of Array.from(tableEl.querySelectorAll('tr'))) {
     const cellEls = Array.from(tr.children).filter((c) => ['TD', 'TH'].includes(c.tagName))
     if (!cellEls.length) continue
-    const width = Math.floor(100 / cellEls.length)
+    const width = Math.floor(PAGE_CONTENT_WIDTH_DXA / cellEls.length)
     rows.push(new TableRow({ children: cellEls.map((c) => elementToTableCell(c, style, width)) }))
   }
   if (!rows.length) return null
-  return new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: TableBorders.NONE, rows })
+  return new Table({
+    width: { size: PAGE_CONTENT_WIDTH_DXA, type: WidthType.DXA },
+    borders: TableBorders.NONE,
+    rows,
+  })
 }
 
 const BLOCK_TAGS = new Set(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
