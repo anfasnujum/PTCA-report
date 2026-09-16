@@ -96,8 +96,14 @@ body {
     color: #111 !important;
     background: #fff !important;
     box-shadow: none !important;
-    font-size: 16px;
     line-height: 1.375;
+  }
+  /* Match the exported .docx sizing exactly: each element uses its own --pt
+     value (set via the pt() helper in the report layouts), falling back to
+     the doc export's default body size of 12pt when none is set. */
+  .report-doc,
+  .report-doc * {
+    font-size: calc(var(--pt, 12) * 4px / 3) !important;
   }
   .report-doc table {
     border-collapse: collapse;

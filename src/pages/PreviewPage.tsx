@@ -7,7 +7,7 @@ import { buildReportDocxFromHtml } from '@/lib/reportDocx'
 import { useProcedureStore } from '@/store/useProcedureStore'
 import { cn } from '@/lib/utils'
 import { isLockedProcedure } from '@/lib/homeList'
-import { Bold, Check, Copy, Download, Italic, Printer, RotateCcw, Share2, Underline } from 'lucide-react'
+import { Bold, Check, ChevronDown, Copy, Download, Italic, Printer, RotateCcw, Share2, Underline } from 'lucide-react'
 
 function downloadBlobFile(filename: string, blob: Blob) {
   const url = URL.createObjectURL(blob)
@@ -23,37 +23,165 @@ function downloadBlob(filename: string, text: string, mime: string) {
 }
 
 const FONT_SIZES = [10, 11, 12, 13, 14, 16, 18, 20, 24, 32]
+const LINE_HEIGHTS = [1, 1.15, 1.5, 2]
 
 type FormatState = { bold: boolean; italic: boolean; underline: boolean; fontSize: string }
+
+// Block-level tags line spacing is applied to (matches how rich text editors
+// treat "line spacing" as a paragraph attribute, not a character-run one -
+// setting line-height on an inline span doesn't reliably resize the line box).
+const BLOCK_TAGS = new Set(['P', 'DIV', 'LI', 'TD', 'TH', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6'])
+
+function nearestBlock(node: Node, root: HTMLElement): HTMLElement | null {
+  let el: HTMLElement | null = node.nodeType === Node.TEXT_NODE ? node.parentElement : (node as HTMLElement)
+  while (el && el !== root && !BLOCK_TAGS.has(el.tagName)) {
+    el = el.parentElement
+  }
+  return el && el !== root ? el : null
+}
+
+function getSelectedBlocks(range: Range, root: HTMLElement): HTMLElement[] {
+  if (range.collapsed) {
+    const block = nearestBlock(range.startContainer, root)
+    return block ? [block] : []
+  }
+  const found: HTMLElement[] = []
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT)
+  let node = walker.nextNode() as HTMLElement | null
+  while (node) {
+    if (BLOCK_TAGS.has(node.tagName) && range.intersectsNode(node)) {
+      found.push(node)
+    }
+    node = walker.nextNode() as HTMLElement | null
+  }
+  if (found.length === 0) {
+    const block = nearestBlock(range.startContainer, root)
+    return block ? [block] : []
+  }
+  // A range fully inside one paragraph also "intersects" every ancestor
+  // wrapping it, so keep only the innermost (leaf) matches - otherwise a
+  // small selection would end up restyling a whole outer section.
+  return found.filter((el) => !found.some((other) => other !== el && el.contains(other)))
+}
+
+function NumericPickerField({
+  value,
+  options,
+  placeholder,
+  title,
+  min,
+  step,
+  onChange,
+}: {
+  value: string
+  options: number[]
+  placeholder: string
+  title: string
+  min: number
+  step: number
+  onChange: (value: string) => void
+}) {
+  const isPreset = value !== '' && options.includes(Number(value))
+  const [customMode, setCustomMode] = useState(value !== '' && !isPreset)
+  const [textInput, setTextInput] = useState(value)
+
+  useEffect(() => {
+    const preset = value !== '' && options.includes(Number(value))
+    setCustomMode(value !== '' && !preset)
+    setTextInput(value)
+  }, [value, options])
+
+  const commit = () => {
+    const trimmed = textInput.trim()
+    if (trimmed && trimmed !== value) {
+      onChange(trimmed)
+    } else {
+      setTextInput(value)
+    }
+  }
+
+  const backToPresets = () => {
+    setCustomMode(false)
+    setTextInput(value)
+  }
+
+  if (customMode) {
+    return (
+      <div className="flex items-center gap-0.5">
+        <input
+          type="number"
+          min={min}
+          step={step}
+          autoFocus
+          className="min-h-9 w-16 rounded-lg border border-border bg-card px-2 text-sm text-foreground outline-none focus:border-accent/40"
+          title={`Custom ${title.toLowerCase()}`}
+          placeholder={placeholder}
+          value={textInput}
+          onChange={(e) => setTextInput(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              commit()
+            } else if (e.key === 'Escape') {
+              backToPresets()
+            }
+          }}
+        />
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          title={`Back to ${title.toLowerCase()} presets`}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={backToPresets}
+        >
+          <ChevronDown className="size-4" />
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <select
+      className="min-h-9 rounded-lg border border-border bg-card px-2 text-sm text-foreground outline-none focus:border-accent/40"
+      title={title}
+      value={value}
+      onChange={(e) => {
+        const v = e.target.value
+        if (v === 'custom') {
+          setTextInput('')
+          setCustomMode(true)
+          return
+        }
+        if (!v) return
+        onChange(v)
+      }}
+    >
+      <option value="" disabled>
+        {placeholder}
+      </option>
+      {options.map((opt) => (
+        <option key={opt} value={opt}>
+          {opt}
+        </option>
+      ))}
+      <option value="custom">Custom…</option>
+    </select>
+  )
+}
 
 function EditorToolbar({
   format,
   onFormat,
   onFontSize,
+  onLineHeight,
 }: {
   format: FormatState
   onFormat: (command: 'bold' | 'italic' | 'underline') => void
   onFontSize: (value: string) => void
+  onLineHeight: (value: string) => void
 }) {
-  const isPreset = format.fontSize !== '' && FONT_SIZES.includes(Number(format.fontSize))
-  const [customMode, setCustomMode] = useState(format.fontSize !== '' && !isPreset)
-  const [sizeInput, setSizeInput] = useState(format.fontSize)
-
-  useEffect(() => {
-    const preset = format.fontSize !== '' && FONT_SIZES.includes(Number(format.fontSize))
-    setCustomMode(format.fontSize !== '' && !preset)
-    setSizeInput(format.fontSize)
-  }, [format.fontSize])
-
-  const commitCustomSize = () => {
-    const trimmed = sizeInput.trim()
-    if (trimmed && trimmed !== format.fontSize) {
-      onFontSize(trimmed)
-    } else {
-      setSizeInput(format.fontSize)
-    }
-  }
-
   return (
     <div className="no-print ml-auto flex w-fit items-center gap-1 rounded-xl bg-card p-1 shadow-card">
       <Button
@@ -95,54 +223,24 @@ function EditorToolbar({
       >
         <Underline className="size-4" />
       </Button>
-      {customMode ? (
-        <input
-          type="number"
-          min={1}
-          autoFocus
-          className="min-h-9 w-16 rounded-lg border border-border bg-card px-2 text-sm text-foreground outline-none focus:border-accent/40"
-          title="Custom font size"
-          placeholder="Aa"
-          value={sizeInput}
-          onChange={(e) => setSizeInput(e.target.value)}
-          onBlur={commitCustomSize}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault()
-              commitCustomSize()
-            } else if (e.key === 'Escape') {
-              setCustomMode(false)
-              setSizeInput(format.fontSize)
-            }
-          }}
-        />
-      ) : (
-        <select
-          className="min-h-9 rounded-lg border border-border bg-card px-2 text-sm text-foreground outline-none focus:border-accent/40"
-          title="Font size"
-          value={format.fontSize}
-          onChange={(e) => {
-            const value = e.target.value
-            if (value === 'custom') {
-              setSizeInput('')
-              setCustomMode(true)
-              return
-            }
-            if (!value) return
-            onFontSize(value)
-          }}
-        >
-          <option value="" disabled>
-            Aa
-          </option>
-          {FONT_SIZES.map((size) => (
-            <option key={size} value={size}>
-              {size}
-            </option>
-          ))}
-          <option value="custom">Custom…</option>
-        </select>
-      )}
+      <NumericPickerField
+        value={format.fontSize}
+        options={FONT_SIZES}
+        placeholder="Aa"
+        title="Font size"
+        min={1}
+        step={1}
+        onChange={onFontSize}
+      />
+      <NumericPickerField
+        value=""
+        options={LINE_HEIGHTS}
+        placeholder="↕"
+        title="Line spacing"
+        min={0.5}
+        step={0.05}
+        onChange={onLineHeight}
+      />
     </div>
   )
 }
@@ -350,6 +448,25 @@ export function PreviewPage() {
     detectFormatState()
   }
 
+  const applyLineHeight = (value: string) => {
+    docRef.current?.focus()
+    const sel = window.getSelection()
+    if (sel && savedRangeRef.current) {
+      sel.removeAllRanges()
+      sel.addRange(savedRangeRef.current)
+    }
+    if (docRef.current && sel && sel.rangeCount > 0) {
+      const blocks = getSelectedBlocks(sel.getRangeAt(0), docRef.current)
+      blocks.forEach((el) => {
+        el.style.lineHeight = value
+      })
+    }
+    if (sel && sel.rangeCount > 0) {
+      savedRangeRef.current = sel.getRangeAt(0).cloneRange()
+    }
+    detectFormatState()
+  }
+
   return (
     <div className="space-y-4 pb-8">
       <div className="no-print flex flex-wrap items-center gap-2">
@@ -384,7 +501,12 @@ export function PreviewPage() {
           </Button>
         ) : null}
         {editing ? (
-          <EditorToolbar format={formatState} onFormat={applyFormat} onFontSize={applyFontSize} />
+          <EditorToolbar
+            format={formatState}
+            onFormat={applyFormat}
+            onFontSize={applyFontSize}
+            onLineHeight={applyLineHeight}
+          />
         ) : null}
       </div>
       <div className="relative">
