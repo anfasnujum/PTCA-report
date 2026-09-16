@@ -45,7 +45,7 @@ export function PtcaReportLayout({ procedure }: { procedure: Procedure }) {
 
   return (
     <div
-      className="report-doc ptca-report space-y-3 rounded-2xl bg-card p-6 text-[13px] leading-snug shadow-card"
+      className="report-doc ptca-report space-y-3 rounded-2xl bg-card p-6 text-[13px] leading-[2] shadow-card"
       style={{ fontFamily: "'Times New Roman', Times, serif", ...pt(12) }}
     >
       <div className="text-center">
