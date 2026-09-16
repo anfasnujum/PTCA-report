@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { CagReportLayout } from '@/components/preview/CagReportLayout'
 import { PtcaReportLayout } from '@/components/preview/PtcaReportLayout'
@@ -22,20 +22,38 @@ function downloadBlob(filename: string, text: string, mime: string) {
   downloadBlobFile(filename, new Blob([text], { type: mime }))
 }
 
-function applyFormat(command: 'bold' | 'italic' | 'underline') {
-  document.execCommand(command)
-}
+const FONT_SIZES = [10, 11, 12, 13, 14, 16, 18, 20, 24, 32]
 
-const FONT_SIZES = [
-  { label: 'Small', value: '2' },
-  { label: 'Normal', value: '3' },
-  { label: 'Medium', value: '4' },
-  { label: 'Large', value: '5' },
-  { label: 'X-Large', value: '6' },
-  { label: 'XX-Large', value: '7' },
-]
+type FormatState = { bold: boolean; italic: boolean; underline: boolean; fontSize: string }
 
-function EditorToolbar({ onFontSize }: { onFontSize: (value: string) => void }) {
+function EditorToolbar({
+  format,
+  onFormat,
+  onFontSize,
+}: {
+  format: FormatState
+  onFormat: (command: 'bold' | 'italic' | 'underline') => void
+  onFontSize: (value: string) => void
+}) {
+  const isPreset = format.fontSize !== '' && FONT_SIZES.includes(Number(format.fontSize))
+  const [customMode, setCustomMode] = useState(format.fontSize !== '' && !isPreset)
+  const [sizeInput, setSizeInput] = useState(format.fontSize)
+
+  useEffect(() => {
+    const preset = format.fontSize !== '' && FONT_SIZES.includes(Number(format.fontSize))
+    setCustomMode(format.fontSize !== '' && !preset)
+    setSizeInput(format.fontSize)
+  }, [format.fontSize])
+
+  const commitCustomSize = () => {
+    const trimmed = sizeInput.trim()
+    if (trimmed && trimmed !== format.fontSize) {
+      onFontSize(trimmed)
+    } else {
+      setSizeInput(format.fontSize)
+    }
+  }
+
   return (
     <div className="no-print ml-auto flex w-fit items-center gap-1 rounded-xl bg-card p-1 shadow-card">
       <Button
@@ -43,9 +61,10 @@ function EditorToolbar({ onFontSize }: { onFontSize: (value: string) => void }) 
         variant="ghost"
         size="icon"
         title="Bold"
+        className={cn(format.bold && 'bg-accent-soft text-accent')}
         onMouseDown={(e) => {
           e.preventDefault()
-          applyFormat('bold')
+          onFormat('bold')
         }}
       >
         <Bold className="size-4" />
@@ -55,9 +74,10 @@ function EditorToolbar({ onFontSize }: { onFontSize: (value: string) => void }) 
         variant="ghost"
         size="icon"
         title="Italic"
+        className={cn(format.italic && 'bg-accent-soft text-accent')}
         onMouseDown={(e) => {
           e.preventDefault()
-          applyFormat('italic')
+          onFormat('italic')
         }}
       >
         <Italic className="size-4" />
@@ -67,32 +87,62 @@ function EditorToolbar({ onFontSize }: { onFontSize: (value: string) => void }) 
         variant="ghost"
         size="icon"
         title="Underline"
+        className={cn(format.underline && 'bg-accent-soft text-accent')}
         onMouseDown={(e) => {
           e.preventDefault()
-          applyFormat('underline')
+          onFormat('underline')
         }}
       >
         <Underline className="size-4" />
       </Button>
-      <select
-        className="min-h-9 rounded-lg border border-border bg-card px-2 text-sm text-foreground outline-none focus:border-accent/40"
-        title="Font size"
-        defaultValue=""
-        onChange={(e) => {
-          if (!e.target.value) return
-          onFontSize(e.target.value)
-          e.target.value = ''
-        }}
-      >
-        <option value="" disabled>
-          Aa
-        </option>
-        {FONT_SIZES.map((s) => (
-          <option key={s.value} value={s.value}>
-            {s.label}
+      {customMode ? (
+        <input
+          type="number"
+          min={1}
+          autoFocus
+          className="min-h-9 w-16 rounded-lg border border-border bg-card px-2 text-sm text-foreground outline-none focus:border-accent/40"
+          title="Custom font size"
+          placeholder="Aa"
+          value={sizeInput}
+          onChange={(e) => setSizeInput(e.target.value)}
+          onBlur={commitCustomSize}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              commitCustomSize()
+            } else if (e.key === 'Escape') {
+              setCustomMode(false)
+              setSizeInput(format.fontSize)
+            }
+          }}
+        />
+      ) : (
+        <select
+          className="min-h-9 rounded-lg border border-border bg-card px-2 text-sm text-foreground outline-none focus:border-accent/40"
+          title="Font size"
+          value={format.fontSize}
+          onChange={(e) => {
+            const value = e.target.value
+            if (value === 'custom') {
+              setSizeInput('')
+              setCustomMode(true)
+              return
+            }
+            if (!value) return
+            onFontSize(value)
+          }}
+        >
+          <option value="" disabled>
+            Aa
           </option>
-        ))}
-      </select>
+          {FONT_SIZES.map((size) => (
+            <option key={size} value={size}>
+              {size}
+            </option>
+          ))}
+          <option value="custom">Custom…</option>
+        </select>
+      )}
     </div>
   )
 }
@@ -145,6 +195,12 @@ export function PreviewPage() {
   const [editing, setEditing] = useState(false)
   const [copied, setCopied] = useState(false)
   const [exportingDocx, setExportingDocx] = useState(false)
+  const [formatState, setFormatState] = useState<FormatState>({
+    bold: false,
+    italic: false,
+    underline: false,
+    fontSize: '',
+  })
   const docRef = useRef<HTMLDivElement>(null)
   const savedRangeRef = useRef<Range | null>(null)
   const editStartHtmlRef = useRef<string | null>(null)
@@ -233,11 +289,37 @@ export function PreviewPage() {
     setStatus(current.status === 'completed' ? 'finalised' : 'completed')
   }
 
+  const detectFormatState = () => {
+    const sel = window.getSelection()
+    if (!sel || sel.rangeCount === 0 || !sel.anchorNode || !docRef.current?.contains(sel.anchorNode)) {
+      return
+    }
+    const node = sel.anchorNode
+    const el = node.nodeType === Node.TEXT_NODE ? node.parentElement : (node as HTMLElement)
+    let fontSize = ''
+    if (el) {
+      const px = Math.round(parseFloat(window.getComputedStyle(el).fontSize))
+      if (Number.isFinite(px)) fontSize = String(px)
+    }
+    setFormatState({
+      bold: document.queryCommandState('bold'),
+      italic: document.queryCommandState('italic'),
+      underline: document.queryCommandState('underline'),
+      fontSize,
+    })
+  }
+
   const saveSelection = () => {
     const sel = window.getSelection()
     if (sel && sel.rangeCount > 0 && sel.anchorNode && docRef.current?.contains(sel.anchorNode)) {
       savedRangeRef.current = sel.getRangeAt(0).cloneRange()
     }
+    detectFormatState()
+  }
+
+  const applyFormat = (command: 'bold' | 'italic' | 'underline') => {
+    document.execCommand(command)
+    detectFormatState()
   }
 
   const applyFontSize = (value: string) => {
@@ -246,7 +328,14 @@ export function PreviewPage() {
       sel.removeAllRanges()
       sel.addRange(savedRangeRef.current)
     }
-    document.execCommand('fontSize', false, value)
+    // Legacy execCommand only supports sizes 1-7, so apply a marker size and
+    // replace it with the real pixel value to get an actual font-size.
+    document.execCommand('fontSize', false, '7')
+    docRef.current?.querySelectorAll('font[size="7"]').forEach((el) => {
+      const font = el as HTMLElement
+      font.removeAttribute('size')
+      font.style.fontSize = `${value}px`
+    })
     docRef.current?.focus()
     // execCommand rewraps the selected nodes, so the previously saved range
     // may now point at detached nodes. Recapture it so the next size change
@@ -254,6 +343,7 @@ export function PreviewPage() {
     if (sel && sel.rangeCount > 0) {
       savedRangeRef.current = sel.getRangeAt(0).cloneRange()
     }
+    detectFormatState()
   }
 
   return (
@@ -289,7 +379,9 @@ export function PreviewPage() {
             Completed
           </Button>
         ) : null}
-        {editing ? <EditorToolbar onFontSize={applyFontSize} /> : null}
+        {editing ? (
+          <EditorToolbar format={formatState} onFormat={applyFormat} onFontSize={applyFontSize} />
+        ) : null}
       </div>
       <div className="relative">
         <div
