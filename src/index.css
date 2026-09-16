@@ -65,7 +65,7 @@ body {
 
 @media print {
   @page {
-    margin: 6cm;
+    margin-top: 6cm;
   }
   html,
   body,
