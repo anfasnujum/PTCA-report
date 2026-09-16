@@ -459,11 +459,23 @@ export function PreviewPage() {
       sel.removeAllRanges()
       sel.addRange(savedRangeRef.current)
     }
-    if (docRef.current && sel && sel.rangeCount > 0) {
-      const blocks = getSelectedBlocks(sel.getRangeAt(0), docRef.current)
-      blocks.forEach((el) => {
-        el.style.lineHeight = value
-      })
+    const root = docRef.current
+    if (root) {
+      const range =
+        sel && sel.rangeCount > 0 && root.contains(sel.getRangeAt(0).commonAncestorContainer)
+          ? sel.getRangeAt(0)
+          : null
+      if (range) {
+        getSelectedBlocks(range, root).forEach((el) => {
+          el.style.lineHeight = value
+        })
+      } else {
+        // No usable selection to restore (e.g. the toolbar was used before
+        // ever clicking into the text, so nothing was captured yet) - fall
+        // back to setting it as the document-wide default instead of
+        // silently doing nothing.
+        root.style.lineHeight = value
+      }
     }
     if (sel && sel.rangeCount > 0) {
       savedRangeRef.current = sel.getRangeAt(0).cloneRange()

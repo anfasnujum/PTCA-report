@@ -45,11 +45,11 @@ export function PtcaReportLayout({ procedure }: { procedure: Procedure }) {
 
   return (
     <div
-      className="report-doc ptca-report space-y-3 rounded-2xl bg-card p-6 text-[13px] leading-[2] shadow-card"
-      style={{ fontFamily: "'Times New Roman', Times, serif", ...pt(12) }}
+      className="report-doc ptca-report space-y-3 rounded-2xl bg-card p-6 text-[18px] leading-[2] shadow-card"
+      style={{ fontFamily: "'Times New Roman', Times, serif", ...pt(13.5) }}
     >
       <div className="text-center">
-        <h2 className="text-lg uppercase tracking-wide underline" style={pt(16)}>
+        <h2 className="text-[24px] uppercase tracking-wide underline" style={pt(18)}>
           {ptcaTitle(p)}
         </h2>
         <p className="mt-1 font-bold">Consultant: {p.lab.doctorName || '____'}</p>
@@ -112,9 +112,7 @@ export function PtcaReportLayout({ procedure }: { procedure: Procedure }) {
 
       <div className="text-right">
         <p className="font-bold">{p.lab.doctorName || '____'}</p>
-        <p className="text-[11px] text-muted" style={pt(10)}>
-          Consultant Interventional Cardiologist &amp; Asst. Professor
-        </p>
+        <p className="text-muted">Consultant Interventional Cardiologist &amp; Asst. Professor</p>
       </div>
     </div>
   )

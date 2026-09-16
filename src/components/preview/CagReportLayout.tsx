@@ -13,7 +13,7 @@ function pt(n: number): CSSProperties {
 
 function FieldCell({ label, value }: { label: string; value: string }) {
   return (
-    <td className="px-1.5 py-0.5 align-top text-[10px] font-normal">
+    <td className="px-1.5 py-0.5 align-top font-normal">
       {label} : {value || '____'}
     </td>
   )
@@ -45,7 +45,7 @@ function ListedField({ label, items }: { label: string; items: string[] }) {
 
 function FieldLine({ label, value, tabs = 0 }: { label: string; value: string; tabs?: number }) {
   return (
-    <p className="py-0.5 text-[10px] font-normal" style={{ paddingLeft: `${0.375 + tabs * 2}em` }}>
+    <p className="py-0.5 font-normal" style={{ paddingLeft: `${0.375 + tabs * 2}em` }}>
       {label} : {value || '____'}
     </p>
   )
@@ -68,21 +68,21 @@ export function CagReportLayout({ procedure }: { procedure: Procedure }) {
 
   return (
     <div
-      className="report-doc cag-report space-y-2 rounded-2xl bg-card p-6 text-[13px] leading-[2] shadow-card"
-      style={{ fontFamily: "'Times New Roman', Times, serif" }}
+      className="report-doc cag-report space-y-2 rounded-2xl bg-card p-6 text-[18px] leading-[2] shadow-card"
+      style={{ fontFamily: "'Times New Roman', Times, serif", ...pt(13.5) }}
     >
       <div className="text-center">
-        <h2 className="text-lg font-bold tracking-wide" style={pt(16)}>
+        <h2 className="text-[24px] font-bold tracking-wide" style={pt(18)}>
           {cagReportHeading(p.patient)}
         </h2>
-        <p className="mt-1" style={pt(13)}>
+        <p className="mt-1">
           <span className="font-semibold">Consultant: </span>
           {p.lab.doctorName || '____'}
         </p>
       </div>
       <hr className="border-t border-border" />
 
-      <table className="w-full border-collapse" style={pt(9)}>
+      <table className="w-full border-collapse">
         <tbody>
           <tr>
             <FieldCell label="Name" value={p.patient.name.toUpperCase()} />
@@ -99,17 +99,17 @@ export function CagReportLayout({ procedure }: { procedure: Procedure }) {
         </tbody>
       </table>
 
-      <div className="border-t border-border pt-2" style={pt(9)}>
+      <div className="border-t border-border pt-2">
         <FieldLine label="Access" value={accessText} tabs={4} />
         {specialNotes ? <FieldLine label="Special Notes" value={specialNotes} tabs={5} /> : null}
         <FieldLine label="Catheter" value={p.lab.catheter} tabs={4} />
         <FieldLine label="Contrast" value={p.lab.contrast} tabs={4} />
-        <p className="py-0.5 text-[10px] font-normal whitespace-pre" style={{ paddingLeft: `${0.375 + 4}em` }}>
+        <p className="py-0.5 font-normal whitespace-pre" style={{ paddingLeft: `${0.375 + 4}em` }}>
           Haemodynamic Data :{'\t'}Aortic Pressure : {aorticPressure || '____'}
         </p>
       </div>
 
-      <div className="space-y-0.5 border-t border-border pt-2" style={pt(12)}>
+      <div className="space-y-0.5 border-t border-border pt-2">
         <p>
           <span className="font-bold">LMCA</span> : {lmca}
         </p>
@@ -134,12 +134,8 @@ export function CagReportLayout({ procedure }: { procedure: Procedure }) {
       </div>
 
       <div className="text-right">
-        <p className="font-semibold" style={pt(12)}>
-          {p.lab.doctorName || '____'}
-        </p>
-        <p className="text-[11px] text-muted" style={pt(10)}>
-          Consultant Interventional Cardiologist &amp; Asst. Professor
-        </p>
+        <p className="font-semibold">{p.lab.doctorName || '____'}</p>
+        <p className="text-muted">Consultant Interventional Cardiologist &amp; Asst. Professor</p>
       </div>
     </div>
   )
