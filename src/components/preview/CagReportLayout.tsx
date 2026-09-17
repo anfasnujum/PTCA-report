@@ -85,16 +85,23 @@ export function CagReportLayout({ procedure }: { procedure: Procedure }) {
       <table className="w-full border-collapse">
         <tbody>
           <tr>
-            <FieldCell label="Name" value={p.patient.name.toUpperCase()} />
-            <FieldCell label="Age" value={p.patient.age === '' ? '' : String(p.patient.age)} />
-            <FieldCell label="Sex" value={p.patient.sex} />
-            <FieldCell label="Cath no" value={p.patient.hospitalId} />
+            <FieldCell label="Patient Name" value={p.patient.name.toUpperCase()} />
+            <FieldCell
+              label="Age/Sex"
+              value={
+                p.patient.age === '' && !p.patient.sex
+                  ? ''
+                  : `${p.patient.age === '' ? '—' : p.patient.age}/${p.patient.sex || '—'}`
+              }
+            />
+            <FieldCell label="Cath No" value={p.patient.hospitalId} />
+            <FieldCell label="Date" value={fmtDisplayDate(p.patient.date)} />
           </tr>
           <tr>
-            <FieldCell label="Date" value={fmtDisplayDate(p.patient.date)} />
-            <FieldCell label="Cath Tech" value={p.lab.technologist} />
+            <FieldCell label="Technologist" value={p.lab.technologist} />
             <FieldCell label="IP No" value={p.patient.ipNo} />
-            <FieldCell label="Scrub nurse" value={p.lab.scrubNurse} />
+            <td />
+            <FieldCell label="Scrub Nurse" value={p.lab.scrubNurse} />
           </tr>
         </tbody>
       </table>

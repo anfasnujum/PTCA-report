@@ -70,10 +70,10 @@ describe('generateNote', () => {
       ].join('\n'),
     )
     expect(note).toContain(
-      'The right coronary artery was engaged with a 6F JR4 guiding catheter.',
+      'The right coronary artery was engaged with a 6F JR 4.0 guiding catheter.',
     )
     expect(note).toContain(
-      'The lesion was crossed with a 0.014" BMW workhorse guidewire and parked in the distal RCA.',
+      'The lesion was crossed with a 0.014" BMW guidewire.',
     )
     expect(note).toContain(
       'Predilatation was performed at the proximal RCA with a Sapphire II semi-compliant balloon 2.0 × 15 mm at 10 atm for 20 seconds, followed by a second inflation at 12 atm for 15 seconds.',
@@ -285,8 +285,8 @@ describe('generateNote', () => {
     )
     expect(note).toContain('Target vessels: mid LAD and proximal RCA.')
     expect(note).toContain('The left coronary system was engaged with a 6F EBU 3.5 guiding catheter.')
-    expect(note).toContain('The right coronary artery was engaged with a 6F JR4 guiding catheter.')
-    expect(note.indexOf('EBU 3.5')).toBeLessThan(note.indexOf('JR4'))
+    expect(note).toContain('The right coronary artery was engaged with a 6F JR 4.0 guiding catheter.')
+    expect(note.indexOf('EBU 3.5')).toBeLessThan(note.indexOf('JR 4.0'))
     expect(note.indexOf('deployed at the mid LAD')).toBeLessThan(
       note.indexOf('deployed at the proximal RCA'),
     )
@@ -2694,6 +2694,27 @@ describe('generateNote', () => {
     )
     expect(note).toContain('LCX: Proximal LCX shows mildly ectatic vessel.')
     expect(note).not.toContain('Proximal LCX shows 0%')
+  })
+
+  it('writes dissection without a percent', () => {
+    const note = generateNote(
+      base({
+        baselineAngio: [
+          {
+            id: '1',
+            vessel: 'LAD',
+            segment: 'mid',
+            stenosis: 0,
+            findingType: 'dissection',
+            timiFlow: 'none',
+            features: [],
+            isTarget: false,
+          },
+        ],
+      }),
+    )
+    expect(note).toContain('LAD: Mid LAD shows dissection.')
+    expect(note).not.toContain('Mid LAD shows 0%')
   })
 
   it('appends condition Other text after shows', () => {

@@ -25,6 +25,7 @@ export function BalloonSheet({
   targets,
   onClose,
   onSave,
+  lockVessel = false,
 }: {
   open: boolean
   title: string
@@ -32,6 +33,7 @@ export function BalloonSheet({
   targets: Vessel[]
   onClose: () => void
   onSave: (data: BalloonUse) => void
+  lockVessel?: boolean
 }) {
   const remember = useCatalogueStore((s) => s.remember)
   const [data, setData] = useState<BalloonUse>(initial)
@@ -45,6 +47,8 @@ export function BalloonSheet({
       open={open}
       title={title}
       onClose={onClose}
+      large
+      nested={lockVessel}
       footer={
         <Button
           size="lg"
@@ -97,67 +101,70 @@ export function BalloonSheet({
               diameterMm: defaultDiameter(data.vessel, segment),
             })
           }
+          lockVessel={lockVessel}
         />
-        <Section title="Diameter">
-          <NumberChips
-            values={BALLOON_DIAMETERS}
-            value={data.diameterMm}
-            onChange={(diameterMm) => setData({ ...data, diameterMm })}
-            format={fmtMm}
-            suffix=" mm"
-          />
-        </Section>
-        <Section title="Length">
-          <NumberChips
-            values={BALLOON_LENGTHS}
-            value={data.lengthMm}
-            onChange={(lengthMm) => setData({ ...data, lengthMm })}
-            suffix=" mm"
-          />
-        </Section>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Section title="Diameter" unit="mm">
+            <NumberChips
+              values={BALLOON_DIAMETERS}
+              value={data.diameterMm}
+              onChange={(diameterMm) => setData({ ...data, diameterMm })}
+              format={fmtMm}
+            />
+          </Section>
+          <Section title="Length" unit="mm">
+            <NumberChips
+              values={BALLOON_LENGTHS}
+              value={data.lengthMm}
+              onChange={(lengthMm) => setData({ ...data, lengthMm })}
+            />
+          </Section>
+        </div>
         {data.inflations.map((inf, i) => (
           <div key={i} className="space-y-3 rounded-2xl bg-background p-3">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-foreground">Inflation {i + 1}</p>
-              {data.inflations.length > 1 ? (
-                <button
-                  type="button"
-                  className="text-sm text-danger"
-                  onClick={() =>
-                    setData({
-                      ...data,
-                      inflations: data.inflations.filter((_, j) => j !== i),
-                    })
-                  }
-                >
-                  Remove
-                </button>
-              ) : null}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Section
+                title={`Inflation ${i + 1}`}
+                unit="atm"
+                action={
+                  data.inflations.length > 1 ? (
+                    <button
+                      type="button"
+                      className="text-sm text-danger"
+                      onClick={() =>
+                        setData({
+                          ...data,
+                          inflations: data.inflations.filter((_, j) => j !== i),
+                        })
+                      }
+                    >
+                      Remove
+                    </button>
+                  ) : null
+                }
+              >
+                <NumberChips
+                  values={ATM_VALUES}
+                  value={inf.atm}
+                  onChange={(atm) => {
+                    const inflations = data.inflations.map((x, j) => (j === i ? { ...x, atm } : x))
+                    setData({ ...data, inflations })
+                  }}
+                />
+              </Section>
+              <Section title="Duration" unit="s">
+                <NumberChips
+                  values={SECOND_VALUES}
+                  value={inf.seconds}
+                  onChange={(seconds) => {
+                    const inflations = data.inflations.map((x, j) =>
+                      j === i ? { ...x, seconds } : x,
+                    )
+                    setData({ ...data, inflations })
+                  }}
+                />
+              </Section>
             </div>
-            <Section title="Pressure">
-              <NumberChips
-                values={ATM_VALUES}
-                value={inf.atm}
-                onChange={(atm) => {
-                  const inflations = data.inflations.map((x, j) => (j === i ? { ...x, atm } : x))
-                  setData({ ...data, inflations })
-                }}
-                suffix=" atm"
-              />
-            </Section>
-            <Section title="Duration">
-              <NumberChips
-                values={SECOND_VALUES}
-                value={inf.seconds}
-                onChange={(seconds) => {
-                  const inflations = data.inflations.map((x, j) =>
-                    j === i ? { ...x, seconds } : x,
-                  )
-                  setData({ ...data, inflations })
-                }}
-                suffix=" s"
-              />
-            </Section>
           </div>
         ))}
         <Button

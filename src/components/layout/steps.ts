@@ -8,9 +8,8 @@ export type ProcedureStep = {
 
 export const PTCA_STEPS: ProcedureStep[] = [
   { to: 'patient', label: 'Patient', hint: 'Identity & indication' },
-  { to: 'access', label: 'Access', hint: 'Sheath, catheter & contrast' },
-  { to: 'angiogram', label: 'Angio', hint: 'Baseline findings' },
-  { to: 'timeline', label: 'PCI', hint: 'Procedure timeline' },
+  { to: 'access', label: 'Access', hint: 'Sheath & contrast' },
+  { to: 'procedures', label: 'Procedures', hint: 'Vessels & inventory' },
   { to: 'result', label: 'Result', hint: 'Outcome & closure' },
   { to: 'preview', label: 'Final', hint: 'Preview & export' },
 ]

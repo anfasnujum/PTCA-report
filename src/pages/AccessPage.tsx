@@ -7,8 +7,18 @@ import { Select } from '@/components/ui/select'
 import { CatheterSheet } from '@/components/sheets/CatheterSheet'
 import { ContrastSheet } from '@/components/sheets/ContrastSheet'
 import { ACCESS_SPECIAL_NOTES, SHEATH_SIZES } from '@/lib/constants'
-import { defaultCatheterSize, formatAorticPressureInput, formatLabAccess, parseCatheterLabel, parseContrastLabel } from '@/lib/access'
+import {
+  defaultCatheterSize,
+  formatAorticPressureInput,
+  formatLabAccess,
+  parseCatheterLabel,
+  parseContrastLabel,
+  sheathAccessGroup,
+  sheathAllowedForSite,
+  sheathsForSite,
+} from '@/lib/access'
 import { emptyLab } from '@/lib/seed'
+import { useCatalogueStore } from '@/store/useCatalogueStore'
 import { useProcedureStore } from '@/store/useProcedureStore'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { Access, LabDetails } from '@/types/procedure'
@@ -22,6 +32,11 @@ export function AccessPage() {
   const { id } = useParams()
   const [catheterOpen, setCatheterOpen] = useState(false)
   const [contrastOpen, setContrastOpen] = useState(false)
+  const [addingSheath, setAddingSheath] = useState(false)
+  const [customSheath, setCustomSheath] = useState('')
+  const catalogue = useCatalogueStore((s) => s.items)
+  const addCustom = useCatalogueStore((s) => s.addCustom)
+  const remember = useCatalogueStore((s) => s.remember)
   if (!current) return null
 
   const lab = current.lab ?? emptyLab()
@@ -44,15 +59,28 @@ export function AccessPage() {
 
   const specialNote = current.access.specialNote ?? ''
   const radialLike = current.access.site === 'radial' || current.access.site === 'distal radial' || current.access.site === 'ulnar'
+  const sheaths = sheathsForSite(current.access.site, catalogue, current.access.sheathBrand)
   const parsedCatheter = parseCatheterLabel(lab.catheter)
   const parsedContrast = parseContrastLabel(lab.contrast)
+
+  const setSite = (site: Access['site']) => {
+    const brand = current.access.sheathBrand ?? ''
+    const keep = sheathAllowedForSite(brand, site, catalogue)
+    set({ site, sheathBrand: keep ? brand : '' })
+  }
+
+  const chooseSheath = (name: string) => {
+    const next = current.access.sheathBrand === name ? '' : name
+    if (next) void remember('sheath', next, { accessGroup: sheathAccessGroup(current.access.site) })
+    set({ sheathBrand: next })
+  }
 
   return (
     <div className="grid gap-5 lg:grid-cols-2">
       <Section title="Site">
         <ChipScroller>
           {SITES.map((s) => (
-            <Chip key={s} selected={current.access.site === s} onClick={() => set({ site: s })}>
+            <Chip key={s} selected={current.access.site === s} onClick={() => setSite(s)}>
               {s}
             </Chip>
           ))}
@@ -68,6 +96,7 @@ export function AccessPage() {
         </ChipScroller>
       </Section>
       {current.kind === 'cag' ? null : (
+      <>
       <Section title="Sheath">
         <ChipScroller>
           {SHEATH_SIZES.map((s) => (
@@ -80,8 +109,48 @@ export function AccessPage() {
             </Chip>
           ))}
         </ChipScroller>
+        <ChipScroller>
+          {sheaths.map((b) => (
+            <Chip
+              key={b}
+              selected={current.access.sheathBrand === b}
+              onClick={() => chooseSheath(b)}
+            >
+              {b}
+            </Chip>
+          ))}
+          <Chip selected={addingSheath} onClick={() => setAddingSheath(true)}>
+            + Custom
+          </Chip>
+        </ChipScroller>
+        {addingSheath ? (
+          <div className="flex gap-2">
+            <Input
+              autoFocus
+              placeholder="Sheath name"
+              value={customSheath}
+              onChange={(e) => setCustomSheath(e.target.value)}
+            />
+            <Button
+              onClick={() => {
+                const name = customSheath.trim()
+                if (!name) return
+                const accessGroup = sheathAccessGroup(current.access.site)
+                void addCustom('sheath', name, { accessGroup }).then((item) => {
+                  set({ sheathBrand: item.name })
+                  setCustomSheath('')
+                  setAddingSheath(false)
+                })
+              }}
+            >
+              Add
+            </Button>
+          </div>
+        ) : null}
       </Section>
+      </>
       )}
+      {current.kind === 'cag' ? (
       <Section title="Catheter">
         <button
           type="button"
@@ -94,6 +163,7 @@ export function AccessPage() {
           <span className="text-sm font-semibold text-accent">{lab.catheter ? 'Edit' : 'Choose'}</span>
         </button>
       </Section>
+      ) : null}
       <Section title="Contrast">
         <button
           type="button"
@@ -145,10 +215,13 @@ export function AccessPage() {
         size="lg"
         className="w-full lg:col-span-2"
         data-enter-next
-        onClick={() => navigate(`/procedure/${id}/angiogram`)}
+        onClick={() =>
+          navigate(`/procedure/${id}/${current.kind === 'cag' ? 'angiogram' : 'procedures'}`)
+        }
       >
-        Next — Angiogram
+        {current.kind === 'cag' ? 'Next — Angiogram' : 'Next — Procedures'}
       </Button>
+      {current.kind === 'cag' ? (
       <CatheterSheet
         open={catheterOpen}
         initial={{
@@ -161,6 +234,7 @@ export function AccessPage() {
           setCatheterOpen(false)
         }}
       />
+      ) : null}
       <ContrastSheet
         open={contrastOpen}
         initial={{

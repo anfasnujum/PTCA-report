@@ -34,7 +34,7 @@ const LEGACY_FONT_SIZE_HALF_PT: Record<string, number> = {
 
 type RunStyle = { bold?: boolean; italics?: boolean; underline?: boolean; size?: number }
 type Alignment = (typeof AlignmentType)[keyof typeof AlignmentType]
-type BlockContext = { align?: Alignment; indent?: number; style: RunStyle }
+type BlockContext = { align?: Alignment; indent?: number; style: RunStyle; pageBreakBefore?: boolean }
 
 function hasClass(el: Element, name: string): boolean {
   return el.classList?.contains(name) ?? false
@@ -199,6 +199,7 @@ const BLOCK_TAGS = new Set(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
 const CONTAINER_TAGS = new Set(['div', 'section', 'article', 'header', 'footer'])
 
 function walkBlocks(container: Node, ctx: BlockContext, out: (Paragraph | Table)[]): void {
+  let pageBreakBefore = Boolean(ctx.pageBreakBefore)
   for (const child of Array.from(container.childNodes)) {
     if (child.nodeType !== Node.ELEMENT_NODE) continue
     const el = child as Element
@@ -207,6 +208,7 @@ function walkBlocks(container: Node, ctx: BlockContext, out: (Paragraph | Table)
     if (tag === 'table') {
       const table = elementToTable(el, ctx.style)
       if (table) out.push(table)
+      pageBreakBefore = false
       continue
     }
     if (tag === 'hr') {
@@ -228,7 +230,10 @@ function walkBlocks(container: Node, ctx: BlockContext, out: (Paragraph | Table)
           }),
         )
       }
-      walkBlocks(el, mergeContext(ctx, el), out)
+      const nestedCtx = mergeContext({ ...ctx, pageBreakBefore: false }, el)
+      nestedCtx.pageBreakBefore = hasClass(el, 'report-page-break') || pageBreakBefore
+      walkBlocks(el, nestedCtx, out)
+      pageBreakBefore = false
       continue
     }
     if (tag === 'ul' || tag === 'ol') {
@@ -259,12 +264,14 @@ function walkBlocks(container: Node, ctx: BlockContext, out: (Paragraph | Table)
       if (runs.length) {
         out.push(
           new Paragraph({
+            pageBreakBefore,
             alignment: nextCtx.align,
             indent: nextCtx.indent ? { left: nextCtx.indent } : undefined,
             spacing: { after: 40, line: 216 },
             children: runs,
           }),
         )
+        pageBreakBefore = false
       }
     }
   }

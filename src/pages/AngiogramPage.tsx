@@ -16,7 +16,9 @@ export function AngiogramPage() {
   return (
     <div className="space-y-5 pb-4">
       <p className="text-sm text-muted">
-        Tap a vessel to log plaque, stenosis or lesion. Add another issue when more than one segment is diseased. Star at least one target.
+        {current.kind === 'cag'
+          ? 'Tap a vessel to log plaque, stenosis or lesion. Add another issue when more than one segment is diseased.'
+          : 'Tap a vessel to log plaque, stenosis or lesion. Add another issue when more than one segment is diseased. Star at least one target.'}
       </p>
       <Section title="Dominance">
         <ChipScroller>
@@ -38,17 +40,16 @@ export function AngiogramPage() {
       </Section>
       <AngioBoard
         findings={current.baselineAngio}
+        showTargetVessel={current.kind !== 'cag'}
         onChange={(baselineAngio) => mutate((p) => ({ ...p, baselineAngio }))}
       />
       <Button
         size="lg"
         className="w-full"
         data-enter-next
-        onClick={() =>
-          navigate(`/procedure/${id}/${current.kind === 'cag' ? 'result' : 'timeline'}`)
-        }
+        onClick={() => navigate(`/procedure/${id}/result`)}
       >
-        {current.kind === 'cag' ? 'Next — Impression' : 'Next — PCI'}
+        Next — Impression
       </Button>
     </div>
   )

@@ -42,4 +42,11 @@ export async function ensureSeed(options?: { demoProcedures?: boolean }): Promis
   if (catheters === 0) {
     await db.catalogue.bulkAdd(seedCatheters())
   }
+  const seeded = seedCatalogue()
+  const existing = await db.catalogue.toArray()
+  const keys = new Set(existing.map((item) => `${item.category}:${item.name.toLowerCase()}`))
+  const missing = seeded.filter((item) => !keys.has(`${item.category}:${item.name.toLowerCase()}`))
+  if (missing.length) {
+    await db.catalogue.bulkAdd(missing)
+  }
 }

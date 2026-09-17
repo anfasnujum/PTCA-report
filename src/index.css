@@ -112,4 +112,8 @@ body {
     border-collapse: collapse;
     border-color: #999 !important;
   }
+  .report-page-break {
+    break-before: page;
+    page-break-before: always;
+  }
 }

@@ -6,6 +6,7 @@ export function emptyLab(): LabDetails {
   return {
     doctorName: '',
     technologist: '',
+    technologists: [],
     scrubNurse: '',
     access: '',
     catheter: '',
@@ -173,7 +174,7 @@ export function demoProcedure(): Procedure {
         id: guideId,
         at: createdAt + 60_000,
         kind: 'guideCatheter',
-        data: { curve: 'JR4', size: '6F', coronary: 'right' },
+        data: { device: 'JR', curve: '4.0', size: '6F' },
       },
       {
         id: wireId,
@@ -421,6 +422,7 @@ export function seedCatalogue(now = Date.now()): CatalogueItem[] {
     ['Emerge', 'semi-compliant'],
     ['NC Trek', 'non-compliant'],
     ['NC Sapphire', 'non-compliant'],
+    ['AperiNC', 'non-compliant'],
     ['Accuforce', 'non-compliant'],
     ['Scoreflex', 'scoring'],
     ['Wolverine', 'cutting'],
@@ -432,6 +434,7 @@ export function seedCatalogue(now = Date.now()): CatalogueItem[] {
     ['Ultimaster Tansei', 'DES'],
     ['Supraflex Cruz', 'DES'],
     ['BioMime', 'DES'],
+    ['METAFOR', 'DES'],
     ['Resolute Onyx', 'DES'],
     ['Promus Premier', 'DES'],
     ['Orsiro', 'DES'],
@@ -448,18 +451,10 @@ export function seedCatalogue(now = Date.now()): CatalogueItem[] {
     ['Gaia First', 'CTO'],
     ['Gaia Second', 'CTO'],
   ]
-  const guides: Array<[string, string]> = [
-    ['JL3.5', 'left'],
-    ['JL4', 'left'],
-    ['JR4', 'right'],
-    ['EBU 3.0', 'left'],
-    ['EBU 3.5', 'left'],
-    ['EBU 3.75', 'left'],
-    ['XB 3.5', 'left'],
-    ['AL1', 'right'],
-    ['AL2', 'right'],
-    ['SAL', 'right'],
-  ]
+  const guides = ['JL', 'JR', 'EBU', 'XB', 'AL', 'AR', 'SAL', 'IM', 'MP']
+  const aspirations = ['Export', 'Eliminate', 'Thrombuster', 'Pronto', 'Hunter']
+  const microcatheters = ['Finecross', 'Corsair', 'Caravel', 'Turnpike', 'Mamba']
+  const guideExtensions = ['GuideLiner', 'Guidezilla', 'TrapLiner', 'Telescope']
 
   const catheters: Array<[string, string]> = [
     ['TIG', '5F'],
@@ -491,7 +486,10 @@ export function seedCatalogue(now = Date.now()): CatalogueItem[] {
   balloons.forEach(([name, type], i) => push('balloon', name, { type }, i + 1))
   stents.forEach(([name, type], i) => push('stent', name, { type }, i + 1))
   wires.forEach(([name, type], i) => push('wire', name, { type }, i + 1))
-  guides.forEach(([name, coronary], i) => push('guide', name, { coronary }, i + 1))
+  guides.forEach((name, i) => push('guide', name, {}, i + 1))
+  aspirations.forEach((name, i) => push('aspiration', name, {}, i + 1))
+  microcatheters.forEach((name, i) => push('microcatheter', name, {}, i + 1))
+  guideExtensions.forEach((name, i) => push('guideExtension', name, {}, i + 1))
   catheters.forEach(([name, size], i) => push('catheter', name, { size }, i + 1))
   ;['Dr. A', 'Dr. B'].forEach((name, i) => push('operator', name, {}, i + 1))
   return items

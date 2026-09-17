@@ -35,8 +35,14 @@ export function ProcedureShell() {
 
   useEffect(() => {
     if (!current || current.id !== id) return
-    if (current.kind === 'cag' && location.pathname.endsWith('/timeline')) {
-      navigate(`/procedure/${id}/result`, { replace: true })
+    if (current.kind === 'cag' && (location.pathname.endsWith('/timeline') || location.pathname.endsWith('/procedures'))) {
+      navigate(`/procedure/${id}/angiogram`, { replace: true })
+    }
+    if (
+      current.kind !== 'cag' &&
+      (location.pathname.endsWith('/timeline') || location.pathname.endsWith('/angiogram'))
+    ) {
+      navigate(`/procedure/${id}/procedures`, { replace: true })
     }
   }, [current, id, location.pathname, navigate])
 
@@ -143,7 +149,9 @@ export function ProcedureShell() {
             <div
               className={cn(
                 'mx-auto w-full max-w-lg print:mx-0 print:max-w-none',
-                location.pathname.endsWith('/angiogram') ? 'lg:max-w-5xl' : 'lg:max-w-3xl',
+                location.pathname.endsWith('/angiogram') || location.pathname.endsWith('/procedures')
+                  ? 'lg:max-w-5xl'
+                  : 'lg:max-w-3xl',
               )}
             >
               <Outlet />

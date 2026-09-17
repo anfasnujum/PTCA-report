@@ -14,12 +14,14 @@ export function ImagingSheet({
   targets,
   onClose,
   onSave,
+  lockVessel = false,
 }: {
   open: boolean
   initial: ImagingUse
   targets: Vessel[]
   onClose: () => void
   onSave: (data: ImagingUse) => void
+  lockVessel?: boolean
 }) {
   const [data, setData] = useState<ImagingUse>(initial)
 
@@ -32,6 +34,8 @@ export function ImagingSheet({
       open={open}
       title="Imaging / physiology"
       onClose={onClose}
+      large
+      nested={lockVessel}
       footer={
         <Button size="lg" className="w-full" onClick={() => onSave(data)}>
           Save imaging
@@ -52,6 +56,7 @@ export function ImagingSheet({
             ))}
           </ChipScroller>
         </Section>
+        {lockVessel ? null : (
         <Section title="Vessel">
           <ChipScroller>
             {LEFT_VESSELS.concat(RIGHT_VESSELS).map((v) => (
@@ -66,6 +71,7 @@ export function ImagingSheet({
             ))}
           </ChipScroller>
         </Section>
+        )}
         <Section title="Finding">
           <ChipScroller>
             {IMAGING_FINDINGS.map((f) => (

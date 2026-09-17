@@ -1,18 +1,19 @@
 import type { CSSProperties } from 'react'
 import { fmtDisplayDate } from '@/lib/format'
-import { procedureSection } from '@/lib/noteTemplate'
-import { accessNarrative, accessSpecialNote, formatAorticPressureDisplay } from '@/lib/access'
+import { accessSpecialNote, formatAorticPressureDisplay } from '@/lib/access'
 import {
+  accessShortCode,
   ptcaAdjuvantsText,
   ptcaCommentSentence,
   ptcaComplicationsText,
   ptcaContrastText,
-  ptcaInventoryLines,
-  ptcaInventorySummary,
+  ptcaInventoryBlocks,
+  ptcaProcedureNarrative,
   ptcaResultLabel,
   ptcaTitle,
-  targetVesselsShort,
+  targetVesselsLesions,
 } from '@/lib/ptcaReport'
+import { formatTechnologistNames, labTechnologistSlots } from '@/lib/staffSettings'
 import type { Procedure } from '@/types/procedure'
 
 // Marks the intended .docx point size for a section, independent of its on-screen
@@ -40,8 +41,9 @@ function DetailLine({ label, value, bold }: { label: string; value: string; bold
 
 export function PtcaReportLayout({ procedure }: { procedure: Procedure }) {
   const p = procedure
-  const inventoryLines = ptcaInventoryLines(p)
+  const inventoryBlocks = ptcaInventoryBlocks(p)
   const specialNotes = accessSpecialNote(p.access)
+  const aortic = formatAorticPressureDisplay(p.lab.aorticPressureMmHg)
 
   return (
     <div
@@ -60,16 +62,23 @@ export function PtcaReportLayout({ procedure }: { procedure: Procedure }) {
         <tbody>
           <tr>
             <FieldCell label="Name" value={p.patient.name.toUpperCase()} />
-            <FieldCell label="Age" value={p.patient.age === '' ? '' : `${p.patient.age}/${p.patient.sex || '—'}`} />
-            <FieldCell label="IP No" value={p.patient.ipNo} />
+            <FieldCell
+              label="Age/Sex"
+              value={
+                p.patient.age === '' && !p.patient.sex
+                  ? ''
+                  : `${p.patient.age === '' ? '—' : p.patient.age}/${p.patient.sex || '—'}`
+              }
+            />
+            <FieldCell label="Date" value={fmtDisplayDate(p.patient.date)} />
           </tr>
           <tr>
-            <FieldCell label="Cath No" value={p.patient.hospitalId} />
-            <FieldCell label="Date" value={fmtDisplayDate(p.patient.date)} />
+            <FieldCell label="CATH NO" value={p.patient.hospitalId} />
+            <FieldCell label="IP No" value={p.patient.ipNo} />
             <td />
           </tr>
           <tr>
-            <FieldCell label="Cath Tech" value={p.lab.technologist} />
+            <FieldCell label="CATH Tech" value={formatTechnologistNames(labTechnologistSlots(p.lab))} />
             <FieldCell label="Scrub nurse" value={p.lab.scrubNurse} />
             <td />
           </tr>
@@ -78,37 +87,39 @@ export function PtcaReportLayout({ procedure }: { procedure: Procedure }) {
 
       <div className="space-y-1">
         <DetailLine label="Premedication" value="Nil" />
-        <DetailLine label="Vascular Access" value={accessNarrative(p.access)} />
+        <DetailLine label="Vascular Access" value={accessShortCode(p.access)} />
         {specialNotes ? <DetailLine label="Special Notes" value={specialNotes} /> : null}
-        <DetailLine label="Target Vessel/lesions" value={targetVesselsShort(p)} />
-        <DetailLine label="Inventory" value={ptcaInventorySummary(p)} bold />
-        <div className="space-y-0.5 pl-6">
-          {inventoryLines.map((line, i) => (
-            <DetailLine key={`${line.label}-${i}`} label={line.label} value={line.value} />
-          ))}
-        </div>
+        <DetailLine label="Target Vessel/lesions" value={targetVesselsLesions(p)} />
+        {inventoryBlocks.map((block, i) => (
+          <div key={`inv-${i}`}>
+            <DetailLine label="Inventory" value={block.heading} bold />
+            <div className="space-y-0.5 pl-6">
+              {block.lines.map((line) => (
+                <DetailLine key={`${i}-${line.label}`} label={line.label} value={line.value} />
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
 
       <div className="space-y-1">
         <DetailLine label="Result" value={ptcaResultLabel(p.outcome)} bold />
         <DetailLine label="Complications" value={ptcaComplicationsText(p.outcome)} bold />
         <DetailLine label="Adjuvants" value={ptcaAdjuvantsText(p.periprocedural)} bold />
-        <DetailLine label="Contrast" value={ptcaContrastText(p.periprocedural)} bold />
+        <DetailLine label="Contrast" value={ptcaContrastText(p)} bold />
         <p className="whitespace-pre">
           <span className="font-bold">Hemodynamic Data</span> :{'\t'}
-          <span className="font-bold">Aortic Pressure</span> :{' '}
-          {formatAorticPressureDisplay(p.lab.aorticPressureMmHg) || '____'}
+          <span className="font-bold">Aortic</span>:{'\t'}
+          <span className="font-bold">PrePTCA</span>: {aortic || '____'}
         </p>
       </div>
 
-      <div>
+      <div className="report-page-break">
         <p className="font-bold">PROCEDURE:</p>
-        <p className="text-justify">{procedureSection(p.events)}</p>
+        <p className="text-justify">{ptcaProcedureNarrative(p)}</p>
       </div>
 
-      <p className="font-bold">
-        COMMENT: {p.notes.trim() || ptcaCommentSentence(p)}
-      </p>
+      <p className="font-bold">COMMENT: {p.notes.trim() || ptcaCommentSentence(p)}</p>
 
       <div className="text-right">
         <p className="font-bold">{p.lab.doctorName || '____'}</p>

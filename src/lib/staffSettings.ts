@@ -1,4 +1,5 @@
 import { CONSULTANTS } from '@/lib/constants'
+import type { LabDetails } from '@/types/procedure'
 
 const STORAGE_KEY = 'cathnote.staff'
 
@@ -29,6 +30,34 @@ export function normalizeStaffList(names: unknown): string[] {
     out.push(trimmed)
   }
   return out
+}
+
+export function formatTechnologistNames(names: readonly string[]): string {
+  return names.map((name) => name.trim()).filter(Boolean).join(', ')
+}
+
+export function labTechnologistSlots(
+  lab: Pick<LabDetails, 'technologist' | 'technologists'>,
+  count = 2,
+): string[] {
+  const listed = (lab.technologists ?? []).map((name) => String(name ?? '').trim())
+  const fromList = listed.some(Boolean)
+    ? listed
+    : lab.technologist
+        .split(/\s*,\s*/)
+        .map((name) => name.trim())
+        .filter(Boolean)
+  return Array.from({ length: count }, (_, i) => fromList[i] ?? '')
+}
+
+export function withTechnologistSlots(
+  slots: readonly string[],
+): { technologist: string; technologists: string[] } {
+  const technologists = slots.map((name) => name.trim())
+  return {
+    technologists,
+    technologist: formatTechnologistNames(technologists),
+  }
 }
 
 export function matchStaffName(name: string, list: readonly string[]): string {

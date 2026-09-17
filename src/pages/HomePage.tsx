@@ -53,8 +53,8 @@ export function HomePage() {
         ? p.baselineAngio.length
           ? 'angiogram'
           : 'patient'
-        : p.events.length
-          ? 'timeline'
+        : p.events.length || p.baselineAngio.length
+          ? 'procedures'
           : 'patient'
     navigate(`/procedure/${p.id}/${step}`)
   }

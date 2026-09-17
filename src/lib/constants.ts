@@ -101,6 +101,7 @@ export const FINDING_TYPES = [
   { id: 'normal', label: 'Normal' },
   { id: 'plaque', label: 'Plaques' },
   { id: 'mildly-ectatic-vessel', label: 'Mildly ectatic vessel' },
+  { id: 'dissection', label: 'Dissection' },
   { id: 'stenosis', label: 'Stenosis' },
   { id: 'lesion', label: 'Lesion' },
   { id: 'total-occlusion', label: 'Total Occlusion' },
@@ -153,6 +154,7 @@ export const ANGIO_CONTRAST_AGENTS = [
   'Optiray',
   'Iopamiro',
   'Isovue',
+  'Glandvida',
 ] as const
 
 export const ANGIO_CONTRAST_VOLUMES = [30, 40, 50, 60, 70, 80, 90, 100, 120, 150, 200] as const
@@ -170,21 +172,122 @@ export const DESTINATIONS = ['CCU', 'ICU', 'ward', 'home'] as const
 
 export const CONDITIONS = ['stable', 'intubated', 'IABP in situ', 'on inotropes'] as const
 
-export const GUIDE_CURVES = [
-  'JL3.5',
-  'JL4',
-  'JR4',
-  'EBU 3.0',
-  'EBU 3.5',
-  'EBU 3.75',
-  'XB 3.5',
-  'AL1',
-  'AL2',
-  'SAL',
-] as const
+export const GUIDE_DEVICES = ['JL', 'JR', 'EBU', 'XB', 'AL', 'AR', 'SAL', 'IM', 'MP'] as const
+export type GuideDevice = (typeof GUIDE_DEVICES)[number]
+
+export const GUIDE_DEVICE_CURVES: Record<GuideDevice, readonly string[]> = {
+  JL: ['3.0', '3.5', '4.0', '4.5', '5.0'],
+  JR: ['3.0', '3.5', '4.0', '4.5', '5.0'],
+  EBU: ['3.0', '3.5', '3.75', '4.0'],
+  XB: ['3.0', '3.5', '3.75', '4.0'],
+  AL: ['1', '2', '3'],
+  AR: ['1', '2'],
+  SAL: [],
+  IM: [],
+  MP: ['A1', 'A2', 'B1', 'B2'],
+}
+
+export const GUIDE_FALLBACK_CURVES = ['3.0', '3.5', '4.0', '4.5'] as const
 
 export const SHEATH_SIZES = ['4F', '5F', '6F', '7F', '8F', '9F', '10F'] as const
+export const RADIAL_SHEATHS = ['Radifocus Terumo', 'Glidesheath Slender', 'Prelude Ease'] as const
+export const FEMORAL_SHEATHS = ['Radifocus Terumo', 'Avanti+', 'Input', 'Terumo Introducer'] as const
 export const GUIDE_SIZES = ['5F', '6F', '7F', '8F'] as const
+
+export const ASPIRATION_CATHETERS = ['Export', 'Eliminate', 'Thrombuster', 'Pronto', 'Hunter'] as const
+export const MICROCATHETERS = ['Finecross', 'Corsair', 'Caravel', 'Turnpike', 'Mamba'] as const
+export const GUIDE_EXTENSIONS = ['GuideLiner', 'Guidezilla', 'TrapLiner', 'Telescope'] as const
+
+export const ASPIRATION_SIZES: Record<(typeof ASPIRATION_CATHETERS)[number], readonly string[]> = {
+  Export: ['6F', '7F'],
+  Eliminate: ['6F', '7F', '8F'],
+  Thrombuster: ['6F', '7F'],
+  Pronto: ['6F', '5.5F', '7F', '8F'],
+  Hunter: ['6F'],
+}
+
+export const ASPIRATION_FALLBACK_SIZES = ['5.5F', '6F', '7F', '8F'] as const
+
+/** Published French ODs (tip / distal shaft / proximal) for each seeded microcatheter. */
+export const MICROCATHETER_SIZES: Record<(typeof MICROCATHETERS)[number], readonly string[]> = {
+  Finecross: ['1.8F', '2.6F'],
+  Corsair: ['1.3F', '2.1F', '2.6F', '2.8F', '2.9F'],
+  Caravel: ['1.4F', '1.9F', '2.6F'],
+  Turnpike: ['1.6F', '2.1F', '2.2F', '2.6F', '2.9F'],
+  Mamba: ['1.4F', '2.1F', '2.4F', '2.9F'],
+}
+
+export const MICROCATHETER_FALLBACK_SIZES = [
+  '1.3F',
+  '1.4F',
+  '1.5F',
+  '1.6F',
+  '1.7F',
+  '1.8F',
+  '1.9F',
+  '2.1F',
+  '2.2F',
+  '2.4F',
+  '2.5F',
+  '2.6F',
+  '2.8F',
+  '2.9F',
+] as const
+
+export const GUIDE_EXTENSION_SIZES: Record<(typeof GUIDE_EXTENSIONS)[number], readonly string[]> = {
+  GuideLiner: ['6F', '5F', '5.5F', '7F', '8F'],
+  Guidezilla: ['6F', '6F Long', '7F', '8F'],
+  TrapLiner: ['6F', '7F', '8F'],
+  Telescope: ['6F', '7F'],
+}
+
+export const GUIDE_EXTENSION_FALLBACK_SIZES = ['5F', '5.5F', '6F', '7F', '8F'] as const
+
+function sizesForListed<T extends string>(
+  list: readonly T[],
+  map: Record<T, readonly string[]>,
+  fallback: readonly string[],
+  name: string,
+): readonly string[] {
+  const key = list.find((item) => item.toLowerCase() === name.trim().toLowerCase())
+  return key ? map[key] : fallback
+}
+
+export function sizesForAspiration(name: string): readonly string[] {
+  return sizesForListed(ASPIRATION_CATHETERS, ASPIRATION_SIZES, ASPIRATION_FALLBACK_SIZES, name)
+}
+
+export function sizesForMicrocatheter(name: string): readonly string[] {
+  return sizesForListed(MICROCATHETERS, MICROCATHETER_SIZES, MICROCATHETER_FALLBACK_SIZES, name)
+}
+
+export function sizesForGuideExtension(name: string): readonly string[] {
+  return sizesForListed(GUIDE_EXTENSIONS, GUIDE_EXTENSION_SIZES, GUIDE_EXTENSION_FALLBACK_SIZES, name)
+}
+
+export function defaultAspirationSize(name: string): string {
+  return sizesForAspiration(name)[0] ?? '6F'
+}
+
+export function defaultMicrocatheterSize(name: string): string {
+  return sizesForMicrocatheter(name)[0] ?? '1.8F'
+}
+
+export function defaultGuideExtensionSize(name: string): string {
+  return sizesForGuideExtension(name)[0] ?? '6F'
+}
+
+export function normalizeFrenchSize(raw: string): string {
+  const t = raw.trim()
+  if (!t) return ''
+  if (/long/i.test(t)) {
+    const core = t.replace(/long/i, '').replace(/fr?/gi, '').trim() || '6'
+    return `${core}F Long`
+  }
+  const m = t.match(/^(\d+(?:\.\d+)?)\s*f?r?$/i)
+  if (m) return `${m[1]}F`
+  return t
+}
 
 export const CATHETER_CURVES = [
   'TIG',
@@ -306,6 +409,20 @@ export const ADJUNCT_TYPES = [
 ] as const
 
 export const WIRE_TYPES = ['workhorse', 'hydrophilic', 'CTO', 'support'] as const
+export const WIRE_SIZES = ['0.014"', '0.010"', '0.018"', '0.025"', '0.035"'] as const
+export const DEFAULT_WIRE_SIZE = '0.014"'
+
+export function normalizeWireSize(raw: string): string {
+  const t = raw.trim().replace(/[”″]/g, '"')
+  if (!t) return ''
+  const m = t.match(/^(\d+(?:\.\d+)?)\s*"?$/)
+  if (m) return `${m[1]}"`
+  return t
+}
+
+export function wireSizeOf(size?: string): string {
+  return size?.trim() || DEFAULT_WIRE_SIZE
+}
 
 export const BALLOON_RESULTS = [
   'lesion yields',
@@ -340,6 +457,6 @@ export const CAG_ADVICES = [
   { id: 'early-ptca', label: 'Early PTCA' },
 ] as const
 
-export const HEPARIN_PRESETS = [5000, 7500, 10000, 12500]
+export const HEPARIN_PRESETS = [5000, 7000, 7500, 10000, 12500]
 export const CONTRAST_PRESETS = [50, 70, 80, 90, 100, 120, 150, 200]
 export const FLUORO_PRESETS = [3, 5, 6.2, 8, 10, 12, 15, 20]

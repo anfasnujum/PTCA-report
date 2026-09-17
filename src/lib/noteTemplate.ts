@@ -38,6 +38,9 @@ import {
   issueJoinPhrase,
 } from '@/lib/format'
 import { accessNarrative, accessSpecialNoteLine, formatAorticPressureDisplay } from '@/lib/access'
+import { formatTechnologistNames, labTechnologistSlots } from '@/lib/staffSettings'
+import { wireSizeOf } from '@/lib/constants'
+import { coronaryFromDevice, formatGuideLabel, normalizeGuideCatheter } from '@/lib/guideCatheter'
 import type {
   AngioFinding,
   BalloonUse,
@@ -501,6 +504,9 @@ function stentSentence(e: Extract<ProcedureEvent, { kind: 'stent' }>, all: Proce
   const s = e.data
   const loc = locationShort(s.vessel, s.segment)
   let text = `${capitalise(article(s.name))} ${s.name} ${stentTypePhrase(s.type)} ${fmtSize(s.diameterMm, s.lengthMm)} was deployed at the ${loc} at ${s.deployedAtAtm} atm for ${s.seconds} seconds`
+  if (s.deployedToMm) {
+    text += ` to a size of ${fmtMm(s.deployedToMm)} mm`
+  }
   if (s.overlapWithEventId) {
     const other = all.find((x) => x.id === s.overlapWithEventId)
     if (other?.kind === 'stent') {
@@ -522,17 +528,28 @@ function stentSentence(e: Extract<ProcedureEvent, { kind: 'stent' }>, all: Proce
 function eventSentence(e: ProcedureEvent, all: ProcedureEvent[]): string {
   switch (e.kind) {
     case 'guideCatheter': {
-      const g = e.data
+      const g = normalizeGuideCatheter(e.data)
       const system =
-        g.coronary === 'right'
+        coronaryFromDevice(g.device || '') === 'right'
           ? 'The right coronary artery was engaged'
           : 'The left coronary system was engaged'
-      return `${system} with a ${g.size} ${g.curve} guiding catheter.`
+      return `${system} with a ${g.size} ${formatGuideLabel(g)} guiding catheter.`
+    }
+    case 'thrombusAspiration': {
+      const label = [e.data.name, e.data.size].filter(Boolean).join(' ')
+      return `Thrombus aspiration was performed using a ${label}.`
+    }
+    case 'microcatheter': {
+      const label = [e.data.name, e.data.size].filter(Boolean).join(' ')
+      return `A ${label} microcatheter was used.`
+    }
+    case 'guideExtension': {
+      const label = [e.data.name, e.data.size].filter(Boolean).join(' ')
+      return `A ${label} guide extension was used.`
     }
     case 'guidewire': {
       const w = e.data
-      const parked = formatSegments(w.parkedSegment) || 'distal'
-      return `The lesion was crossed with a 0.014" ${w.name} ${w.type} guidewire and parked in the ${parked} ${w.vessel}.`
+      return `The lesion was crossed with a ${wireSizeOf(w.size)} ${w.name} guidewire.`
     }
     case 'predilatation':
       return balloonSentence('predilatation', e.data)
@@ -649,7 +666,7 @@ function labDetailLines(procedure: Procedure): string[] {
   const pressureLine = formatAorticPressureDisplay(lab.aorticPressureMmHg ?? '')
   const rows: Array<[string, string]> = [
     ['Doctor Name', lab.doctorName],
-    ['Technologist', lab.technologist],
+    ['Technologist', formatTechnologistNames(labTechnologistSlots(lab, 4))],
     ['Scrub Nurse', lab.scrubNurse],
     ['Catheter', lab.catheter],
     ['Contrast', lab.contrast],

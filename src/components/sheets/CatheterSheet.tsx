@@ -36,6 +36,7 @@ export function CatheterSheet({
       open={open}
       title="Catheter"
       onClose={onClose}
+      large
       footer={
         <Button
           size="lg"

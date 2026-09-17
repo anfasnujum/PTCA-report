@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Download } from 'lucide-react'
 import type { AngioFinding, LadBranch, LadInvolvement, LadVesselType, LcxBranch, LcxDominance, RamusSize, RcaDominance, TimiFlow, Vessel } from '@/types/procedure'
-import { Chip, ChipScroller, NumberChips } from '@/components/ui/chip'
+import { StenosisPicker } from '@/components/fields/StenosisPicker'
+import { Chip, ChipScroller } from '@/components/ui/chip'
 import { Combobox } from '@/components/ui/combobox'
 import { Section } from '@/components/ui/section'
 import { Switch } from '@/components/ui/switch'
@@ -14,7 +15,6 @@ import { CORONARY_TREE, TREE_VIEWBOX, interactiveStroke } from '@/lib/coronaryTr
 import {
   asSegments,
   defaultIssueJoin,
-  DEFAULT_STENOSIS_RANGE,
   LEFT_VESSELS,
   lmcaLengthMode,
   RIGHT_VESSELS,
@@ -31,16 +31,12 @@ import {
   formatSegments,
   featureLabel,
   featureRemarkText,
-  formatStenosis,
   findingSeverity,
   findingTypeOf,
   findingIssueLabel,
   findingsForVessel,
   hasTimiFlow,
   sortFindingsByAnatomy,
-  stenosisModeOf,
-  stenosisRangeOf,
-  STENOSIS_PRESETS,
   syncVesselMeta,
   timiRoman,
   vesselMetaFrom,
@@ -59,125 +55,11 @@ function stenosisColor(n: number): string {
   return 'bg-card border-border text-muted'
 }
 
-function StenosisValuePicker({
-  label,
-  value,
-  onChange,
-}: {
-  label?: string
-  value: number
-  onChange: (n: number) => void
-}) {
-  return (
-    <div className="space-y-2">
-      {label ? <p className="text-sm font-medium text-foreground">{label}</p> : null}
-      <input
-        type="range"
-        min={0}
-        max={100}
-        step={5}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full accent-accent"
-      />
-      <NumberChips
-        values={STENOSIS_PRESETS}
-        value={value}
-        onChange={onChange}
-        suffix="%"
-        chipClassName={MODE_CHIP}
-      />
-    </div>
-  )
-}
-
-function PercentFields({
-  title,
-  f,
-  setF,
-}: {
-  title: string
-  f: AngioFinding
-  setF: (next: AngioFinding) => void
-}) {
-  return (
-    <Section
-      title={`${title}  ${formatStenosis(f)}`}
-      action={
-        <ChipScroller>
-          <Chip
-            className={MODE_CHIP}
-            selected={stenosisModeOf(f) === 'single'}
-            onClick={() => setF({ ...f, stenosisMode: 'single' })}
-          >
-            Single
-          </Chip>
-          <Chip
-            className={MODE_CHIP}
-            selected={stenosisModeOf(f) === 'range'}
-            onClick={() =>
-              setF({
-                ...f,
-                stenosisMode: 'range',
-                stenosisRange: f.stenosisRange ?? DEFAULT_STENOSIS_RANGE,
-              })
-            }
-          >
-            Range
-          </Chip>
-        </ChipScroller>
-      }
-    >
-      {stenosisModeOf(f) === 'range' ? (
-        <>
-          <StenosisValuePicker
-            label="From"
-            value={f.stenosis}
-            onChange={(stenosis) =>
-              setF({
-                ...f,
-                stenosis,
-                stenosisMode: 'range',
-                stenosisRange: f.stenosisRange ?? DEFAULT_STENOSIS_RANGE,
-              })
-            }
-          />
-          <div>
-            <p className="mb-2 text-sm font-medium text-foreground">Range</p>
-            <div className="relative">
-              <Input
-                inputMode="numeric"
-                placeholder="10"
-                value={stenosisRangeOf(f)}
-                onChange={(e) => {
-                  const v = e.target.value
-                  if (v === '' || /^\d+$/.test(v)) {
-                    setF({
-                      ...f,
-                      stenosisMode: 'range',
-                      stenosisRange: v === '' ? DEFAULT_STENOSIS_RANGE : Number(v),
-                    })
-                  }
-                }}
-                className="pr-10"
-              />
-              <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-muted">
-                %
-              </span>
-            </div>
-          </div>
-        </>
-      ) : (
-        <StenosisValuePicker
-          value={f.stenosis}
-          onChange={(stenosis) => setF({ ...f, stenosis, stenosisMode: 'single' })}
-        />
-      )}
-    </Section>
-  )
-}
-
-function emptyFinding(vessel: Vessel, existing: AngioFinding[] = []): AngioFinding {
+function emptyFinding(
+  vessel: Vessel,
+  existing: AngioFinding[] = [],
+  isTarget = false,
+): AngioFinding {
   const siblings = existing.filter((f) => f.vessel === vessel)
   const prior = siblings[0]
   return {
@@ -187,7 +69,7 @@ function emptyFinding(vessel: Vessel, existing: AngioFinding[] = []): AngioFindi
     findingType: 'normal',
     timiFlow: 'none',
     features: [],
-    isTarget: false,
+    isTarget,
     ...(prior ? vesselMetaFrom(prior) : {}),
   }
 }
@@ -205,9 +87,11 @@ function vesselSummary(list: AngioFinding[]): string {
 export function AngioBoard({
   findings,
   onChange,
+  showTargetVessel = true,
 }: {
   findings: AngioFinding[]
   onChange: (next: AngioFinding[]) => void
+  showTargetVessel?: boolean
 }) {
   const [openVessel, setOpenVessel] = useState<Vessel | null>(null)
 
@@ -225,7 +109,7 @@ export function AngioBoard({
               className={cn(
                 'min-h-16 rounded-2xl border px-2 py-2 text-center',
                 stenosisColor(worst ? findingSeverity(worst) : 0),
-                list.some((f) => f.isTarget) && 'ring-2 ring-accent',
+                showTargetVessel && list.some((f) => f.isTarget) && 'ring-2 ring-accent',
               )}
             >
               <div className="text-sm font-semibold">
@@ -257,6 +141,7 @@ export function AngioBoard({
         <VesselSheet
           vessel={openVessel}
           findings={findings}
+          showTargetVessel={showTargetVessel}
           onChange={onChange}
           onClose={() => setOpenVessel(null)}
         />
@@ -366,11 +251,13 @@ function VesselSheet({
   findings,
   onChange,
   onClose,
+  showTargetVessel,
 }: {
   vessel: Vessel
   findings: AngioFinding[]
   onChange: (next: AngioFinding[]) => void
   onClose: () => void
+  showTargetVessel: boolean
 }) {
   const persistedList = sortFindingsByAnatomy(findingsForVessel(findings, vessel))
   const [selectedId, setSelectedId] = useState(
@@ -498,13 +385,13 @@ function VesselSheet({
                     className={cn(
                       'w-36 rounded-2xl border px-3 py-2 text-left transition-colors md:w-full',
                       stenosisColor(findingSeverity(f)),
-                      f.isTarget && 'ring-2 ring-accent',
+                      showTargetVessel && f.isTarget && 'ring-2 ring-accent',
                       f.id === selectedId && 'ring-2 ring-accent ring-offset-1',
                     )}
                   >
                     <div className="text-sm font-semibold">
                       {f.id === draft.id && draftIsNew ? 'New issue' : issueRowTitle(f)}
-                      {f.isTarget ? ' · target' : ''}
+                      {showTargetVessel && f.isTarget ? ' · target' : ''}
                     </div>
                     <div className="text-xs opacity-80 line-clamp-2">
                       {f.id === draft.id && draftIsNew
@@ -517,12 +404,12 @@ function VesselSheet({
             </div>
           </aside>
           <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-y-contain md:pl-5">
-            <FindingForm f={draft} setF={setDraft} />
+            <FindingForm f={draft} setF={setDraft} showTargetVessel={showTargetVessel} />
           </div>
         </div>
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
-          <FindingForm f={draft} setF={setDraft} />
+          <FindingForm f={draft} setF={setDraft} showTargetVessel={showTargetVessel} />
         </div>
       )}
     </BottomSheet>
@@ -532,9 +419,11 @@ function VesselSheet({
 function FindingForm({
   f,
   setF,
+  showTargetVessel,
 }: {
   f: AngioFinding
   setF: (next: AngioFinding) => void
+  showTargetVessel: boolean
 }) {
   const ladOther = isLadOtherSegment(f)
   const hideNotes =
@@ -784,21 +673,6 @@ function FindingForm({
             />
           ) : null}
         </Section>
-        <Section title="TIMI flow">
-          <ChipScroller>
-            <Chip
-              selected={!hasTimiFlow(f)}
-              onClick={() => setF({ ...f, timiFlow: 'none' })}
-            >
-              None
-            </Chip>
-            {([0, 1, 2, 3] as TimiFlow[]).map((t) => (
-              <Chip key={t} selected={f.timiFlow === t} onClick={() => setF({ ...f, timiFlow: t })}>
-                TIMI {t === 0 ? '0' : t === 1 ? 'I' : t === 2 ? 'II' : 'III'}
-              </Chip>
-            ))}
-          </ChipScroller>
-        </Section>
         {findingTypeOf(f) === 'plaque' ? (
           <Section title="Plaque">
             <ChipScroller>
@@ -852,14 +726,30 @@ function FindingForm({
           </Section>
         ) : findingTypeOf(f) === 'normal' ||
           findingTypeOf(f) === 'mildly-ectatic-vessel' ||
+          findingTypeOf(f) === 'dissection' ||
           findingTypeOf(f) === 'total-occlusion' ||
           findingTypeOf(f) === 'other' ? null : (
-          <PercentFields
+          <StenosisPicker
             title={findingTypeOf(f) === 'lesion' ? 'Lesion' : 'Stenosis'}
             f={f}
             setF={setF}
           />
         )}
+        <Section title="TIMI flow">
+          <ChipScroller>
+            <Chip
+              selected={!hasTimiFlow(f)}
+              onClick={() => setF({ ...f, timiFlow: 'none' })}
+            >
+              None
+            </Chip>
+            {([0, 1, 2, 3] as TimiFlow[]).map((t) => (
+              <Chip key={t} selected={f.timiFlow === t} onClick={() => setF({ ...f, timiFlow: t })}>
+                TIMI {t === 0 ? '0' : t === 1 ? 'I' : t === 2 ? 'II' : 'III'}
+              </Chip>
+            ))}
+          </ChipScroller>
+        </Section>
         {findingTypeOf(f) === 'normal' ? null : (
           <Section title="Features">
             <ChipScroller>
@@ -963,11 +853,13 @@ function FindingForm({
         ) : null}
           </>
         )}
-        <Switch
-          label="Target vessel"
-          checked={f.isTarget}
-          onChange={(isTarget) => setF({ ...f, isTarget })}
-        />
+        {showTargetVessel ? (
+          <Switch
+            label="Target vessel"
+            checked={f.isTarget}
+            onChange={(isTarget) => setF({ ...f, isTarget })}
+          />
+        ) : null}
       </div>
   )
 }

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { CABG_GRAFTS, CAG_PROCEDURE_TYPES, INDICATION_CHIPS, PCI_TYPES, PRIOR_PCI_TERRITORIES, STEMI_TERRITORIES, SYMPTOM_CHIPS, VALVE_SURGERIES } from '@/lib/constants'
 import { cagProcedureTypeOf } from '@/lib/format'
 import { emptyLab } from '@/lib/seed'
-import { loadStaffSettings } from '@/lib/staffSettings'
+import { loadStaffSettings, labTechnologistSlots, withTechnologistSlots } from '@/lib/staffSettings'
 import { useProcedureStore } from '@/store/useProcedureStore'
 import { useSyncStore } from '@/store/useSyncStore'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -29,6 +29,7 @@ export function PatientPage() {
     mutate((p) => ({ ...p, lab: { ...(p.lab ?? emptyLab()), ...patch } }))
 
   const lab = current.lab ?? emptyLab()
+  const techSlots = labTechnologistSlots(lab)
 
   const toggleChip = (chip: string) => {
     mutate((p) => {
@@ -142,13 +143,34 @@ export function PatientPage() {
         placeholder="Scrub nurse"
         onChange={(scrubNurse) => setLab({ scrubNurse })}
       />
-      <StaffSelect
-        title="Technologist"
-        names={staff.technologists}
-        value={lab.technologist}
-        placeholder="Technologist"
-        onChange={(technologist) => setLab({ technologist })}
-      />
+      {current.kind === 'cag' ? (
+        <StaffSelect
+          title="Technologist"
+          names={staff.technologists}
+          value={lab.technologist}
+          placeholder="Technologist"
+          onChange={(technologist) =>
+            setLab({ technologist, technologists: technologist.trim() ? [technologist.trim()] : [] })
+          }
+        />
+      ) : (
+        <>
+          <StaffSelect
+            title="Technologist 1"
+            names={staff.technologists}
+            value={techSlots[0]}
+            placeholder="Technologist"
+            onChange={(name) => setLab(withTechnologistSlots([name, techSlots[1]]))}
+          />
+          <StaffSelect
+            title="Technologist 2"
+            names={staff.technologists}
+            value={techSlots[1]}
+            placeholder="Technologist"
+            onChange={(name) => setLab(withTechnologistSlots([techSlots[0], name]))}
+          />
+        </>
+      )}
       <div className="lg:col-span-2">
       <Section title="Symptoms">
         <ChipScroller>
@@ -280,6 +302,7 @@ export function PatientPage() {
         </Section>
         </div>
       ) : null}
+      {current.kind === 'ptca' ? (
       <div className="lg:col-span-2">
       <Section title="Type of PCI">
         <ChipScroller>
@@ -303,6 +326,7 @@ export function PatientPage() {
         </ChipScroller>
       </Section>
       </div>
+      ) : null}
       {current.kind === 'cag' ? (
         <Section title="LVEDP">
           <div className="relative">

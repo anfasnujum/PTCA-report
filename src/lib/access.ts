@@ -1,5 +1,5 @@
-import type { Access } from '@/types/procedure'
-import { CATHETER_SIZES } from '@/lib/constants'
+import type { Access, AccessSite, CatalogueItem } from '@/types/procedure'
+import { CATHETER_SIZES, FEMORAL_SHEATHS, RADIAL_SHEATHS } from '@/lib/constants'
 
 export function formatLabAccess(access: Pick<Access, 'site' | 'side'>): string {
   const side = access.side ? `${access.side.charAt(0).toUpperCase()}${access.side.slice(1)}` : ''
@@ -50,6 +50,50 @@ export function defaultCatheterSize(sheathSize: Access['sheathSize']): string {
   return '5F'
 }
 
+export type SheathAccessGroup = 'radial' | 'femoral'
+
+export function sheathAccessGroup(site: AccessSite): SheathAccessGroup {
+  return site === 'femoral' || site === 'brachial' ? 'femoral' : 'radial'
+}
+
+export function presetSheathsForSite(site: AccessSite): readonly string[] {
+  return sheathAccessGroup(site) === 'femoral' ? FEMORAL_SHEATHS : RADIAL_SHEATHS
+}
+
+export function sheathsForSite(
+  site: AccessSite,
+  catalogue: Pick<CatalogueItem, 'category' | 'name' | 'meta'>[] = [],
+  selected = '',
+): string[] {
+  const group = sheathAccessGroup(site)
+  const seen = new Set<string>()
+  const next: string[] = []
+  const add = (name: string) => {
+    const value = name.trim()
+    const key = value.toLowerCase()
+    if (!value || seen.has(key)) return
+    seen.add(key)
+    next.push(value)
+  }
+  for (const name of presetSheathsForSite(site)) add(name)
+  for (const item of catalogue) {
+    if (item.category !== 'sheath') continue
+    const itemGroup = item.meta.accessGroup || 'all'
+    if (itemGroup === group || itemGroup === 'all') add(item.name)
+  }
+  add(selected)
+  return next
+}
+
+export function sheathAllowedForSite(
+  brand: string,
+  site: AccessSite,
+  catalogue: Pick<CatalogueItem, 'category' | 'name' | 'meta'>[] = [],
+): boolean {
+  if (!brand.trim()) return true
+  return sheathsForSite(site, catalogue).some((name) => name.toLowerCase() === brand.trim().toLowerCase())
+}
+
 const GENERIC_TO_BRAND: Record<string, string> = {
   iohexol: 'Omnipaque',
   iodixanol: 'Visipaque',
@@ -69,6 +113,7 @@ const KNOWN_BRANDS = [
   'Optiray',
   'Iopamiro',
   'Isovue',
+  'Glandvida',
 ] as const
 
 export function normalizeContrastAgent(raw: string): string {

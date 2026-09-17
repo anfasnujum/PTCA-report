@@ -11,8 +11,6 @@ import {
   CLOSURE_METHODS,
   COMPLICATION_CHIPS,
   CONDITIONS,
-  CONTRAST_AGENTS,
-  CONTRAST_PRESETS,
   DESTINATIONS,
   FLUORO_PRESETS,
   GP2B3A,
@@ -213,8 +211,55 @@ export function ResultPage() {
     )
   }
 
+  const resultGood =
+    current.outcome.residualStenosis === 0 && current.outcome.finalTimiFlow === 3
+
   return (
     <div className="grid gap-5 pb-6 lg:grid-cols-2">
+      <div className="lg:col-span-2">
+        <Section title="Result">
+          <ChipScroller>
+            <Chip
+              selected={resultGood}
+              onClick={() => setOutcome({ residualStenosis: 0, finalTimiFlow: 3 })}
+            >
+              Good
+            </Chip>
+            <Chip
+              selected={!resultGood}
+              onClick={() =>
+                setOutcome({
+                  residualStenosis: current.outcome.residualStenosis === 0 ? 20 : current.outcome.residualStenosis,
+                  finalTimiFlow: current.outcome.finalTimiFlow === 3 ? 2 : current.outcome.finalTimiFlow,
+                })
+              }
+            >
+              Suboptimal
+            </Chip>
+          </ChipScroller>
+        </Section>
+      </div>
+      <Section title="Complications">
+        <ChipScroller>
+          {COMPLICATION_CHIPS.map((c) => (
+            <Chip
+              key={c}
+              selected={current.outcome.complications.includes(c)}
+              onClick={() => toggleComp(c)}
+            >
+              {c}
+            </Chip>
+          ))}
+        </ChipScroller>
+      </Section>
+      <Section title="Heparin">
+        <NumberChips
+          values={HEPARIN_PRESETS}
+          value={typeof current.periprocedural.heparinIU === 'number' ? current.periprocedural.heparinIU : 0}
+          onChange={(heparinIU) => setPeri({ heparinIU })}
+          suffix=" IU"
+        />
+      </Section>
       <Section title={`Residual stenosis  ${current.outcome.residualStenosis}%`}>
         <input
           type="range"
@@ -273,32 +318,11 @@ export function ResultPage() {
         checked={current.outcome.sideBranchCompromise}
         onChange={(sideBranchCompromise) => setOutcome({ sideBranchCompromise })}
       />
-      <Section title="Complications">
-        <ChipScroller>
-          {COMPLICATION_CHIPS.map((c) => (
-            <Chip
-              key={c}
-              selected={current.outcome.complications.includes(c)}
-              onClick={() => toggleComp(c)}
-            >
-              {c}
-            </Chip>
-          ))}
-        </ChipScroller>
-      </Section>
       <Section title="Comment">
         <Textarea
           value={current.outcome.comment}
           placeholder="Optional result comment"
           onChange={(e) => setOutcome({ comment: e.target.value })}
-        />
-      </Section>
-      <Section title="Heparin">
-        <NumberChips
-          values={HEPARIN_PRESETS}
-          value={typeof current.periprocedural.heparinIU === 'number' ? current.periprocedural.heparinIU : 0}
-          onChange={(heparinIU) => setPeri({ heparinIU })}
-          suffix=" IU"
         />
       </Section>
       <Section title="GP IIb/IIIa">
@@ -313,25 +337,6 @@ export function ResultPage() {
             </Chip>
           ))}
         </ChipScroller>
-      </Section>
-      <Section title="Contrast">
-        <ChipScroller>
-          {CONTRAST_AGENTS.map((a) => (
-            <Chip
-              key={a}
-              selected={current.periprocedural.contrastAgent === a}
-              onClick={() => setPeri({ contrastAgent: a })}
-            >
-              {a}
-            </Chip>
-          ))}
-        </ChipScroller>
-        <NumberChips
-          values={CONTRAST_PRESETS}
-          value={typeof current.periprocedural.contrastVolumeMl === 'number' ? current.periprocedural.contrastVolumeMl : 0}
-          onChange={(contrastVolumeMl) => setPeri({ contrastVolumeMl })}
-          suffix=" mL"
-        />
       </Section>
       <Section title="Fluoroscopy">
         <NumberChips

@@ -51,6 +51,7 @@ export function interactiveStroke(finding?: AngioFinding): string {
 export function buildCoronarySvg(
   findings: AngioFinding[],
   mode: 'interactive' | 'export',
+  showTarget = true,
 ): string {
   const branches = CORONARY_TREE.map((b) => {
     const list = findings.filter((f) => f.vessel === b.vessel)
@@ -66,7 +67,7 @@ export function buildCoronarySvg(
           : unmarkedStroke()
         : interactiveStroke(finding)
     const showLabel = mode === 'interactive' || marked
-    const target = list.some((f) => f.isTarget)
+    const target = showTarget && list.some((f) => f.isTarget)
     const label = showLabel
       ? `<text x="${b.lx}" y="${b.ly}" fill="#10172a" font-size="12" font-weight="600" font-family="Inter, ui-sans-serif, system-ui, sans-serif">${escapeXml(target ? `★ ${b.label}` : b.label)}</text>`
       : ''

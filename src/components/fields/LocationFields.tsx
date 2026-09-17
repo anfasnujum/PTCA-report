@@ -10,15 +10,18 @@ export function LocationFields({
   onVessel,
   onSegment,
   targets = [],
+  lockVessel = false,
 }: {
   vessel: Vessel
   segment?: SegmentChoice
   onVessel: (v: Vessel) => void
   onSegment: (s: SegmentChoice | undefined) => void
   targets?: Vessel[]
+  lockVessel?: boolean
 }) {
   return (
     <>
+      {lockVessel ? null : (
       <Section title="Vessel">
         <ChipScroller>
           {LEFT_VESSELS.concat(RIGHT_VESSELS).map((v) => (
@@ -34,6 +37,7 @@ export function LocationFields({
           ))}
         </ChipScroller>
       </Section>
+      )}
       <Section title="Segment">
         <ChipScroller>
           {segmentsFor(vessel).map((s) => (

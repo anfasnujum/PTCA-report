@@ -1,8 +1,11 @@
 import { cn } from '@/lib/utils'
 
 const ACTIONS = [
-  { kind: 'guideCatheter', label: '+ Guide' },
+  { kind: 'guideCatheter', label: '+ Catheter' },
+  { kind: 'thrombusAspiration', label: '+ Aspiration' },
+  { kind: 'microcatheter', label: '+ Microcath' },
   { kind: 'guidewire', label: '+ Wire' },
+  { kind: 'guideExtension', label: '+ Extension' },
   { kind: 'predilatation', label: '+ Balloon' },
   { kind: 'stent', label: '+ Stent' },
   { kind: 'postdilatation', label: '+ Post-dil' },
@@ -10,11 +13,34 @@ const ACTIONS = [
   { kind: 'adjunct', label: '+ Other' },
 ] as const
 
-export function ActionBar({ onAdd }: { onAdd: (kind: (typeof ACTIONS)[number]['kind'] | 'note') => void }) {
+export function ActionBar({
+  onAdd,
+  variant = 'dock',
+  kinds,
+  showNote = true,
+}: {
+  onAdd: (kind: (typeof ACTIONS)[number]['kind'] | 'note') => void
+  variant?: 'dock' | 'inline'
+  kinds?: Array<(typeof ACTIONS)[number]['kind']>
+  showNote?: boolean
+}) {
+  const actions = kinds ? ACTIONS.filter((a) => kinds.includes(a.kind)) : ACTIONS
   return (
-    <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 backdrop-blur lg:static lg:z-auto lg:mt-4 lg:rounded-2xl lg:border-0 lg:bg-card lg:shadow-card lg:backdrop-blur-none">
-      <div className="mx-auto flex max-w-lg gap-2 overflow-x-auto px-3 pt-2 pb-safe scrollbar-none lg:max-w-none lg:flex-wrap lg:pb-3">
-        {ACTIONS.map((a) => (
+    <div
+      className={
+        variant === 'inline'
+          ? 'rounded-2xl border border-border bg-card'
+          : 'fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 backdrop-blur lg:static lg:z-auto lg:mt-4 lg:rounded-2xl lg:border-0 lg:bg-card lg:shadow-card lg:backdrop-blur-none'
+      }
+    >
+      <div
+        className={
+          variant === 'inline'
+            ? 'flex gap-2 overflow-x-auto px-3 py-2 scrollbar-none'
+            : 'mx-auto flex max-w-lg gap-2 overflow-x-auto px-3 pt-2 pb-safe scrollbar-none lg:max-w-none lg:flex-wrap lg:pb-3'
+        }
+      >
+        {actions.map((a) => (
           <button
             key={a.kind}
             type="button"
@@ -29,6 +55,7 @@ export function ActionBar({ onAdd }: { onAdd: (kind: (typeof ACTIONS)[number]['k
             {a.label}
           </button>
         ))}
+        {showNote ? (
         <button
           type="button"
           onClick={() => onAdd('note')}
@@ -36,6 +63,7 @@ export function ActionBar({ onAdd }: { onAdd: (kind: (typeof ACTIONS)[number]['k
         >
           + Note
         </button>
+        ) : null}
       </div>
     </div>
   )

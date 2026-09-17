@@ -33,6 +33,7 @@ export type FindingTimiFlow = TimiFlow | 'none'
 
 export type ProcedureStatus = 'draft' | 'finalised' | 'completed'
 export type ProcedureKind = 'ptca' | 'cag'
+export type VesselPciKind = 'PTCA' | 'POBA'
 export type CagProcedureType = 'cag' | 'primary-cag'
 export type CagImpression =
   | 'normal-epicardial'
@@ -80,6 +81,7 @@ export type LabDetails = {
   aorticPressureMmHg: string
   inventory: string
   lvedp: string
+  technologists?: string[]
 }
 
 export type Indication = {
@@ -98,6 +100,7 @@ export type Access = {
   site: AccessSite
   side: 'right' | 'left' | ''
   sheathSize: '4F' | '5F' | '6F' | '7F' | '8F' | '9F' | '10F' | ''
+  sheathBrand?: string
   punctures: number
   singleAttempt: boolean
   specialNote: string
@@ -110,6 +113,7 @@ export type FindingType =
   | 'normal'
   | 'plaque'
   | 'mildly-ectatic-vessel'
+  | 'dissection'
   | 'stenosis'
   | 'lesion'
   | 'total-occlusion'
@@ -166,16 +170,25 @@ export type AngioFinding = {
 }
 
 export type GuideCatheter = {
+  device?: string
   curve: string
   size: '5F' | '6F' | '7F' | '8F'
-  coronary: 'left' | 'right'
+  coronary?: 'left' | 'right'
+  vessel?: Vessel
 }
 
 export type Guidewire = {
   name: string
-  type: 'workhorse' | 'hydrophilic' | 'CTO' | 'support'
+  type?: 'workhorse' | 'hydrophilic' | 'CTO' | 'support'
+  size?: string
   vessel: Vessel
   parkedSegment?: SegmentChoice
+}
+
+export type NamedDeviceUse = {
+  name: string
+  size?: string
+  vessel: Vessel
 }
 
 export type BalloonType =
@@ -222,6 +235,7 @@ export type StentUse = {
   seconds: number
   overlapWithEventId?: string
   technique?: StentTechnique
+  deployedToMm?: number
 }
 
 export type ImagingModality = 'IVUS' | 'OCT' | 'FFR' | 'iFR'
@@ -252,7 +266,10 @@ export type EventBase = {
 
 export type ProcedureEvent =
   | (EventBase & { kind: 'guideCatheter'; data: GuideCatheter })
+  | (EventBase & { kind: 'thrombusAspiration'; data: NamedDeviceUse })
+  | (EventBase & { kind: 'microcatheter'; data: NamedDeviceUse })
   | (EventBase & { kind: 'guidewire'; data: Guidewire })
+  | (EventBase & { kind: 'guideExtension'; data: NamedDeviceUse })
   | (EventBase & { kind: 'predilatation'; data: BalloonUse })
   | (EventBase & { kind: 'stent'; data: StentUse })
   | (EventBase & { kind: 'postdilatation'; data: BalloonUse })
@@ -320,9 +337,20 @@ export type Procedure = {
   cagLimaNote?: string
   cagRimaOn?: boolean
   cagRimaNote?: string
+  vesselPciKind?: Partial<Record<Vessel, VesselPciKind>>
 }
 
-export type CatalogueCategory = 'balloon' | 'stent' | 'wire' | 'guide' | 'catheter' | 'operator'
+export type CatalogueCategory =
+  | 'balloon'
+  | 'stent'
+  | 'wire'
+  | 'guide'
+  | 'catheter'
+  | 'operator'
+  | 'aspiration'
+  | 'microcatheter'
+  | 'guideExtension'
+  | 'sheath'
 
 export type CatalogueItem = {
   id: string

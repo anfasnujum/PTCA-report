@@ -6,7 +6,7 @@ import { ProcedureShell } from '@/components/layout/ProcedureShell'
 import { PatientPage } from '@/pages/PatientPage'
 import { AccessPage } from '@/pages/AccessPage'
 import { AngiogramPage } from '@/pages/AngiogramPage'
-import { TimelinePage } from '@/pages/TimelinePage'
+import { ProceduresPage } from '@/pages/ProceduresPage'
 import { ResultPage } from '@/pages/ResultPage'
 import { PreviewPage } from '@/pages/PreviewPage'
 
@@ -17,11 +17,12 @@ export default function App() {
       <Route path="/config" element={<ConfigPage />} />
       <Route path="/settings" element={<SettingsPage />} />
       <Route path="/procedure/:id" element={<ProcedureShell />}>
-        <Route index element={<Navigate to="timeline" replace />} />
+        <Route index element={<Navigate to="patient" replace />} />
         <Route path="patient" element={<PatientPage />} />
         <Route path="access" element={<AccessPage />} />
         <Route path="angiogram" element={<AngiogramPage />} />
-        <Route path="timeline" element={<TimelinePage />} />
+        <Route path="procedures" element={<ProceduresPage />} />
+        <Route path="timeline" element={<Navigate to="../procedures" replace />} />
         <Route path="result" element={<ResultPage />} />
         <Route path="preview" element={<PreviewPage />} />
       </Route>

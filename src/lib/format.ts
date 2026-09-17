@@ -409,7 +409,7 @@ export function defaultDiameter(vessel: Vessel, segment?: Segment | Segment[] | 
 
 export function defaultBalloonType(name: string): import('@/types/procedure').BalloonType {
   const n = name.toLowerCase()
-  if (n.includes('nc ') || n.startsWith('nc') || n.includes('accuforce') || n.includes('quantum')) {
+  if (n.includes('nc ') || n.startsWith('nc') || n.includes('accuforce') || n.includes('quantum') || n.includes('aperi')) {
     return 'non-compliant'
   }
   if (n.includes('cut') || n.includes('wolverine') || n.includes('flextome')) return 'cutting'
@@ -475,6 +475,7 @@ export function findingTypeOf(f: Pick<AngioFinding, 'findingType'>): FindingType
   if (
     f.findingType === 'plaque' ||
     f.findingType === 'mildly-ectatic-vessel' ||
+    f.findingType === 'dissection' ||
     f.findingType === 'lesion' ||
     f.findingType === 'normal' ||
     f.findingType === 'stenosis' ||
@@ -508,6 +509,7 @@ export function formatFindingPhrase(
   const type = findingTypeOf(f)
   if (type === 'normal') return 'Normal'
   if (type === 'mildly-ectatic-vessel') return 'mildly ectatic vessel'
+  if (type === 'dissection') return 'dissection'
   if (type === 'total-occlusion') return 'total occlusion'
   if (type === 'other') return (f.findingOther ?? '').trim() || 'other'
   if (type === 'plaque') {
@@ -561,6 +563,7 @@ export function isChronicTotalOcclusion(
     type === 'plaque' ||
     type === 'normal' ||
     type === 'mildly-ectatic-vessel' ||
+    type === 'dissection' ||
     type === 'total-occlusion' ||
     type === 'myocardial-bridging' ||
     type === 'other'
@@ -595,6 +598,7 @@ export function findingIssueLabel(f: AngioFinding): string {
       ? 'Normal'
       : type === 'plaque' ||
           type === 'mildly-ectatic-vessel' ||
+          type === 'dissection' ||
           type === 'total-occlusion' ||
           type === 'myocardial-bridging' ||
           type === 'other'
@@ -607,6 +611,7 @@ export function findingSeverity(f: AngioFinding): number {
   const type = findingTypeOf(f)
   if (type === 'normal') return 0
   if (type === 'mildly-ectatic-vessel') return 40
+  if (type === 'dissection') return 70
   if (type === 'total-occlusion') return 100
   if (type === 'other') return (f.findingOther ?? '').trim() ? 50 : 20
   if (type === 'plaque') {
@@ -641,7 +646,7 @@ export function worstFinding(findings: AngioFinding[]): AngioFinding | undefined
 export function isUnremarkableFinding(f: AngioFinding): boolean {
   const type = findingTypeOf(f)
   if (type === 'normal') return f.features.length === 0
-  if (type === 'mildly-ectatic-vessel' || type === 'total-occlusion' || type === 'other') return false
+  if (type === 'mildly-ectatic-vessel' || type === 'dissection' || type === 'total-occlusion' || type === 'other') return false
   if (f.features.length) return false
   if (type === 'plaque') {
     if (f.plaqueGrade === 'other') return !(f.plaqueOther ?? '').trim()
@@ -851,5 +856,29 @@ export const STENT_LENGTHS = [8, 12, 15, 16, 18, 20, 22, 24, 28, 32, 33, 38, 40,
 export const ATM_VALUES = [6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26]
 
 export const SECOND_VALUES = [5, 10, 15, 20, 30, 45, 60]
+
+export function parseMmValue(raw: string): number | undefined {
+  const n = Number(raw.trim().replace(/mm$/i, '').trim())
+  if (!Number.isFinite(n) || n <= 0) return undefined
+  return n
+}
+
+export function extraNumbersFrom(meta: Record<string, string> | undefined, key: string): number[] {
+  return (meta?.[key] ?? '')
+    .split(',')
+    .map((part) => parseMmValue(part))
+    .filter((n): n is number => n !== undefined)
+}
+
+export function mergeNumericOptions(base: readonly number[], extra: number[], current?: number): number[] {
+  const seen = new Set<number>()
+  const next: number[] = []
+  for (const n of [...base, ...[...extra].sort((a, b) => a - b), current]) {
+    if (n === undefined || !Number.isFinite(n) || n <= 0 || seen.has(n)) continue
+    seen.add(n)
+    next.push(n)
+  }
+  return next
+}
 
 export const STENOSIS_PRESETS = [0, 30, 40, 50, 70, 80, 90, 95, 99, 100]

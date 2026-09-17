@@ -41,7 +41,7 @@ export function TimelineList({
   if (events.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border bg-card px-4 py-10 text-center text-muted shadow-card">
-        Tap an action below to log the first step. Guide → wire → balloon → stent is the usual order.
+        Tap an action below to log the first step. Catheter → wire → balloon → stent is the usual order.
       </div>
     )
   }

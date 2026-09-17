@@ -1,7 +1,26 @@
 import { describe, expect, it } from 'vitest'
-import { accessNarrative, accessSpecialNoteLine, defaultCatheterSize, formatAorticPressureInput, formatCatheterLabel, formatContrastLabel, formatLabAccess, parseCatheterLabel, parseContrastLabel } from '@/lib/access'
+import { accessNarrative, accessSpecialNoteLine, defaultCatheterSize, formatAorticPressureInput, formatCatheterLabel, formatContrastLabel, formatLabAccess, parseCatheterLabel, parseContrastLabel, presetSheathsForSite, sheathAccessGroup, sheathAllowedForSite, sheathsForSite } from '@/lib/access'
 
 describe('access helpers', () => {
+  it('lists radial vs femoral sheaths', () => {
+    expect(sheathAccessGroup('radial')).toBe('radial')
+    expect(sheathAccessGroup('distal radial')).toBe('radial')
+    expect(sheathAccessGroup('ulnar')).toBe('radial')
+    expect(sheathAccessGroup('femoral')).toBe('femoral')
+    expect(sheathAccessGroup('brachial')).toBe('femoral')
+    expect(presetSheathsForSite('radial')).toEqual(['Radifocus Terumo', 'Glidesheath Slender', 'Prelude Ease'])
+    expect(presetSheathsForSite('femoral')).toEqual(['Radifocus Terumo', 'Avanti+', 'Input', 'Terumo Introducer'])
+    expect(sheathsForSite('radial')).not.toContain('Avanti+')
+    expect(sheathsForSite('femoral')).not.toContain('Glidesheath Slender')
+    expect(sheathsForSite('radial')).toContain('Radifocus Terumo')
+    expect(sheathsForSite('femoral')).toContain('Radifocus Terumo')
+    expect(
+      sheathsForSite('radial', [{ category: 'sheath', name: 'Cook Radial', meta: { accessGroup: 'radial' } }]),
+    ).toContain('Cook Radial')
+    expect(sheathAllowedForSite('Avanti+', 'radial')).toBe(false)
+    expect(sheathAllowedForSite('Avanti+', 'femoral')).toBe(true)
+  })
+
   it('formats site and side for lab access', () => {
     expect(formatLabAccess({ site: 'radial', side: 'right' })).toBe('Right radial')
     expect(formatLabAccess({ site: 'femoral', side: 'left' })).toBe('Left femoral')

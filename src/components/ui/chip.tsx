@@ -50,7 +50,12 @@ export function NumberChips({
   return (
     <ChipScroller>
       {values.map((v) => (
-        <Chip key={v} className={chipClassName} selected={v === value} onClick={() => onChange(v)}>
+        <Chip
+          key={v}
+          className={cn('min-h-8 px-2.5', chipClassName)}
+          selected={Number.isFinite(value) && v === value}
+          onClick={() => onChange(v)}
+        >
           {(format ? format(v) : String(v)) + suffix}
         </Chip>
       ))}

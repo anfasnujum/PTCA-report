@@ -62,8 +62,9 @@ function findingRows(findings: AngioFinding[]): AngioFinding[] {
 }
 
 export async function downloadAngioPdf(procedure: Procedure): Promise<void> {
+  const showTarget = procedure.kind !== 'cag'
   const marked = findingRows(procedure.baselineAngio)
-  const png = await svgToPng(buildCoronarySvg(procedure.baselineAngio, 'export'))
+  const png = await svgToPng(buildCoronarySvg(procedure.baselineAngio, 'export', showTarget))
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
   const pageW = doc.internal.pageSize.getWidth()
   const pageH = doc.internal.pageSize.getHeight()
@@ -108,7 +109,9 @@ export async function downloadAngioPdf(procedure: Procedure): Promise<void> {
   doc.setFontSize(8)
   doc.setTextColor(147, 161, 183)
   doc.text(
-    'Only marked vessels are coloured and labelled. Grey branches were not logged. ★ = target.',
+    showTarget
+      ? 'Only marked vessels are coloured and labelled. Grey branches were not logged. ★ = target.'
+      : 'Only marked vessels are coloured and labelled. Grey branches were not logged.',
     margin,
     y,
   )
@@ -127,15 +130,25 @@ export async function downloadAngioPdf(procedure: Procedure): Promise<void> {
     doc.text('No vessels have been marked yet.', margin, y)
     y += 8
   } else {
-    const cols = [
-      { key: 'vessel', w: 22 },
-      { key: 'loc', w: 32 },
-      { key: 'sten', w: 28 },
-      { key: 'timi', w: 18 },
-      { key: 'feat', w: 58 },
-      { key: 'tgt', w: 26 },
-    ] as const
-    const headers = ['Vessel', 'Segment', 'Finding', 'TIMI', 'Features', 'Target']
+    const cols = showTarget
+      ? ([
+          { key: 'vessel', w: 22 },
+          { key: 'loc', w: 32 },
+          { key: 'sten', w: 28 },
+          { key: 'timi', w: 18 },
+          { key: 'feat', w: 58 },
+          { key: 'tgt', w: 26 },
+        ] as const)
+      : ([
+          { key: 'vessel', w: 24 },
+          { key: 'loc', w: 36 },
+          { key: 'sten', w: 30 },
+          { key: 'timi', w: 20 },
+          { key: 'feat', w: 70 },
+        ] as const)
+    const headers = showTarget
+      ? ['Vessel', 'Segment', 'Finding', 'TIMI', 'Features', 'Target']
+      : ['Vessel', 'Segment', 'Finding', 'TIMI', 'Features']
     const rowH = (lines: number) => Math.max(8, lines * 4.2 + 3)
 
     const drawHeader = () => {
@@ -181,7 +194,7 @@ export async function downloadAngioPdf(procedure: Procedure): Promise<void> {
         other ? f.segmentOther?.trim() || '—' : formatFindingPhrase(f),
         other ? '—' : hasTimiFlow(f) ? timiRoman(f.timiFlow) : '—',
         features,
-        f.isTarget ? 'Yes' : '—',
+        ...(showTarget ? [f.isTarget ? 'Yes' : '—'] : []),
       ]
       const wrapped = cells.map((c, i) => doc.splitTextToSize(c, cols[i].w - 3))
       const lines = Math.max(...wrapped.map((w) => w.length))
@@ -212,7 +225,7 @@ export async function downloadAngioPdf(procedure: Procedure): Promise<void> {
         isLadOtherSegment(f) ? null : formatFindingPhrase(f),
         !isLadOtherSegment(f) && hasTimiFlow(f) ? `TIMI ${timiRoman(f.timiFlow)}` : null,
         !isLadOtherSegment(f) && f.features.length ? f.features.join(', ') : null,
-        f.isTarget ? 'target vessel' : null,
+        showTarget && f.isTarget ? 'target vessel' : null,
       ].filter(Boolean)
       const line = bits.join(' · ')
       const split = doc.splitTextToSize(line, contentW)

@@ -2,11 +2,14 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { CONSULTANTS } from '@/lib/constants'
 import {
   defaultStaffSettings,
+  formatTechnologistNames,
+  labTechnologistSlots,
   loadStaffSettings,
   matchStaffName,
   normalizeStaffList,
   parseStaffSettings,
   saveStaffSettings,
+  withTechnologistSlots,
 } from '@/lib/staffSettings'
 
 const memory = new Map<string, string>()
@@ -32,6 +35,19 @@ afterEach(() => {
 })
 
 describe('staffSettings', () => {
+  it('joins two PTCA technologist slots for the report', () => {
+    expect(formatTechnologistNames(['Joshy', 'Sidan'])).toBe('Joshy, Sidan')
+    expect(
+      labTechnologistSlots({ technologist: 'Joshy, Sidan', technologists: [] }),
+    ).toEqual(['Joshy', 'Sidan'])
+    expect(
+      withTechnologistSlots(['Joshy', 'Sidan']),
+    ).toEqual({
+      technologists: ['Joshy', 'Sidan'],
+      technologist: 'Joshy, Sidan',
+    })
+  })
+
   it('drops blanks, Other, and duplicate names', () => {
     expect(normalizeStaffList(['  Dr A  ', '', 'Other', 'dr a', 'Dr B', 'other'])).toEqual([
       'Dr A',
