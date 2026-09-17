@@ -7,8 +7,9 @@ import {
   ptcaCommentSentence,
   ptcaComplicationsText,
   ptcaContrastText,
+  LONGEST_INVENTORY_LABEL,
   ptcaInventoryBlocks,
-  ptcaProcedureNarrative,
+  ptcaProcedureParagraphs,
   ptcaResultLabel,
   ptcaTitle,
   targetVesselsLesions,
@@ -36,6 +37,38 @@ function DetailLine({ label, value, bold }: { label: string; value: string; bold
     <p>
       <span className={bold ? 'font-bold' : 'font-semibold'}>{label}</span> : {value}
     </p>
+  )
+}
+
+function inventoryItems(value: string): string[] {
+  return value ? value.split('\n') : ['']
+}
+
+function InventoryLines({ lines }: { lines: { label: string; value: string }[] }) {
+  return (
+    <table className="inventory-pair w-full border-collapse">
+      <tbody>
+        {lines.map((line) => (
+          <tr key={line.label}>
+            <td className="inventory-label align-top whitespace-nowrap font-semibold">
+              <span className="inventory-label-sizer" aria-hidden>
+                {LONGEST_INVENTORY_LABEL}
+              </span>
+              {line.label}
+            </td>
+            <td className="inventory-colon align-top whitespace-nowrap">:</td>
+            <td className="align-top">
+              {inventoryItems(line.value).map((item, i) => (
+                <span key={`${line.label}-${i}`}>
+                  {i > 0 ? <br /> : null}
+                  {item}
+                </span>
+              ))}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   )
 }
 
@@ -93,10 +126,8 @@ export function PtcaReportLayout({ procedure }: { procedure: Procedure }) {
         {inventoryBlocks.map((block, i) => (
           <div key={`inv-${i}`}>
             <DetailLine label="Inventory" value={block.heading} bold />
-            <div className="space-y-0.5 pl-6">
-              {block.lines.map((line) => (
-                <DetailLine key={`${i}-${line.label}`} label={line.label} value={line.value} />
-              ))}
+            <div className="pl-6">
+              <InventoryLines lines={block.lines} />
             </div>
           </div>
         ))}
@@ -116,7 +147,11 @@ export function PtcaReportLayout({ procedure }: { procedure: Procedure }) {
 
       <div className="report-page-break">
         <p className="font-bold">PROCEDURE:</p>
-        <p className="text-justify">{ptcaProcedureNarrative(p)}</p>
+        {ptcaProcedureParagraphs(p).map((paragraph, i) => (
+          <p key={`procedure-${i}`} className="text-justify">
+            {paragraph}
+          </p>
+        ))}
       </div>
 
       <p className="font-bold">COMMENT: {p.notes.trim() || ptcaCommentSentence(p)}</p>

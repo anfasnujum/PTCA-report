@@ -34,6 +34,10 @@ export type FindingTimiFlow = TimiFlow | 'none'
 export type ProcedureStatus = 'draft' | 'finalised' | 'completed'
 export type ProcedureKind = 'ptca' | 'cag'
 export type VesselPciKind = 'PTCA' | 'POBA'
+export type VesselCombinedProcess = {
+  on: boolean
+  vessels: Vessel[]
+}
 export type CagProcedureType = 'cag' | 'primary-cag'
 export type CagImpression =
   | 'normal-epicardial'
@@ -273,6 +277,7 @@ export type ProcedureEvent =
   | (EventBase & { kind: 'predilatation'; data: BalloonUse })
   | (EventBase & { kind: 'stent'; data: StentUse })
   | (EventBase & { kind: 'postdilatation'; data: BalloonUse })
+  | (EventBase & { kind: 'lmcaPot'; data: BalloonUse })
   | (EventBase & { kind: 'imaging'; data: ImagingUse })
   | (EventBase & { kind: 'adjunct'; data: AdjunctUse })
   | (EventBase & { kind: 'note'; data: { text: string } })
@@ -338,6 +343,7 @@ export type Procedure = {
   cagRimaOn?: boolean
   cagRimaNote?: string
   vesselPciKind?: Partial<Record<Vessel, VesselPciKind>>
+  vesselCombined?: Partial<Record<Vessel, VesselCombinedProcess>>
 }
 
 export type CatalogueCategory =

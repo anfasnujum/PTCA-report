@@ -3,11 +3,11 @@ import { Button } from '@/components/ui/button'
 import { CagReportLayout } from '@/components/preview/CagReportLayout'
 import { PtcaReportLayout } from '@/components/preview/PtcaReportLayout'
 import { generateNote } from '@/lib/noteTemplate'
-import { buildReportDocxFromHtml } from '@/lib/reportDocx'
+import { buildReportDocxFromHtml, REPORT_PAGE_BREAK_CLASS } from '@/lib/reportDocx'
 import { useProcedureStore } from '@/store/useProcedureStore'
 import { cn } from '@/lib/utils'
 import { isLockedProcedure } from '@/lib/homeList'
-import { Bold, Check, ChevronDown, Copy, Download, Italic, Printer, RotateCcw, Share2, Underline } from 'lucide-react'
+import { Bold, Check, ChevronDown, Copy, Download, Italic, Printer, RotateCcw, SeparatorHorizontal, Share2, Underline } from 'lucide-react'
 
 function downloadBlobFile(filename: string, blob: Blob) {
   const url = URL.createObjectURL(blob)
@@ -176,11 +176,13 @@ function EditorToolbar({
   onFormat,
   onFontSize,
   onLineHeight,
+  onPageBreak,
 }: {
   format: FormatState
   onFormat: (command: 'bold' | 'italic' | 'underline') => void
   onFontSize: (value: string) => void
   onLineHeight: (value: string) => void
+  onPageBreak: () => void
 }) {
   return (
     <div className="no-print ml-auto flex w-fit items-center gap-1 rounded-xl bg-card p-1 shadow-card">
@@ -223,6 +225,18 @@ function EditorToolbar({
       >
         <Underline className="size-4" />
       </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        title="Insert page break"
+        onMouseDown={(e) => {
+          e.preventDefault()
+          onPageBreak()
+        }}
+      >
+        <SeparatorHorizontal className="size-4" />
+      </Button>
       <NumericPickerField
         value={format.fontSize}
         options={FONT_SIZES}
@@ -253,11 +267,12 @@ function bakeComputedStyles(live: Element, clone: Element) {
   el.style.fontStyle = cs.fontStyle
   el.style.textDecorationLine = cs.textDecorationLine || cs.textDecoration
   el.style.textAlign = cs.textAlign
-  if (parseFloat(cs.borderTopWidth) > 0 && cs.borderTopStyle !== 'none') {
+  const pageBreak = live.classList.contains(REPORT_PAGE_BREAK_CLASS)
+  if (!pageBreak && parseFloat(cs.borderTopWidth) > 0 && cs.borderTopStyle !== 'none') {
     el.style.borderTopWidth = cs.borderTopWidth
     el.style.borderTopStyle = cs.borderTopStyle
   }
-  if (parseFloat(cs.paddingLeft) > 0) {
+  if (!pageBreak && parseFloat(cs.paddingLeft) > 0) {
     el.style.paddingLeft = cs.paddingLeft
   }
   // Carries the layout's intended .docx point size (set via the `pt()` helper in
@@ -483,6 +498,42 @@ export function PreviewPage() {
     detectFormatState()
   }
 
+  const applyPageBreak = () => {
+    const root = docRef.current
+    if (!root) return
+    root.focus()
+    const sel = window.getSelection()
+    if (sel && savedRangeRef.current) {
+      sel.removeAllRanges()
+      sel.addRange(savedRangeRef.current)
+    }
+    const inserted = document.execCommand(
+      'insertHTML',
+      false,
+      `<hr class="${REPORT_PAGE_BREAK_CLASS}">`,
+    )
+    if (!inserted) {
+      const range =
+        sel && sel.rangeCount > 0 && sel.anchorNode && root.contains(sel.anchorNode)
+          ? sel.getRangeAt(0)
+          : savedRangeRef.current
+      const hr = document.createElement('hr')
+      hr.className = REPORT_PAGE_BREAK_CLASS
+      if (range && root.contains(range.commonAncestorContainer)) {
+        const insertAt = range.cloneRange()
+        insertAt.collapse(true)
+        insertAt.insertNode(hr)
+        insertAt.setStartAfter(hr)
+        insertAt.collapse(true)
+        sel?.removeAllRanges()
+        sel?.addRange(insertAt)
+      } else {
+        root.appendChild(hr)
+      }
+    }
+    saveSelection()
+  }
+
   return (
     <div className="space-y-4 pb-8">
       <div className="no-print flex flex-wrap items-center gap-2">
@@ -522,6 +573,7 @@ export function PreviewPage() {
             onFormat={applyFormat}
             onFontSize={applyFontSize}
             onLineHeight={applyLineHeight}
+            onPageBreak={applyPageBreak}
           />
         ) : null}
       </div>

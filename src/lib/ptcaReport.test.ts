@@ -4,10 +4,12 @@ import {
   accessShortCode,
   ptcaCommentSentence,
   ptcaContrastText,
+  LONGEST_INVENTORY_LABEL,
   ptcaInventoryBlocks,
   ptcaProcedureNarrative,
   ptcaTitle,
   targetVesselsLesions,
+  targetVesselsShort,
 } from '@/lib/ptcaReport'
 import type { AngioFinding, Procedure } from '@/types/procedure'
 
@@ -168,7 +170,7 @@ describe('PTCA handwritten report', () => {
   })
 
   it('lists a single target vessel with stenosis', () => {
-    expect(targetVesselsLesions(hameed())).toBe('LAD (80%)')
+    expect(targetVesselsLesions(hameed())).toBe('LAD Thrombotic (80%)')
   })
 
   it('joins two target vessels with and', () => {
@@ -202,6 +204,14 @@ describe('PTCA handwritten report', () => {
     expect(targetVesselsLesions(p)).toBe('LAD (80–90%)')
   })
 
+  it('places lesion features between the vessel and stenosis', () => {
+    const p = hameed()
+    p.baselineAngio = [
+      finding({ stenosis: 99, isTarget: true, features: ['diffuse', 'calcific'] }),
+    ]
+    expect(targetVesselsLesions(p)).toBe('LAD Diffuse, Calcific (99%)')
+  })
+
   it('groups inventory under PTCA → vessel for each treated vessel', () => {
     const blocks = ptcaInventoryBlocks(hameed())
     expect(blocks).toHaveLength(1)
@@ -210,9 +220,12 @@ describe('PTCA handwritten report', () => {
     expect(blocks[0].lines.find((l) => l.label === 'Catheter')?.value).toBe('6F EBU 3.5')
     expect(blocks[0].lines.find((l) => l.label === 'Guide wire')?.value).toBe('0.014" Runthrough NS Floppy')
     expect(blocks[0].lines.find((l) => l.label === 'Pre dilatation balloon')?.value).toBe(
-      '2.5x12mm Accuforce NC @ 14, 16, 16 atm, 3.5x12mm Accuforce NC @ 18, 18, 18 atm',
+      '2.5x12mm Accuforce NC @ 14, 16, 16 atm\n3.5x12mm Accuforce NC @ 18, 18, 18 atm',
     )
     expect(blocks[0].lines.find((l) => l.label === 'Stent')?.value).toBe('3.5 x 38mm Xience Sierra @ 12 atm')
+    expect(blocks[0].lines.find((l) => l.label === 'Post dilatation balloon')?.value).toBe(
+      '3.5x12mm Accuforce NC @ 20, 20, 20, 20, 22, 22 atm\n3.75x12mm Apex NC @ 16, 16, 16, 16 atm',
+    )
     expect(blocks[0].lines.map((l) => l.label)).toEqual([
       'Sheath',
       'Catheter',
@@ -221,6 +234,12 @@ describe('PTCA handwritten report', () => {
       'Stent',
       'Post dilatation balloon',
     ])
+  })
+
+  it('uses Post dilatation balloon as the longest inventory label for colon alignment', () => {
+    const labels = ptcaInventoryBlocks(hameed())[0].lines.map((l) => l.label)
+    expect(labels.every((label) => label.length <= LONGEST_INVENTORY_LABEL.length)).toBe(true)
+    expect(LONGEST_INVENTORY_LABEL).toBe('Post dilatation balloon')
   })
 
   it('fills thrombus aspiration, microcatheter and guide extension on the report', () => {
@@ -263,10 +282,46 @@ describe('PTCA handwritten report', () => {
     expect(lines.find((l) => l.label === 'Thrombus aspiration')?.value).toBe('Export 6F')
     expect(lines.find((l) => l.label === 'Microcatheter')?.value).toBe('Finecross 1.8F')
     expect(lines.find((l) => l.label === 'Guide extension')?.value).toBe('GuideLiner 6F')
+    expect(lines.every((l) => l.label.length <= LONGEST_INVENTORY_LABEL.length)).toBe(true)
     const note = ptcaProcedureNarrative(p)
     expect(note).toContain('Thrombus aspiration was performed using Export 6F')
     expect(note).toContain('A Finecross 1.8F microcatheter was used')
     expect(note).toContain('A GuideLiner 6F guide extension was used')
+  })
+
+  it('prints LMCA POT after Post dilatation balloon', () => {
+    const p = hameed()
+    p.events = [
+      ...p.events,
+      {
+        id: 'pot1',
+        at: 9,
+        kind: 'lmcaPot',
+        data: {
+          name: 'NC Sapphire',
+          type: 'non-compliant',
+          diameterMm: 4.0,
+          lengthMm: 8,
+          vessel: 'LAD',
+          segment: 'ostial',
+          inflations: [{ atm: 18, seconds: 15 }],
+        },
+      },
+    ]
+    const lines = ptcaInventoryBlocks(p)[0].lines
+    expect(lines.map((l) => l.label)).toEqual([
+      'Sheath',
+      'Catheter',
+      'Guide wire',
+      'Pre dilatation balloon',
+      'Stent',
+      'Post dilatation balloon',
+      'LMCA POT',
+    ])
+    expect(lines.find((l) => l.label === 'LMCA POT')?.value).toBe('4.0x8mm NC Sapphire @ 18 atm')
+    expect(ptcaProcedureNarrative(p)).toContain(
+      'LMCA POT was performed with a 4.0x8mm NC Sapphire balloon at 18atm',
+    )
   })
 
   it('prints a separate inventory block for each target vessel', () => {
@@ -301,7 +356,7 @@ describe('PTCA handwritten report', () => {
     ]
     const blocks = ptcaInventoryBlocks(p)
     expect(blocks.map((b) => b.heading)).toEqual(['PTCA → LAD', 'PTCA → RCA'])
-    expect(blocks[1].lines.find((l) => l.label === 'Sheath')?.value).toBe('')
+    expect(blocks[1].lines.find((l) => l.label === 'Sheath')?.value).toBe('6F Glidesheath Slender')
     expect(blocks[1].lines.find((l) => l.label === 'Guide wire')?.value).toBe('0.014" Sion')
     expect(blocks[1].lines.find((l) => l.label === 'Stent')?.value).toBe('3.0 x 28mm Xience Sierra @ 14 atm')
   })
@@ -342,6 +397,33 @@ describe('PTCA handwritten report', () => {
     expect(ptcaInventoryBlocks(p).map((b) => b.heading)).toEqual(['PTCA → LCX'])
     p.vesselPciKind = { LCX: 'POBA' }
     expect(ptcaInventoryBlocks(p).map((b) => b.heading)).toEqual(['POBA → LCX'])
+  })
+
+  it('headlines LMCA combined with LAD as PTCA → LMCA - LAD', () => {
+    const p = emptyProcedure('ptca-template')
+    p.baselineAngio = [finding({ vessel: 'LMCA', stenosis: 90, isTarget: true })]
+    p.vesselCombined = { LMCA: { on: true, vessels: ['LAD'] } }
+    expect(ptcaInventoryBlocks(p).map((b) => b.heading)).toEqual(['PTCA → LMCA - LAD'])
+    expect(targetVesselsShort(p)).toBe('LM - LAD')
+    expect(ptcaCommentSentence(p)).toBe('PTCA OF LM - LAD WAS DONE SUCCESSFULLY')
+    p.vesselCombined = { LMCA: { on: false, vessels: ['LAD'] } }
+    expect(ptcaInventoryBlocks(p).map((b) => b.heading)).toEqual(['PTCA → LMCA'])
+  })
+
+  it('prints stenosis for combined partner vessels on the target line', () => {
+    const p = emptyProcedure('ptca-template')
+    p.baselineAngio = [
+      finding({ id: 'lm', vessel: 'LMCA', stenosis: 90, isTarget: true, features: [] }),
+      finding({ id: 'lad', vessel: 'LAD', stenosis: 80, isTarget: true, features: [] }),
+    ]
+    p.vesselCombined = { LMCA: { on: true, vessels: ['LAD'] } }
+    expect(targetVesselsLesions(p)).toBe('LM (90%) and LAD (80%)')
+  })
+
+  it('keeps combined off until Yes is chosen even if partner vessels are stored', () => {
+    const p = emptyProcedure('ptca-template')
+    p.vesselCombined = { LMCA: { on: true, vessels: ['LAD', 'LCX'] } }
+    expect(ptcaInventoryBlocks(p).map((b) => b.heading)).toEqual(['PTCA → LMCA - LAD - LCX'])
   })
 
   it('writes the fill-in procedure note and DES comment', () => {
@@ -614,18 +696,85 @@ describe('PTCA handwritten report', () => {
     ]
     expect(ptcaProcedureNarrative(p)).toBe(
       [
-        'Patient was taken up for PTCA with informed consent, RRA access was taken.',
-        'Later LCA was cannulated with a 6F EBU 3.5 guiding Catheter.',
-        'And the OM1 lesion was crossed with a 0.014" Runthrough floppy guide wire and the lesion was predilated with a 2.0x10mm Ryurei balloon at 10,12,14atm.',
-        'Later a 2.5x16mm Adva Pro stent was deployed to the Proximal OM1 at 10atm.',
-        'The proximal, mid, distal part of the stent was post dilated with a 2.5x12mm Accuforce NC balloon at 14,14atm.',
-        'And the LAD lesion was crossed with a 0.014" Runthrough floppy guide wire and the lesion was predilated sequentially with a 2.0x10mm Ryurei balloon at 14,14,12atm and 2.5x16mm balloon at 14,16atm.',
-        'Later a 2.75x28mm Tetriflex stent was deployed to the Ostial to proximal LAD at 10atm.',
-        'The proximal, mid, distal part of the stent was post dilated with a 2.75x12mm Accuforce NC balloon at 14,16,14,18atm.',
-        'Check shoots revealed well deployed stent with no residual stenosis, no thrombus, no dissection with good vessel flow distally.',
-        'There was no procedure related complications.',
-      ].join(' '),
+        [
+          'Patient was taken up for PTCA with informed consent, RRA access was taken.',
+          'Later LCA was cannulated with a 6F EBU 3.5 guiding Catheter.',
+          'And the OM1 lesion was crossed with a 0.014" Runthrough floppy guide wire and the lesion was predilated with a 2.0x10mm Ryurei balloon at 10,12,14atm.',
+          'Later a 2.5x16mm Adva Pro stent was deployed to the Proximal OM1 at 10atm.',
+          'The proximal, mid, distal part of the stent was post dilated with a 2.5x12mm Accuforce NC balloon at 14,14atm.',
+        ].join(' '),
+        [
+          'And the LAD lesion was crossed with a 0.014" Runthrough floppy guide wire and the lesion was predilated sequentially with a 2.0x10mm Ryurei balloon at 14,14,12atm and 2.5x16mm balloon at 14,16atm.',
+          'Later a 2.75x28mm Tetriflex stent was deployed to the Ostial to proximal LAD at 10atm.',
+          'The proximal, mid, distal part of the stent was post dilated with a 2.75x12mm Accuforce NC balloon at 14,16,14,18atm.',
+          'Check shoots revealed well deployed stent with no residual stenosis, no thrombus, no dissection with good vessel flow distally.',
+          'There was no procedure related complications.',
+        ].join(' '),
+      ].join('\n\n'),
     )
+  })
+
+  it('starts a new paragraph for each subsequent vessel, keeping check shoots on the last', () => {
+    const p = emptyProcedure('ptca-template')
+    p.access = { ...p.access, site: 'radial', side: 'right' }
+    p.baselineAngio = [
+      finding({ id: 'f1', vessel: 'LAD', stenosis: 90, isTarget: true }),
+      finding({ id: 'f2', vessel: 'RCA', stenosis: 80, isTarget: true, features: [] }),
+    ]
+    p.events = [
+      { id: 'g1', at: 1, kind: 'guideCatheter', data: { device: 'EBU', curve: '3.5', size: '6F', vessel: 'LAD' } },
+      {
+        id: 'w1',
+        at: 2,
+        kind: 'guidewire',
+        data: { name: 'BMW', type: 'workhorse', vessel: 'LAD', parkedSegment: 'distal' },
+      },
+      {
+        id: 's1',
+        at: 3,
+        kind: 'stent',
+        data: {
+          name: 'Xience',
+          type: 'DES',
+          diameterMm: 3,
+          lengthMm: 28,
+          vessel: 'LAD',
+          segment: 'proximal',
+          deployedAtAtm: 12,
+          seconds: 20,
+        },
+      },
+      { id: 'g2', at: 4, kind: 'guideCatheter', data: { device: 'JR', curve: '4.0', size: '6F', vessel: 'RCA' } },
+      {
+        id: 'w2',
+        at: 5,
+        kind: 'guidewire',
+        data: { name: 'Sion', type: 'workhorse', vessel: 'RCA', parkedSegment: 'distal' },
+      },
+      {
+        id: 's2',
+        at: 6,
+        kind: 'stent',
+        data: {
+          name: 'Xience',
+          type: 'DES',
+          diameterMm: 3,
+          lengthMm: 18,
+          vessel: 'RCA',
+          segment: 'mid',
+          deployedAtAtm: 14,
+          seconds: 20,
+        },
+      },
+    ]
+    const paragraphs = ptcaProcedureNarrative(p).split('\n\n')
+    expect(paragraphs).toHaveLength(2)
+    expect(paragraphs[0]).toContain('And the LAD lesion was crossed')
+    expect(paragraphs[0]).not.toContain('RCA')
+    expect(paragraphs[1].startsWith('Later RCA was cannulated')).toBe(true)
+    expect(paragraphs[1]).toContain('And the RCA lesion was crossed')
+    expect(paragraphs[1]).toContain('Check shoots revealed')
+    expect(paragraphs[0]).not.toContain('Check shoots')
   })
 
   it('prefers Access contrast for the report', () => {

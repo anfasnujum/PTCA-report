@@ -1,14 +1,16 @@
 import {
   asSegments,
+  featureLabel,
   fmtMm,
   formatStenosis,
   isRightCoronary,
   stenosisModeOf,
   timiRoman,
+  VESSELS,
   vesselReportName,
 } from '@/lib/format'
 import { parseContrastLabel } from '@/lib/access'
-import { wireSizeOf } from '@/lib/constants'
+import { ANGIO_FEATURES, wireSizeOf } from '@/lib/constants'
 import { pciLesionForVessel } from '@/lib/pciLesion'
 import { coronaryFromDevice, formatGuideLabel, normalizeGuideCatheter } from '@/lib/guideCatheter'
 import { hasStentEvents } from '@/lib/noteTemplate'
@@ -32,9 +34,13 @@ import type {
 export type InventoryLine = { label: string; value: string }
 
 export type InventoryBlock = {
+  vessel?: Vessel
   heading: string
   lines: InventoryLine[]
 }
+
+/** Widest inventory label; used so colons stay aligned even when this row is omitted. */
+export const LONGEST_INVENTORY_LABEL = 'Post dilatation balloon'
 
 const EMPTY_INVENTORY_LINES: InventoryLine[] = [
   { label: 'Sheath', value: '' },
@@ -54,21 +60,38 @@ function capitalise(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
+function targetFeaturePhrase(f: AngioFinding): string {
+  const known = new Set<string>(ANGIO_FEATURES)
+  const ordered = [
+    ...ANGIO_FEATURES.filter((feat) => f.features.includes(feat)),
+    ...f.features.filter((feat) => !known.has(feat)),
+  ]
+  return ordered.map(featureLabel).join(', ')
+}
+
 function targetLesionLabel(vessel: Vessel, f?: AngioFinding): string {
   const code = shortVesselCode(f ? vesselReportName(f) : vessel)
   if (!f) return code
   if (!f.isTarget && stenosisModeOf(f) === 'single' && f.stenosis === 0) return code
-  return `${code} (${formatStenosis(f)})`
+  const feats = targetFeaturePhrase(f)
+  const stenosis = `(${formatStenosis(f)})`
+  return feats ? `${code} ${feats} ${stenosis}` : `${code} ${stenosis}`
 }
 
 function pciTargetVessels(procedure: Procedure): Vessel[] {
-  const ordered = pciVessels(procedure)
-  const seen = new Set(ordered)
+  const ordered: Vessel[] = []
+  const seen = new Set<Vessel>()
+  const add = (vessel?: Vessel) => {
+    if (!vessel || seen.has(vessel)) return
+    seen.add(vessel)
+    ordered.push(vessel)
+  }
+  for (const vessel of pciVessels(procedure)) {
+    add(vessel)
+    for (const partner of combinedProcessVessels(procedure, vessel)) add(partner)
+  }
   for (const f of procedure.baselineAngio) {
-    if (f.isTarget && !seen.has(f.vessel)) {
-      seen.add(f.vessel)
-      ordered.push(f.vessel)
-    }
+    if (f.isTarget) add(f.vessel)
   }
   return ordered
 }
@@ -144,8 +167,8 @@ function guideInventory(g: GuideCatheter): string {
   return `${guide.size} ${formatGuideLabel(guide)}`
 }
 
-function uniqueJoin(values: string[]): string {
-  return values.filter(Boolean).join(', ')
+function inventoryJoin(values: string[]): string {
+  return values.filter(Boolean).join('\n')
 }
 
 function coronaryOf(vessel: Vessel): 'left' | 'right' {
@@ -169,6 +192,7 @@ function pciVessels(procedure: Procedure): Vessel[] {
       case 'predilatation':
       case 'postdilatation':
       case 'stent':
+      case 'lmcaPot':
       case 'imaging':
         add(e.data.vessel)
         break
@@ -182,6 +206,9 @@ function pciVessels(procedure: Procedure): Vessel[] {
   }
   for (const vessel of Object.keys(procedure.vesselPciKind ?? {}) as Vessel[]) {
     add(vessel)
+  }
+  for (const vessel of Object.keys(procedure.vesselCombined ?? {}) as Vessel[]) {
+    if (procedure.vesselCombined?.[vessel]?.on) add(vessel)
   }
   return ordered
 }
@@ -216,6 +243,7 @@ type VesselHardware = {
   predils: BalloonUse[]
   stents: StentUse[]
   postdils: BalloonUse[]
+  pots: BalloonUse[]
   imaging: Extract<ProcedureEvent, { kind: 'imaging' }>['data'][]
 }
 
@@ -248,6 +276,9 @@ function hardwareForVessel(procedure: Procedure, vessel: Vessel): VesselHardware
     postdils: eventsOf(procedure.events, 'postdilatation')
       .map((e) => e.data)
       .filter((d) => d.vessel === vessel),
+    pots: eventsOf(procedure.events, 'lmcaPot')
+      .map((e) => e.data)
+      .filter((d) => d.vessel === vessel),
     imaging: eventsOf(procedure.events, 'imaging')
       .map((e) => e.data)
       .filter((d) => d.vessel === vessel),
@@ -258,25 +289,23 @@ const OPTIONAL_INVENTORY_LABELS = new Set([
   'Thrombus aspiration',
   'Microcatheter',
   'Guide extension',
+  'LMCA POT',
 ])
 
-function inventoryLinesFor(
-  procedure: Procedure,
-  hw: VesselHardware | null,
-  includeSheath: boolean,
-): InventoryLine[] {
+function inventoryLinesFor(procedure: Procedure, hw: VesselHardware | null): InventoryLine[] {
   const lines = !hw
     ? EMPTY_INVENTORY_LINES.map((line) => ({ ...line }))
     : [
-        { label: 'Sheath', value: includeSheath ? sheathInventoryValue(procedure.access) : '' },
-        { label: 'Catheter', value: uniqueJoin(hw.guides.map(guideInventory)) },
-        { label: 'Thrombus aspiration', value: uniqueJoin(hw.aspirations.map(namedInventory)) },
-        { label: 'Microcatheter', value: uniqueJoin(hw.microcatheters.map(namedInventory)) },
-        { label: 'Guide wire', value: uniqueJoin(hw.wires.map(wireInventory)) },
-        { label: 'Guide extension', value: uniqueJoin(hw.extensions.map(namedInventory)) },
-        { label: 'Pre dilatation balloon', value: uniqueJoin(hw.predils.map(balloonInventory)) },
-        { label: 'Stent', value: uniqueJoin(hw.stents.map(stentInventory)) },
-        { label: 'Post dilatation balloon', value: uniqueJoin(hw.postdils.map(balloonInventory)) },
+        { label: 'Sheath', value: sheathInventoryValue(procedure.access) },
+        { label: 'Catheter', value: inventoryJoin(hw.guides.map(guideInventory)) },
+        { label: 'Thrombus aspiration', value: inventoryJoin(hw.aspirations.map(namedInventory)) },
+        { label: 'Microcatheter', value: inventoryJoin(hw.microcatheters.map(namedInventory)) },
+        { label: 'Guide wire', value: inventoryJoin(hw.wires.map(wireInventory)) },
+        { label: 'Guide extension', value: inventoryJoin(hw.extensions.map(namedInventory)) },
+        { label: 'Pre dilatation balloon', value: inventoryJoin(hw.predils.map(balloonInventory)) },
+        { label: 'Stent', value: inventoryJoin(hw.stents.map(stentInventory)) },
+        { label: 'Post dilatation balloon', value: inventoryJoin(hw.postdils.map(balloonInventory)) },
+        { label: 'LMCA POT', value: inventoryJoin(hw.pots.map(balloonInventory)) },
       ]
   return lines.filter((line) => line.value || !OPTIONAL_INVENTORY_LABELS.has(line.label))
 }
@@ -285,8 +314,21 @@ export function vesselPciKind(procedure: Procedure, vessel: Vessel): VesselPciKi
   return procedure.vesselPciKind?.[vessel] === 'POBA' ? 'POBA' : 'PTCA'
 }
 
-export function pciInventoryHeading(kind: VesselPciKind, vessel?: Vessel): string {
-  return vessel ? `${kind} → ${vessel}` : `${kind} →`
+export function combinedProcessVessels(procedure: Procedure, vessel: Vessel): Vessel[] {
+  const spec = procedure.vesselCombined?.[vessel]
+  if (!spec?.on) return []
+  const chosen = new Set(spec.vessels.filter((item) => item && item !== vessel))
+  return VESSELS.filter((item) => chosen.has(item))
+}
+
+export function pciInventoryHeading(
+  kind: VesselPciKind,
+  vessel?: Vessel,
+  combined: readonly Vessel[] = [],
+): string {
+  if (!vessel) return `${kind} →`
+  const names = [vessel, ...combined.filter((item) => item && item !== vessel)]
+  return `${kind} → ${names.join(' - ')}`
 }
 
 export function ptcaInventoryBlocks(procedure: Procedure): InventoryBlock[] {
@@ -295,15 +337,20 @@ export function ptcaInventoryBlocks(procedure: Procedure): InventoryBlock[] {
     return [
       {
         heading: pciInventoryHeading('PTCA'),
-        lines: inventoryLinesFor(procedure, null, true),
+        lines: inventoryLinesFor(procedure, null),
       },
     ]
   }
-  return vessels.map((vessel, index) => {
+  return vessels.map((vessel) => {
     const hw = hardwareForVessel(procedure, vessel)
     return {
-      heading: pciInventoryHeading(vesselPciKind(procedure, vessel), hw.vessel),
-      lines: inventoryLinesFor(procedure, hw, index === 0),
+      vessel,
+      heading: pciInventoryHeading(
+        vesselPciKind(procedure, vessel),
+        hw.vessel,
+        combinedProcessVessels(procedure, vessel),
+      ),
+      lines: inventoryLinesFor(procedure, hw),
     }
   })
 }
@@ -327,7 +374,7 @@ export function ptcaComplicationsText(outcome: Outcome): string {
 
 export function ptcaAdjuvantsText(peri: Periprocedural): string {
   const bits: string[] = []
-  if (peri.heparinIU !== '') bits.push(`Heparin ${peri.heparinIU} units`)
+  if (peri.heparinIU !== '') bits.push(`Heparin ${peri.heparinIU} IU`)
   if (peri.gp2b3a && peri.gp2b3a !== 'none') bits.push(`GP IIb/IIIa: ${peri.gp2b3a}`)
   return bits.length ? bits.join(', ') : '____'
 }
@@ -477,6 +524,9 @@ function vesselParagraph(hw: VesselHardware): string {
       `The proximal, mid, distal part of the stent was post dilated with ${listedBalloons(hw.postdils)}.`,
     )
   }
+  if (hw.pots.length) {
+    sentences.push(`LMCA POT was performed with ${listedBalloons(hw.pots)}.`)
+  }
   for (const i of hw.imaging) {
     const verb = i.finding ? ` demonstrated ${i.finding}` : ' was performed'
     sentences.push(`${i.modality} of the ${i.vessel}${verb}.`)
@@ -510,31 +560,49 @@ export function checkShootsSentence(procedure: Procedure, hasStent: boolean): st
   return o.sideBranchCompromise ? `${core} Side-branch compromise was noted.` : core
 }
 
-export function ptcaProcedureNarrative(procedure: Procedure): string {
+export function ptcaProcedureParagraphs(procedure: Procedure): string[] {
   const access = accessShortCode(procedure.access)
-  const parts: string[] = [
+  const hardware = pciVessels(procedure).map((v) => hardwareForVessel(procedure, v))
+  const paragraphs: string[] = []
+  let current: string[] = [
     `Patient was taken up for PTCA with informed consent, ${access} access was taken.`,
   ]
   let lastSide: 'left' | 'right' | null = null
-  const hardware = pciVessels(procedure).map((v) => hardwareForVessel(procedure, v))
+  let startedVessel = false
+
   for (const hw of hardware) {
+    const sentences: string[] = []
     const guide = hw.guides[0]
     if (guide) {
       const side = guideSide(guide, hw.vessel)
       if (side !== lastSide) {
-        parts.push(cannulationSentence(guide))
+        sentences.push(cannulationSentence(guide))
         lastSide = side
       }
     }
     const body = vesselParagraph(hw)
-    if (body) parts.push(body)
+    if (body) sentences.push(body)
+    if (!sentences.length) continue
+    if (startedVessel) {
+      paragraphs.push(current.filter(Boolean).join(' '))
+      current = sentences
+    } else {
+      current.push(...sentences)
+      startedVessel = true
+    }
   }
-  if (hardware.some((hw) => hw.stents.length || hw.predils.length || hw.postdils.length)) {
-    parts.push(checkShootsSentence(procedure, hardware.some((hw) => hw.stents.length)))
+
+  if (hardware.some((hw) => hw.stents.length || hw.predils.length || hw.postdils.length || hw.pots.length)) {
+    current.push(checkShootsSentence(procedure, hardware.some((hw) => hw.stents.length)))
   }
   const comps = procedure.outcome.complications.filter((c) => c && c !== 'none')
-  parts.push(
+  current.push(
     comps.length ? `Complications: ${comps.join(', ')}.` : 'There was no procedure related complications.',
   )
-  return parts.filter(Boolean).join(' ')
+  paragraphs.push(current.filter(Boolean).join(' '))
+  return paragraphs.filter(Boolean)
+}
+
+export function ptcaProcedureNarrative(procedure: Procedure): string {
+  return ptcaProcedureParagraphs(procedure).join('\n\n')
 }

@@ -21,6 +21,8 @@ export function eventTitle(kind: ProcedureEvent['kind']): string {
       return 'Stent'
     case 'postdilatation':
       return 'Post-dil'
+    case 'lmcaPot':
+      return 'LMCA POT'
     case 'imaging':
       return 'Imaging'
     case 'adjunct':
@@ -43,7 +45,8 @@ export function summarizeEvent(e: ProcedureEvent): string {
     case 'guidewire':
       return `${wireSizeOf(e.data.size)} ${e.data.name} · ${e.data.vessel}`
     case 'predilatation':
-    case 'postdilatation': {
+    case 'postdilatation':
+    case 'lmcaPot': {
       const n = e.data.inflations.length
       const atm = e.data.inflations[0]?.atm
       const loc = locationShort(e.data.vessel, e.data.segment)

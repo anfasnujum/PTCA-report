@@ -435,6 +435,8 @@ export function seedCatalogue(now = Date.now()): CatalogueItem[] {
     ['Supraflex Cruz', 'DES'],
     ['BioMime', 'DES'],
     ['METAFOR', 'DES'],
+    ['Evermax', 'DES'],
+    ['Advapro', 'DES'],
     ['Resolute Onyx', 'DES'],
     ['Promus Premier', 'DES'],
     ['Orsiro', 'DES'],

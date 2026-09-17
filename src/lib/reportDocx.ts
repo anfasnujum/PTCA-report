@@ -36,8 +36,14 @@ type RunStyle = { bold?: boolean; italics?: boolean; underline?: boolean; size?:
 type Alignment = (typeof AlignmentType)[keyof typeof AlignmentType]
 type BlockContext = { align?: Alignment; indent?: number; style: RunStyle; pageBreakBefore?: boolean }
 
+export const REPORT_PAGE_BREAK_CLASS = 'report-page-break'
+
 function hasClass(el: Element, name: string): boolean {
   return el.classList?.contains(name) ?? false
+}
+
+function isPageBreak(el: Element): boolean {
+  return hasClass(el, REPORT_PAGE_BREAK_CLASS)
 }
 
 function inlineStyle(el: Element): CSSStyleDeclaration | undefined {
@@ -137,6 +143,9 @@ function mergeContext(ctx: BlockContext, el: Element): BlockContext {
 }
 
 function collectRuns(node: Node, style: RunStyle, runs: TextRun[]): void {
+  if (node.nodeType === Node.ELEMENT_NODE && hasClass(node as Element, 'inventory-label-sizer')) {
+    return
+  }
   if (node.nodeType === Node.TEXT_NODE) {
     const text = node.textContent ?? ''
     if (text) {
@@ -181,11 +190,21 @@ function elementToTableCell(el: Element, style: RunStyle, widthDxa?: number): Ta
 
 function elementToTable(tableEl: Element, style: RunStyle): Table | null {
   const rows: TableRow[] = []
+  const inventoryPair = hasClass(tableEl, 'inventory-pair')
   for (const tr of Array.from(tableEl.querySelectorAll('tr'))) {
     const cellEls = Array.from(tr.children).filter((c) => ['TD', 'TH'].includes(c.tagName))
     if (!cellEls.length) continue
-    const width = Math.floor(PAGE_CONTENT_WIDTH_DXA / cellEls.length)
-    rows.push(new TableRow({ children: cellEls.map((c) => elementToTableCell(c, style, width)) }))
+    const widths =
+      inventoryPair && cellEls.length === 3
+        ? [3600, 280, PAGE_CONTENT_WIDTH_DXA - 3880]
+        : inventoryPair && cellEls.length === 2
+          ? [4000, PAGE_CONTENT_WIDTH_DXA - 4000]
+          : cellEls.map(() => Math.floor(PAGE_CONTENT_WIDTH_DXA / cellEls.length))
+    rows.push(
+      new TableRow({
+        children: cellEls.map((c, i) => elementToTableCell(c, style, widths[i])),
+      }),
+    )
   }
   if (!rows.length) return null
   return new Table({
@@ -198,7 +217,7 @@ function elementToTable(tableEl: Element, style: RunStyle): Table | null {
 const BLOCK_TAGS = new Set(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
 const CONTAINER_TAGS = new Set(['div', 'section', 'article', 'header', 'footer'])
 
-function walkBlocks(container: Node, ctx: BlockContext, out: (Paragraph | Table)[]): void {
+function walkBlocks(container: Node, ctx: BlockContext, out: (Paragraph | Table)[]): boolean {
   let pageBreakBefore = Boolean(ctx.pageBreakBefore)
   for (const child of Array.from(container.childNodes)) {
     if (child.nodeType !== Node.ELEMENT_NODE) continue
@@ -206,12 +225,19 @@ function walkBlocks(container: Node, ctx: BlockContext, out: (Paragraph | Table)
     const tag = el.tagName.toLowerCase()
 
     if (tag === 'table') {
+      if (pageBreakBefore) {
+        out.push(new Paragraph({ pageBreakBefore: true, children: [] }))
+        pageBreakBefore = false
+      }
       const table = elementToTable(el, ctx.style)
       if (table) out.push(table)
-      pageBreakBefore = false
       continue
     }
     if (tag === 'hr') {
+      if (isPageBreak(el)) {
+        pageBreakBefore = true
+        continue
+      }
       out.push(
         new Paragraph({
           border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: '000000' } },
@@ -221,7 +247,7 @@ function walkBlocks(container: Node, ctx: BlockContext, out: (Paragraph | Table)
       continue
     }
     if (CONTAINER_TAGS.has(tag)) {
-      if (hasTopRule(el)) {
+      if (hasTopRule(el) && !isPageBreak(el)) {
         out.push(
           new Paragraph({
             border: { top: { style: BorderStyle.SINGLE, size: 6, color: '000000' } },
@@ -231,9 +257,8 @@ function walkBlocks(container: Node, ctx: BlockContext, out: (Paragraph | Table)
         )
       }
       const nestedCtx = mergeContext({ ...ctx, pageBreakBefore: false }, el)
-      nestedCtx.pageBreakBefore = hasClass(el, 'report-page-break') || pageBreakBefore
-      walkBlocks(el, nestedCtx, out)
-      pageBreakBefore = false
+      nestedCtx.pageBreakBefore = isPageBreak(el) || pageBreakBefore
+      pageBreakBefore = walkBlocks(el, nestedCtx, out)
       continue
     }
     if (tag === 'ul' || tag === 'ol') {
@@ -248,12 +273,14 @@ function walkBlocks(container: Node, ctx: BlockContext, out: (Paragraph | Table)
         collectRuns(li, liCtx.style, runs)
         out.push(
           new Paragraph({
+            pageBreakBefore: i === 0 ? pageBreakBefore : false,
             indent: { left: liCtx.indent ?? 360 },
             alignment: liCtx.align,
             spacing: { after: 40, line: 216 },
             children: runs,
           }),
         )
+        pageBreakBefore = false
       })
       continue
     }
@@ -261,10 +288,11 @@ function walkBlocks(container: Node, ctx: BlockContext, out: (Paragraph | Table)
       const nextCtx = mergeContext(ctx, el)
       const runs: TextRun[] = []
       collectRuns(el, nextCtx.style, runs)
+      const breakBefore = pageBreakBefore || isPageBreak(el)
       if (runs.length) {
         out.push(
           new Paragraph({
-            pageBreakBefore,
+            pageBreakBefore: breakBefore,
             alignment: nextCtx.align,
             indent: nextCtx.indent ? { left: nextCtx.indent } : undefined,
             spacing: { after: 40, line: 216 },
@@ -272,9 +300,12 @@ function walkBlocks(container: Node, ctx: BlockContext, out: (Paragraph | Table)
           }),
         )
         pageBreakBefore = false
+      } else if (isPageBreak(el)) {
+        pageBreakBefore = true
       }
     }
   }
+  return pageBreakBefore
 }
 
 export function htmlToDocxChildren(html: string): (Paragraph | Table)[] {

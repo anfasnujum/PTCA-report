@@ -43,7 +43,8 @@ export function clearPciLesion(findings: AngioFinding[], vessel: Vessel): AngioF
 export function upsertPciLesion(
   findings: AngioFinding[],
   vessel: Vessel,
-  next: Pick<AngioFinding, 'stenosis' | 'stenosisMode' | 'stenosisRange' | 'stenosisTo'>,
+  next: Pick<AngioFinding, 'stenosis' | 'stenosisMode' | 'stenosisRange' | 'stenosisTo'> &
+    Partial<Pick<AngioFinding, 'features'>>,
 ): AngioFinding[] {
   const existing = pciLesionForVessel(findings, vessel)
   if (!existing) {
@@ -52,6 +53,7 @@ export function upsertPciLesion(
       {
         ...draftPciLesion(vessel, next.stenosis),
         ...next,
+        features: next.features ?? [],
         findingType: 'stenosis',
         isTarget: true,
       },
@@ -62,6 +64,7 @@ export function upsertPciLesion(
       ? {
           ...existing,
           ...next,
+          features: next.features ?? existing.features,
           findingType: existing.findingType === 'normal' ? 'stenosis' : existing.findingType,
           isTarget: true,
         }

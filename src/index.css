@@ -69,9 +69,67 @@ body {
    print doesn't have, so grow max-width by that padding here too - otherwise
    the padding eats into the 18.46cm and text wraps sooner on screen than it
    does when printed. */
-.report-doc {
-  max-width: calc(18.46cm + 3rem);
-  margin-inline: auto;
+.report-doc table.inventory-pair,
+.report-doc table.inventory-pair td {
+  border: none !important;
+}
+.report-doc table.inventory-pair td {
+  padding: 0;
+  vertical-align: top;
+}
+.report-doc table.inventory-pair td.inventory-label,
+.report-doc table.inventory-pair td:first-child {
+  width: 1%;
+  white-space: nowrap;
+  padding-right: 0.4em;
+  font-weight: 600;
+}
+.report-doc table.inventory-pair td.inventory-colon {
+  width: 1%;
+  white-space: nowrap;
+  padding-right: 0.5em;
+}
+.report-doc table.inventory-pair .inventory-label-sizer {
+  display: block;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  white-space: nowrap;
+}
+
+/* Visible in the editor/preview only — print/docx still treat these as real
+   page breaks. The PTCA PROCEDURE block uses the same class. */
+.report-doc .report-page-break {
+  position: relative;
+  border-top: 1.5px dashed var(--color-muted);
+  margin-top: 1.35rem;
+  padding-top: 1.35rem;
+}
+.report-doc hr.report-page-break {
+  display: block;
+  width: 100%;
+  height: 0;
+  margin: 1.35rem 0;
+  padding: 0;
+  background: none;
+  border: none;
+  border-top: 1.5px dashed var(--color-muted);
+}
+.report-doc .report-page-break::before {
+  content: "Page break";
+  position: absolute;
+  top: -0.65rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-card);
+  color: var(--color-muted);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  padding: 0 0.45rem;
+  text-transform: uppercase;
 }
 
 @media print {
@@ -115,5 +173,15 @@ body {
   .report-page-break {
     break-before: page;
     page-break-before: always;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .report-page-break::before {
+    content: none !important;
+  }
+  hr.report-page-break {
+    visibility: hidden;
+    height: 0 !important;
   }
 }

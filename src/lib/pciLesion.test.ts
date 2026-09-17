@@ -51,6 +51,16 @@ describe('PCI vessel lesion', () => {
     })
   })
 
+  it('keeps features when updating stenosis', () => {
+    const existing = { ...draftPciLesion('LAD', 80), features: ['diffuse'] }
+    const next = upsertPciLesion([existing], 'LAD', {
+      stenosis: 99,
+      stenosisMode: 'single',
+      features: ['diffuse'],
+    })
+    expect(next[0]).toMatchObject({ stenosis: 99, features: ['diffuse'], isTarget: true })
+  })
+
   it('clears the PCI lesion so the vessel is unselected', () => {
     const existing = draftPciLesion('LAD', 90)
     const other = finding({ id: 'rcx', vessel: 'RCA', stenosis: 80, isTarget: true })

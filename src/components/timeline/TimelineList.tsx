@@ -60,7 +60,7 @@ export function TimelineList({
                 onEdit={() => onEdit(e)}
                 onDelete={() => onDelete(e.id)}
                 onRepeat={
-                  e.kind === 'predilatation' || e.kind === 'postdilatation'
+                  e.kind === 'predilatation' || e.kind === 'postdilatation' || e.kind === 'lmcaPot'
                     ? () => onRepeat(e)
                     : undefined
                 }

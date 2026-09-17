@@ -20,7 +20,7 @@ export function lastLocation(
       if (lockedVessel && e.data.vessel !== lockedVessel) continue
       return { vessel: e.data.vessel, segment: target?.segment }
     }
-    if (e.kind === 'predilatation' || e.kind === 'postdilatation' || e.kind === 'stent') {
+    if (e.kind === 'predilatation' || e.kind === 'postdilatation' || e.kind === 'lmcaPot' || e.kind === 'stent') {
       if (lockedVessel && e.data.vessel !== lockedVessel) continue
       return { vessel: e.data.vessel, segment: e.data.segment }
     }

@@ -30,7 +30,8 @@ export function EventCard({
   })
   const startX = useRef(0)
   const [dx, setDx] = useState(0)
-  const balloon = event.kind === 'predilatation' || event.kind === 'postdilatation'
+  const balloon =
+    event.kind === 'predilatation' || event.kind === 'postdilatation' || event.kind === 'lmcaPot'
 
   return (
     <div className="relative">

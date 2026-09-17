@@ -19,6 +19,7 @@ import {
 import {
   STENOSIS_PRESETS,
   addCagCustomImpression,
+  mergeNumericOptions,
   nowHm,
   toggleCagAdvice,
   toggleCagImpression,
@@ -34,6 +35,8 @@ export function ResultPage() {
   const { id } = useParams()
   const [impressionDraft, setImpressionDraft] = useState('')
   const [adviceDraft, setAdviceDraft] = useState('')
+  const [addingHeparin, setAddingHeparin] = useState(false)
+  const [customHeparin, setCustomHeparin] = useState('')
   if (!current) return null
 
   const setOutcome = (patch: Partial<Outcome>) =>
@@ -213,6 +216,16 @@ export function ResultPage() {
 
   const resultGood =
     current.outcome.residualStenosis === 0 && current.outcome.finalTimiFlow === 3
+  const heparinIU = typeof current.periprocedural.heparinIU === 'number' ? current.periprocedural.heparinIU : 0
+  const heparinOptions = mergeNumericOptions(HEPARIN_PRESETS, [], heparinIU || undefined)
+
+  const addCustomHeparin = () => {
+    const n = Number(customHeparin.replace(/,/g, '').replace(/[^\d.]/g, ''))
+    if (!Number.isFinite(n) || n <= 0) return
+    setPeri({ heparinIU: Math.round(n) })
+    setCustomHeparin('')
+    setAddingHeparin(false)
+  }
 
   return (
     <div className="grid gap-5 pb-6 lg:grid-cols-2">
@@ -253,12 +266,45 @@ export function ResultPage() {
         </ChipScroller>
       </Section>
       <Section title="Heparin">
-        <NumberChips
-          values={HEPARIN_PRESETS}
-          value={typeof current.periprocedural.heparinIU === 'number' ? current.periprocedural.heparinIU : 0}
-          onChange={(heparinIU) => setPeri({ heparinIU })}
-          suffix=" IU"
-        />
+        <ChipScroller>
+          {heparinOptions.map((v) => (
+            <Chip
+              key={v}
+              className="min-h-8 px-2.5"
+              selected={heparinIU === v}
+              onClick={() => setPeri({ heparinIU: v })}
+            >
+              {v} IU
+            </Chip>
+          ))}
+          <Chip className="min-h-8 px-2.5" selected={addingHeparin} onClick={() => setAddingHeparin(true)}>
+            + Custom
+          </Chip>
+        </ChipScroller>
+        {addingHeparin ? (
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Input
+                autoFocus
+                inputMode="numeric"
+                placeholder="e.g. 8000"
+                value={customHeparin}
+                onChange={(e) => setCustomHeparin(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    addCustomHeparin()
+                  }
+                }}
+                className="pr-12"
+              />
+              <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-muted">
+                IU
+              </span>
+            </div>
+            <Button onClick={addCustomHeparin}>Add</Button>
+          </div>
+        ) : null}
       </Section>
       <Section title={`Residual stenosis  ${current.outcome.residualStenosis}%`}>
         <input

@@ -468,14 +468,16 @@ function inflationTrail(inflations: BalloonUse['inflations']): string {
 }
 
 function balloonSentence(
-  kind: 'predilatation' | 'postdilatation',
+  kind: 'predilatation' | 'postdilatation' | 'lmcaPot',
   b: BalloonUse,
 ): string {
   const loc = locationShort(b.vessel, b.segment)
   const verb =
     kind === 'predilatation'
       ? 'Predilatation was performed'
-      : 'Post-dilatation was performed'
+      : kind === 'lmcaPot'
+        ? 'LMCA POT was performed'
+        : 'Post-dilatation was performed'
   const withLoc =
     kind === 'predilatation'
       ? ` at the ${loc} with ${balloonPhrase(b)}`
@@ -555,6 +557,8 @@ function eventSentence(e: ProcedureEvent, all: ProcedureEvent[]): string {
       return balloonSentence('predilatation', e.data)
     case 'postdilatation':
       return balloonSentence('postdilatation', e.data)
+    case 'lmcaPot':
+      return balloonSentence('lmcaPot', e.data)
     case 'stent':
       return stentSentence(e, all)
     case 'imaging': {

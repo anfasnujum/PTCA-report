@@ -16,6 +16,7 @@ export function eventBelongsToVessel(event: ProcedureEvent, vessel: Vessel): boo
     case 'predilatation':
     case 'postdilatation':
     case 'stent':
+    case 'lmcaPot':
     case 'imaging':
       return event.data.vessel === vessel
     default:

@@ -46,8 +46,10 @@ export function StentSheet({
   const [data, setData] = useState<StentUse>(initial)
   const [addingDiameter, setAddingDiameter] = useState(false)
   const [addingLength, setAddingLength] = useState(false)
+  const [addingAtm, setAddingAtm] = useState(false)
   const [customDiameter, setCustomDiameter] = useState('')
   const [customLength, setCustomLength] = useState('')
+  const [customAtm, setCustomAtm] = useState('')
   const [deployedTo, setDeployedTo] = useState('')
 
   const metaFor = (name: string) => items.find((item) => item.category === 'stent' && item.name === name)?.meta
@@ -58,13 +60,18 @@ export function StentSheet({
   const lengthsFor = (name: string, current: number) =>
     mergeNumericOptions(STENT_LENGTHS, extraNumbersFrom(metaFor(name), 'extraLengths'), current)
 
+  const atmsFor = (name: string, current: number) =>
+    mergeNumericOptions(ATM_VALUES, extraNumbersFrom(metaFor(name), 'extraAtms'), current)
+
   useEffect(() => {
     if (!open) return
     setData(initial)
     setAddingDiameter(false)
     setAddingLength(false)
+    setAddingAtm(false)
     setCustomDiameter('')
     setCustomLength('')
+    setCustomAtm('')
     setDeployedTo(initial.deployedToMm != null ? String(initial.deployedToMm) : '')
   }, [open, initial])
 
@@ -91,6 +98,16 @@ export function StentSheet({
     setData((d) => ({ ...d, lengthMm: n }))
     setCustomLength('')
     setAddingLength(false)
+  }
+
+  const addCustomAtm = () => {
+    const n = parseMmValue(customAtm)
+    if (!n) return
+    const extra = extraNumbersFrom(metaFor(data.name), 'extraAtms')
+    persistExtras(data.name, { extraAtms: mergeNumericOptions([], extra, n).join(',') })
+    setData((d) => ({ ...d, deployedAtAtm: n }))
+    setCustomAtm('')
+    setAddingAtm(false)
   }
 
   const save = () => {
@@ -216,10 +233,30 @@ export function StentSheet({
           </Section>
           <Section title="Deploy pressure" unit="atm">
             <NumberChips
-              values={ATM_VALUES}
+              values={atmsFor(data.name, data.deployedAtAtm)}
               value={data.deployedAtAtm}
               onChange={(deployedAtAtm) => setData({ ...data, deployedAtAtm })}
             />
+            <ChipScroller>
+              <Chip className={COMPACT_CHIP} selected={addingAtm} onClick={() => setAddingAtm(true)}>
+                + Custom
+              </Chip>
+            </ChipScroller>
+            {addingAtm ? (
+              <div className="flex gap-2">
+                <Input
+                  autoFocus
+                  inputMode="decimal"
+                  placeholder="e.g. 15"
+                  value={customAtm}
+                  onChange={(e) => setCustomAtm(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') addCustomAtm()
+                  }}
+                />
+                <Button onClick={addCustomAtm}>Add</Button>
+              </div>
+            ) : null}
           </Section>
           <Section title="Duration" unit="s">
             <NumberChips

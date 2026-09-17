@@ -14,6 +14,7 @@ import { nid } from '@/lib/ids'
 import { defaultBalloon, lastLocation } from '@/lib/location'
 import { eventsForVessel, mergeVesselReorder } from '@/lib/pciEvents'
 import {
+  ANGIO_FEATURES,
   defaultAspirationSize,
   defaultGuideExtensionSize,
   defaultMicrocatheterSize,
@@ -23,10 +24,11 @@ import {
   sizesForGuideExtension,
   sizesForMicrocatheter,
 } from '@/lib/constants'
-import { defaultDiameter, isRightCoronary } from '@/lib/format'
+import { defaultDiameter, featureLabel, isRightCoronary } from '@/lib/format'
 import { defaultGuideCatheter } from '@/lib/guideCatheter'
 import { suggestedPostDil } from '@/lib/noteTemplate'
 import {
+  DEFAULT_PCI_STENOSIS,
   draftPciLesion,
   pciLesionForVessel,
   upsertPciLesion,
@@ -34,8 +36,9 @@ import {
 import { Chip, ChipScroller } from '@/components/ui/chip'
 import { Section } from '@/components/ui/section'
 import { StenosisPicker } from '@/components/fields/StenosisPicker'
+import { Switch } from '@/components/ui/switch'
+import { LEFT_VESSELS } from '@/lib/format'
 import {
-  pciInventoryHeading,
   ptcaInventoryBlocks,
   vesselPciKind,
 } from '@/lib/ptcaReport'
@@ -56,7 +59,7 @@ type Sheet =
   | { kind: 'guideCatheter'; initial: GuideCatheter; editId?: string }
   | { kind: 'thrombusAspiration' | 'microcatheter' | 'guideExtension'; initial: NamedDeviceUse; editId?: string }
   | { kind: 'guidewire'; initial: Guidewire; editId?: string }
-  | { kind: 'predilatation' | 'postdilatation'; initial: BalloonUse; editId?: string }
+  | { kind: 'predilatation' | 'postdilatation' | 'lmcaPot'; initial: BalloonUse; editId?: string }
   | { kind: 'stent'; initial: StentUse; editId?: string }
   | { kind: 'imaging'; initial: ImagingUse; editId?: string }
 
@@ -75,8 +78,11 @@ export function VesselInventory({ vessel }: { vessel: Vessel }) {
   )
   const storedLesion = current ? pciLesionForVessel(current.baselineAngio, vessel) : undefined
   const pciKind = current ? vesselPciKind(current, vessel) : 'PTCA'
+  const combined = current?.vesselCombined?.[vessel]
+  const combinedOn = combined?.on === true
+  const combinedVessels = combined?.vessels ?? []
   const inventory = current
-    ? ptcaInventoryBlocks(current).find((block) => block.heading === pciInventoryHeading(pciKind, vessel))
+    ? ptcaInventoryBlocks(current).find((block) => block.vessel === vessel)
     : undefined
 
   if (!current) return null
@@ -141,9 +147,9 @@ export function VesselInventory({ vessel }: { vessel: Vessel }) {
       })
       return
     }
-    if (kind === 'predilatation' || kind === 'postdilatation') {
+    if (kind === 'predilatation' || kind === 'postdilatation' || kind === 'lmcaPot') {
       const b = defaultBalloon(current, vessel)
-      if (kind === 'postdilatation') {
+      if (kind === 'postdilatation' || kind === 'lmcaPot') {
         b.name = 'NC Sapphire'
         b.type = 'non-compliant'
         b.diameterMm = Math.min(5, defaultDiameter(vessel, loc.segment) + 0.25)
@@ -186,6 +192,7 @@ export function VesselInventory({ vessel }: { vessel: Vessel }) {
       case 'guidewire':
       case 'predilatation':
       case 'postdilatation':
+      case 'lmcaPot':
       case 'stent':
       case 'imaging':
         setSheet({ kind: e.kind, initial: e.data, editId: e.id } as Sheet)
@@ -200,7 +207,7 @@ export function VesselInventory({ vessel }: { vessel: Vessel }) {
   }
 
   const repeatInflation = (e: ProcedureEvent) => {
-    if (e.kind !== 'predilatation' && e.kind !== 'postdilatation') return
+    if (e.kind !== 'predilatation' && e.kind !== 'postdilatation' && e.kind !== 'lmcaPot') return
     const last = e.data.inflations.at(-1) ?? { atm: 10, seconds: 15 }
     updateEvent(e.id, {
       ...e,
@@ -218,6 +225,47 @@ export function VesselInventory({ vessel }: { vessel: Vessel }) {
     }))
   }
 
+  const setCombinedOn = (on: boolean) => {
+    mutate((p) => ({
+      ...p,
+      vesselCombined: {
+        ...p.vesselCombined,
+        [vessel]: { on, vessels: p.vesselCombined?.[vessel]?.vessels ?? [] },
+      },
+    }))
+  }
+
+  const setPartnerLesion = (partner: Vessel, next: typeof lesion) => {
+    mutate((p) => ({
+      ...p,
+      baselineAngio: upsertPciLesion(p.baselineAngio, partner, next),
+    }))
+  }
+
+  const toggleCombinedVessel = (next: Vessel) => {
+    mutate((p) => {
+      const currentCombined = p.vesselCombined?.[vessel]
+      const selected = currentCombined?.vessels ?? []
+      const removing = selected.includes(next)
+      const vessels = removing ? selected.filter((item) => item !== next) : [...selected, next]
+      const baselineAngio =
+        removing || pciLesionForVessel(p.baselineAngio, next)
+          ? p.baselineAngio
+          : upsertPciLesion(p.baselineAngio, next, {
+              stenosis: DEFAULT_PCI_STENOSIS,
+              stenosisMode: 'single',
+            })
+      return {
+        ...p,
+        baselineAngio,
+        vesselCombined: {
+          ...p.vesselCombined,
+          [vessel]: { on: true, vessels },
+        },
+      }
+    })
+  }
+
   return (
     <div>
       <div className="mb-4 space-y-4">
@@ -230,7 +278,60 @@ export function VesselInventory({ vessel }: { vessel: Vessel }) {
             ))}
           </ChipScroller>
         </Section>
+        {vessel === 'LMCA' ? (
+          <>
+            <Switch yesNo label="Combined process" checked={combinedOn} onChange={setCombinedOn} />
+            {combinedOn ? (
+              <>
+                <ChipScroller>
+                  {LEFT_VESSELS.filter((item) => item !== 'LMCA').map((item) => (
+                    <Chip
+                      key={item}
+                      selected={combinedVessels.includes(item)}
+                      onClick={() => toggleCombinedVessel(item)}
+                    >
+                      {item}
+                    </Chip>
+                  ))}
+                </ChipScroller>
+                {combinedVessels.map((partner) => {
+                  const storedPartner = pciLesionForVessel(current.baselineAngio, partner)
+                  const partnerLesion = storedPartner ?? draftPciLesion(partner, 0)
+                  return (
+                    <StenosisPicker
+                      key={partner}
+                      title={`${partner} stenosis`}
+                      f={partnerLesion}
+                      setF={(next) => setPartnerLesion(partner, next)}
+                      unset={!storedPartner}
+                    />
+                  )
+                })}
+              </>
+            ) : null}
+          </>
+        ) : null}
         <StenosisPicker title="Stenosis" f={lesion} setF={setLesion} unset={!storedLesion} />
+        <Section title="Features">
+          <ChipScroller>
+            {ANGIO_FEATURES.map((feat) => (
+              <Chip
+                key={feat}
+                selected={lesion.features.includes(feat)}
+                onClick={() =>
+                  setLesion({
+                    ...lesion,
+                    features: lesion.features.includes(feat)
+                      ? lesion.features.filter((x) => x !== feat)
+                      : [...lesion.features, feat],
+                  })
+                }
+              >
+                {featureLabel(feat)}
+              </Chip>
+            ))}
+          </ChipScroller>
+        </Section>
       </div>
       <p className="mb-3 text-sm text-muted">
         Add hardware in the order it was used on this vessel. Drag to reorder.
@@ -240,7 +341,7 @@ export function VesselInventory({ vessel }: { vessel: Vessel }) {
           {inventory.lines
             .filter((line) => line.value)
             .map((line) => (
-              <li key={line.label}>
+              <li key={line.label} className="whitespace-pre-wrap">
                 {line.label}: {line.value}
               </li>
             ))}
@@ -269,6 +370,7 @@ export function VesselInventory({ vessel }: { vessel: Vessel }) {
             'predilatation',
             'stent',
             'postdilatation',
+            'lmcaPot',
             'imaging',
           ]}
           onAdd={(kind) => {
@@ -367,20 +469,39 @@ export function VesselInventory({ vessel }: { vessel: Vessel }) {
       />
       <BalloonSheet
         lockVessel
-        open={sheet?.kind === 'predilatation' || sheet?.kind === 'postdilatation'}
-        title={sheet?.kind === 'postdilatation' ? 'Post-dilatation' : 'Balloon / predilatation'}
+        open={
+          sheet?.kind === 'predilatation' ||
+          sheet?.kind === 'postdilatation' ||
+          sheet?.kind === 'lmcaPot'
+        }
+        title={
+          sheet?.kind === 'lmcaPot'
+            ? 'LMCA POT'
+            : sheet?.kind === 'postdilatation'
+              ? 'Post-dilatation'
+              : 'Balloon / predilatation'
+        }
         initial={
-          sheet?.kind === 'predilatation' || sheet?.kind === 'postdilatation'
+          sheet?.kind === 'predilatation' ||
+          sheet?.kind === 'postdilatation' ||
+          sheet?.kind === 'lmcaPot'
             ? sheet.initial
             : defaultBalloon(current, vessel)
         }
         targets={[vessel]}
         onClose={() => setSheet(null)}
         onSave={(data) => {
-          const kind = sheet?.kind === 'postdilatation' ? 'postdilatation' : 'predilatation'
+          const kind =
+            sheet?.kind === 'lmcaPot'
+              ? 'lmcaPot'
+              : sheet?.kind === 'postdilatation'
+                ? 'postdilatation'
+                : 'predilatation'
           commit(
             { id: nid(), at: Date.now(), kind, data: { ...data, vessel } },
-            sheet?.kind === 'predilatation' || sheet?.kind === 'postdilatation'
+            sheet?.kind === 'predilatation' ||
+              sheet?.kind === 'postdilatation' ||
+              sheet?.kind === 'lmcaPot'
               ? sheet.editId
               : undefined,
           )

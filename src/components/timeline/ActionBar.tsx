@@ -9,6 +9,7 @@ const ACTIONS = [
   { kind: 'predilatation', label: '+ Balloon' },
   { kind: 'stent', label: '+ Stent' },
   { kind: 'postdilatation', label: '+ Post-dil' },
+  { kind: 'lmcaPot', label: '+ LMCA POT' },
   { kind: 'imaging', label: '+ Imaging' },
   { kind: 'adjunct', label: '+ Other' },
 ] as const
