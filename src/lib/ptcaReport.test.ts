@@ -170,7 +170,7 @@ describe('PTCA handwritten report', () => {
   })
 
   it('lists a single target vessel with stenosis', () => {
-    expect(targetVesselsLesions(hameed())).toBe('LAD Thrombotic (80%)')
+    expect(targetVesselsLesions(hameed())).toBe('LAD (80% Thrombotic)')
   })
 
   it('joins two target vessels with and', () => {
@@ -204,12 +204,56 @@ describe('PTCA handwritten report', () => {
     expect(targetVesselsLesions(p)).toBe('LAD (80–90%)')
   })
 
-  it('places lesion features between the vessel and stenosis', () => {
+  it('places lesion description after stenosis inside the parentheses', () => {
     const p = hameed()
     p.baselineAngio = [
       finding({ stenosis: 99, isTarget: true, features: ['diffuse', 'calcific'] }),
     ]
-    expect(targetVesselsLesions(p)).toBe('LAD Diffuse, Calcific (99%)')
+    expect(targetVesselsLesions(p)).toBe('LAD (99% Diffuse, Calcific)')
+  })
+
+  it('prints a custom vessel description after stenosis', () => {
+    const p = hameed()
+    p.baselineAngio = [
+      finding({
+        vessel: 'RCA',
+        stenosis: 100,
+        isTarget: true,
+        features: [],
+        descriptionCustom: 'Thrombotic Occlusion',
+      }),
+    ]
+    p.events = [
+      {
+        id: 'w1',
+        at: 1,
+        kind: 'guidewire',
+        data: { name: 'BMW', type: 'workhorse', vessel: 'RCA', parkedSegment: 'distal' },
+      },
+    ]
+    expect(targetVesselsLesions(p)).toBe('RCA (100% Thrombotic Occlusion)')
+  })
+
+  it('prefixes the selected segment and prints Thrombotic occlusion', () => {
+    const p = hameed()
+    p.baselineAngio = [
+      finding({
+        vessel: 'RCA',
+        segment: 'proximal',
+        stenosis: 100,
+        isTarget: true,
+        features: ['thrombotic-occlusion'],
+      }),
+    ]
+    p.events = [
+      {
+        id: 'w1',
+        at: 1,
+        kind: 'guidewire',
+        data: { name: 'BMW', type: 'workhorse', vessel: 'RCA', parkedSegment: 'distal' },
+      },
+    ]
+    expect(targetVesselsLesions(p)).toBe('Proximal RCA (100% Thrombotic occlusion)')
   })
 
   it('groups inventory under PTCA → vessel for each treated vessel', () => {

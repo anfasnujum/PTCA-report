@@ -123,6 +123,7 @@ export const ANGIO_FEATURES = [
   'irregular',
   'calcified',
   'thrombotic',
+  'thrombotic-occlusion',
   'tortuous',
   'CTO',
   'ectatic',

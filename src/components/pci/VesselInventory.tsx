@@ -35,8 +35,9 @@ import {
 } from '@/lib/pciLesion'
 import { Chip, ChipScroller } from '@/components/ui/chip'
 import { Section } from '@/components/ui/section'
+import { LocationFields } from '@/components/fields/LocationFields'
 import { StenosisPicker } from '@/components/fields/StenosisPicker'
-import { Switch } from '@/components/ui/switch'
+import { Input } from '@/components/ui/input'
 import { LEFT_VESSELS } from '@/lib/format'
 import {
   ptcaInventoryBlocks,
@@ -319,8 +320,15 @@ export function VesselInventory({ vessel }: { vessel: Vessel }) {
             ) : null}
           </>
         ) : null}
+        <LocationFields
+          lockVessel
+          vessel={vessel}
+          segment={lesion.segment}
+          onVessel={() => {}}
+          onSegment={(segment) => setLesion({ ...lesion, segment })}
+        />
         <StenosisPicker title="Stenosis" f={lesion} setF={setLesion} unset={!storedLesion} />
-        <Section title="Features">
+        <Section title="Description">
           <ChipScroller>
             {ANGIO_FEATURES.map((feat) => (
               <Chip
@@ -338,7 +346,25 @@ export function VesselInventory({ vessel }: { vessel: Vessel }) {
                 {featureLabel(feat)}
               </Chip>
             ))}
+            <Chip
+              selected={lesion.descriptionCustom !== undefined}
+              onClick={() =>
+                setLesion({
+                  ...lesion,
+                  descriptionCustom: lesion.descriptionCustom !== undefined ? undefined : '',
+                })
+              }
+            >
+              Custom
+            </Chip>
           </ChipScroller>
+          {lesion.descriptionCustom !== undefined ? (
+            <Input
+              placeholder="e.g. Thrombotic Occlusion"
+              value={lesion.descriptionCustom}
+              onChange={(e) => setLesion({ ...lesion, descriptionCustom: e.target.value })}
+            />
+          ) : null}
         </Section>
       </div>
       <p className="mb-3 text-sm text-muted">

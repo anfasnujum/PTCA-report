@@ -44,7 +44,7 @@ export function upsertPciLesion(
   findings: AngioFinding[],
   vessel: Vessel,
   next: Pick<AngioFinding, 'stenosis' | 'stenosisMode' | 'stenosisRange' | 'stenosisTo'> &
-    Partial<Pick<AngioFinding, 'features'>>,
+    Partial<Pick<AngioFinding, 'features' | 'descriptionCustom' | 'segment'>>,
 ): AngioFinding[] {
   const existing = pciLesionForVessel(findings, vessel)
   if (!existing) {

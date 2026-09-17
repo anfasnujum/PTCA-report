@@ -162,6 +162,7 @@ export type AngioFinding = {
   stenosisRange?: number
   timiFlow: FindingTimiFlow
   features: string[]
+  descriptionCustom?: string
   isTarget: boolean
   distalNote?: string
   distalNoteCustom?: string

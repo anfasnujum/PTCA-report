@@ -1,7 +1,9 @@
 import {
   asSegments,
+  capitalise,
   featureLabel,
   fmtMm,
+  formatSegments,
   formatStenosis,
   isRightCoronary,
   stenosisModeOf,
@@ -55,27 +57,26 @@ function shortVesselCode(vessel: string): string {
   return vessel === 'LMCA' ? 'LM' : vessel
 }
 
-function capitalise(s: string): string {
-  if (!s) return s
-  return s.charAt(0).toUpperCase() + s.slice(1)
-}
-
 function targetFeaturePhrase(f: AngioFinding): string {
   const known = new Set<string>(ANGIO_FEATURES)
   const ordered = [
     ...ANGIO_FEATURES.filter((feat) => f.features.includes(feat)),
     ...f.features.filter((feat) => !known.has(feat)),
   ]
-  return ordered.map(featureLabel).join(', ')
+  const custom = f.descriptionCustom?.trim()
+  const parts = [...ordered.map(featureLabel), ...(custom ? [custom] : [])]
+  return parts.join(', ')
 }
 
 function targetLesionLabel(vessel: Vessel, f?: AngioFinding): string {
   const code = shortVesselCode(f ? vesselReportName(f) : vessel)
   if (!f) return code
   if (!f.isTarget && stenosisModeOf(f) === 'single' && f.stenosis === 0) return code
-  const feats = targetFeaturePhrase(f)
-  const stenosis = `(${formatStenosis(f)})`
-  return feats ? `${code} ${feats} ${stenosis}` : `${code} ${stenosis}`
+  const segs = formatSegments(f.segment)
+  const place = segs ? `${capitalise(segs)} ${code}` : code
+  const desc = targetFeaturePhrase(f)
+  const stenosis = formatStenosis(f)
+  return desc ? `${place} (${stenosis} ${desc})` : `${place} (${stenosis})`
 }
 
 function pciTargetVessels(procedure: Procedure): Vessel[] {
