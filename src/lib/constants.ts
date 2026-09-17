@@ -106,6 +106,7 @@ export const FINDING_TYPES = [
   { id: 'lesion', label: 'Lesion' },
   { id: 'total-occlusion', label: 'Total Occlusion' },
   { id: 'myocardial-bridging', label: 'Myocardial Bridging' },
+  { id: 'luminal-irregularities', label: 'Luminal irregularities' },
   { id: 'other', label: 'Other' },
 ] as const
 

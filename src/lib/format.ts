@@ -481,6 +481,7 @@ export function findingTypeOf(f: Pick<AngioFinding, 'findingType'>): FindingType
     f.findingType === 'stenosis' ||
     f.findingType === 'total-occlusion' ||
     f.findingType === 'myocardial-bridging' ||
+    f.findingType === 'luminal-irregularities' ||
     f.findingType === 'other'
   ) {
     return f.findingType
@@ -499,6 +500,7 @@ export function formatFindingPhrase(
     | 'plaqueGrade'
     | 'plaqueOther'
     | 'bridgingGrade'
+    | 'luminalGrade'
     | 'findingOther'
     | 'stenosis'
     | 'stenosisMode'
@@ -524,6 +526,10 @@ export function formatFindingPhrase(
   if (type === 'myocardial-bridging') {
     const grade = f.bridgingGrade ? `${f.bridgingGrade} ` : ''
     return `${grade}myocardial bridging`
+  }
+  if (type === 'luminal-irregularities') {
+    const grade = f.luminalGrade ? `${f.luminalGrade} ` : ''
+    return `${grade}luminal irregularities`
   }
   return `${formatStenosis(f)} ${type}`
 }
@@ -566,6 +572,7 @@ export function isChronicTotalOcclusion(
     type === 'dissection' ||
     type === 'total-occlusion' ||
     type === 'myocardial-bridging' ||
+    type === 'luminal-irregularities' ||
     type === 'other'
   ) {
     return false
@@ -601,6 +608,7 @@ export function findingIssueLabel(f: AngioFinding): string {
           type === 'dissection' ||
           type === 'total-occlusion' ||
           type === 'myocardial-bridging' ||
+          type === 'luminal-irregularities' ||
           type === 'other'
         ? formatFindingPhrase(f)
         : formatStenosis(f)
@@ -635,6 +643,14 @@ export function findingSeverity(f: AngioFinding): number {
     }
     return f.bridgingGrade ? rank[f.bridgingGrade] : 0
   }
+  if (type === 'luminal-irregularities') {
+    const rank: Record<BridgingGrade, number> = {
+      mild: 40,
+      moderate: 60,
+      severe: 85,
+    }
+    return f.luminalGrade ? rank[f.luminalGrade] : 0
+  }
   return stenosisMax(f)
 }
 
@@ -653,6 +669,7 @@ export function isUnremarkableFinding(f: AngioFinding): boolean {
     return !f.plaqueGrade
   }
   if (type === 'myocardial-bridging') return !f.bridgingGrade
+  if (type === 'luminal-irregularities') return !f.luminalGrade
   return stenosisMax(f) === 0
 }
 

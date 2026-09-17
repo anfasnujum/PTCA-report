@@ -122,6 +122,7 @@ export type FindingType =
   | 'lesion'
   | 'total-occlusion'
   | 'myocardial-bridging'
+  | 'luminal-irregularities'
   | 'other'
 export type PlaqueGrade = 'minor' | 'mild' | 'moderate' | 'severe' | 'other'
 export type BridgingGrade = 'mild' | 'moderate' | 'severe'
@@ -153,6 +154,7 @@ export type AngioFinding = {
   plaqueGrade?: PlaqueGrade
   plaqueOther?: string
   bridgingGrade?: BridgingGrade
+  luminalGrade?: BridgingGrade
   findingOther?: string
   stenosis: number
   stenosisMode?: 'single' | 'range'

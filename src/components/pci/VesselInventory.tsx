@@ -24,7 +24,7 @@ import {
   sizesForGuideExtension,
   sizesForMicrocatheter,
 } from '@/lib/constants'
-import { defaultDiameter, featureLabel, isRightCoronary } from '@/lib/format'
+import { defaultDiameter, featureLabel, formatStenosis, isRightCoronary } from '@/lib/format'
 import { defaultGuideCatheter } from '@/lib/guideCatheter'
 import { suggestedPostDil } from '@/lib/noteTemplate'
 import {
@@ -71,6 +71,7 @@ export function VesselInventory({ vessel }: { vessel: Vessel }) {
   const mutate = useProcedureStore((s) => s.mutate)
   const [sheet, setSheet] = useState<Sheet | null>(null)
   const [postDil, setPostDil] = useState<BalloonUse | null>(null)
+  const [combinedStenosisFor, setCombinedStenosisFor] = useState<Vessel | null>(null)
 
   const vesselEvents = useMemo(
     () => (current ? eventsForVessel(current.events, vessel) : []),
@@ -242,28 +243,44 @@ export function VesselInventory({ vessel }: { vessel: Vessel }) {
     }))
   }
 
-  const toggleCombinedVessel = (next: Vessel) => {
+  const addCombinedVessel = (next: Vessel) => {
     mutate((p) => {
-      const currentCombined = p.vesselCombined?.[vessel]
-      const selected = currentCombined?.vessels ?? []
-      const removing = selected.includes(next)
-      const vessels = removing ? selected.filter((item) => item !== next) : [...selected, next]
-      const baselineAngio =
-        removing || pciLesionForVessel(p.baselineAngio, next)
-          ? p.baselineAngio
-          : upsertPciLesion(p.baselineAngio, next, {
-              stenosis: DEFAULT_PCI_STENOSIS,
-              stenosisMode: 'single',
-            })
+      const selected = p.vesselCombined?.[vessel]?.vessels ?? []
+      if (selected.includes(next)) return p
+      const baselineAngio = pciLesionForVessel(p.baselineAngio, next)
+        ? p.baselineAngio
+        : upsertPciLesion(p.baselineAngio, next, {
+            stenosis: DEFAULT_PCI_STENOSIS,
+            stenosisMode: 'single',
+          })
       return {
         ...p,
         baselineAngio,
         vesselCombined: {
           ...p.vesselCombined,
-          [vessel]: { on: true, vessels },
+          [vessel]: { on: true, vessels: [...selected, next] },
         },
       }
     })
+  }
+
+  const removeCombinedVessel = (next: Vessel) => {
+    mutate((p) => {
+      const selected = p.vesselCombined?.[vessel]?.vessels ?? []
+      return {
+        ...p,
+        vesselCombined: {
+          ...p.vesselCombined,
+          [vessel]: { on: true, vessels: selected.filter((item) => item !== next) },
+        },
+      }
+    })
+    setCombinedStenosisFor(null)
+  }
+
+  const openCombinedStenosis = (next: Vessel) => {
+    if (!combinedVessels.includes(next)) addCombinedVessel(next)
+    setCombinedStenosisFor(next)
   }
 
   return (
@@ -282,32 +299,23 @@ export function VesselInventory({ vessel }: { vessel: Vessel }) {
           <>
             <Switch yesNo label="Combined process" checked={combinedOn} onChange={setCombinedOn} />
             {combinedOn ? (
-              <>
-                <ChipScroller>
-                  {LEFT_VESSELS.filter((item) => item !== 'LMCA').map((item) => (
+              <ChipScroller>
+                {LEFT_VESSELS.filter((item) => item !== 'LMCA').map((item) => {
+                  const selected = combinedVessels.includes(item)
+                  const partnerLesion = selected
+                    ? pciLesionForVessel(current.baselineAngio, item)
+                    : undefined
+                  return (
                     <Chip
                       key={item}
-                      selected={combinedVessels.includes(item)}
-                      onClick={() => toggleCombinedVessel(item)}
+                      selected={selected}
+                      onClick={() => openCombinedStenosis(item)}
                     >
-                      {item}
+                      {partnerLesion ? `${item} ${formatStenosis(partnerLesion)}` : item}
                     </Chip>
-                  ))}
-                </ChipScroller>
-                {combinedVessels.map((partner) => {
-                  const storedPartner = pciLesionForVessel(current.baselineAngio, partner)
-                  const partnerLesion = storedPartner ?? draftPciLesion(partner, 0)
-                  return (
-                    <StenosisPicker
-                      key={partner}
-                      title={`${partner} stenosis`}
-                      f={partnerLesion}
-                      setF={(next) => setPartnerLesion(partner, next)}
-                      unset={!storedPartner}
-                    />
                   )
                 })}
-              </>
+              </ChipScroller>
             ) : null}
           </>
         ) : null}
@@ -546,6 +554,38 @@ export function VesselInventory({ vessel }: { vessel: Vessel }) {
           )
         }
       />
+      <BottomSheet
+        nested
+        open={Boolean(combinedStenosisFor)}
+        title={combinedStenosisFor ? `${combinedStenosisFor} stenosis` : 'Stenosis'}
+        onClose={() => setCombinedStenosisFor(null)}
+        footer={
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              className="flex-1"
+              onClick={() => combinedStenosisFor && removeCombinedVessel(combinedStenosisFor)}
+            >
+              Remove
+            </Button>
+            <Button className="flex-1" onClick={() => setCombinedStenosisFor(null)}>
+              Done
+            </Button>
+          </div>
+        }
+      >
+        {combinedStenosisFor ? (
+          <StenosisPicker
+            title="Stenosis"
+            f={
+              pciLesionForVessel(current.baselineAngio, combinedStenosisFor) ??
+              draftPciLesion(combinedStenosisFor, DEFAULT_PCI_STENOSIS)
+            }
+            setF={(next) => setPartnerLesion(combinedStenosisFor, next)}
+            unset={!pciLesionForVessel(current.baselineAngio, combinedStenosisFor)}
+          />
+        ) : null}
+      </BottomSheet>
       <BottomSheet
         nested
         open={Boolean(postDil)}

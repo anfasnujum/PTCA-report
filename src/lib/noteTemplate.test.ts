@@ -1188,6 +1188,49 @@ describe('generateNote', () => {
     expect(note).toContain('LAD: Mid LAD shows discrete, severe myocardial bridging. TIMI III flow.')
   })
 
+  it('names luminal irregularities grade instead of a percent stenosis', () => {
+    const note = generateNote(
+      base({
+        baselineAngio: [
+          {
+            id: 'lad',
+            vessel: 'LAD',
+            segment: 'mid',
+            stenosis: 0,
+            findingType: 'luminal-irregularities',
+            luminalGrade: 'mild',
+            timiFlow: 'none',
+            features: [],
+            isTarget: false,
+          },
+        ],
+      }),
+    )
+    expect(note).toContain('LAD: Mid LAD shows mild luminal irregularities.')
+    expect(note).not.toContain('Mid LAD shows 0%')
+  })
+
+  it('lists selected features before luminal irregularities', () => {
+    const note = generateNote(
+      base({
+        baselineAngio: [
+          {
+            id: 'lad',
+            vessel: 'LAD',
+            segment: 'mid',
+            stenosis: 0,
+            findingType: 'luminal-irregularities',
+            luminalGrade: 'severe',
+            timiFlow: 3,
+            features: ['discrete'],
+            isTarget: false,
+          },
+        ],
+      }),
+    )
+    expect(note).toContain('LAD: Mid LAD shows discrete, severe luminal irregularities. TIMI III flow.')
+  })
+
   it('lists selected features after the percent for stenosis or lesion', () => {
     const plaque = generateNote(
       base({

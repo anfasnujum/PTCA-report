@@ -724,6 +724,25 @@ function FindingForm({
               ))}
             </ChipScroller>
           </Section>
+        ) : findingTypeOf(f) === 'luminal-irregularities' ? (
+          <Section title="Grade">
+            <ChipScroller>
+              {BRIDGING_GRADES.map((g) => (
+                <Chip
+                  key={g}
+                  selected={f.luminalGrade === g}
+                  onClick={() =>
+                    setF({
+                      ...f,
+                      luminalGrade: f.luminalGrade === g ? undefined : g,
+                    })
+                  }
+                >
+                  {g}
+                </Chip>
+              ))}
+            </ChipScroller>
+          </Section>
         ) : findingTypeOf(f) === 'normal' ||
           findingTypeOf(f) === 'mildly-ectatic-vessel' ||
           findingTypeOf(f) === 'dissection' ||
