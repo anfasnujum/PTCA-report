@@ -64,8 +64,8 @@ export function ProcedureShell() {
   const steps = stepsFor(current.kind)
 
   return (
-    <div className="flex min-h-dvh flex-col lg:flex-row">
-      <aside className="no-print hidden w-60 shrink-0 flex-col border-r border-border bg-surface lg:flex">
+    <div className="flex h-dvh flex-col overflow-hidden lg:flex-row print:h-auto print:min-h-0 print:overflow-visible">
+      <aside className="no-print hidden h-full w-60 shrink-0 flex-col overflow-y-auto border-r border-border bg-surface lg:flex">
         <button
           type="button"
           onClick={() => navigate('/')}
@@ -97,7 +97,7 @@ export function ProcedureShell() {
         </nav>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col print:overflow-visible">
         <header className="no-print sticky top-0 z-20 border-b border-border bg-surface/95 pt-safe backdrop-blur">
           <div className="flex items-center gap-2 px-2 py-2 lg:px-6">
             <button
@@ -144,8 +144,8 @@ export function ProcedureShell() {
           </nav>
         </header>
 
-        <div className="flex min-h-0 flex-1">
-          <main className="min-w-0 flex-1 overflow-y-auto px-4 py-4 lg:px-8 lg:py-6 print:p-0">
+        <div className="flex min-h-0 flex-1 print:overflow-visible">
+          <main className="min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-4 lg:px-8 lg:py-6 print:overflow-visible print:p-0">
             <div
               className={cn(
                 'mx-auto w-full max-w-lg print:mx-0 print:max-w-none',
