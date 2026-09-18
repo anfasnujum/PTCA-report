@@ -319,6 +319,12 @@ const OPTIONAL_INVENTORY_LABELS = new Set([
 ])
 
 function inventoryLinesFor(procedure: Procedure, hw: VesselHardware | null): InventoryLine[] {
+  const kind = hw ? vesselPciKind(procedure, hw.vessel) : 'PTCA'
+  const optional = new Set(OPTIONAL_INVENTORY_LABELS)
+  if (kind === 'POBA') {
+    optional.add('Stent')
+    optional.add('Post dilatation balloon')
+  }
   const lines = !hw
     ? EMPTY_INVENTORY_LINES.map((line) => ({ ...line }))
     : [
@@ -333,7 +339,7 @@ function inventoryLinesFor(procedure: Procedure, hw: VesselHardware | null): Inv
         { label: 'Post dilatation balloon', value: inventoryJoin(hw.postdils.map(balloonInventory)) },
         { label: 'LMCA POT', value: inventoryJoin(hw.pots.map(balloonInventory)) },
       ]
-  return lines.filter((line) => line.value || !OPTIONAL_INVENTORY_LABELS.has(line.label))
+  return lines.filter((line) => line.value || !optional.has(line.label))
 }
 
 export function vesselPciKind(procedure: Procedure, vessel: Vessel): VesselPciKind {

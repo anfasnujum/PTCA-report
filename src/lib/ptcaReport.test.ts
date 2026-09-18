@@ -446,6 +446,12 @@ describe('PTCA handwritten report', () => {
       },
     ]
     expect(ptcaInventoryBlocks(p).map((b) => b.heading)).toEqual(['POBA → LCX'])
+    expect(ptcaInventoryBlocks(p)[0].lines.map((l) => l.label)).toEqual([
+      'Sheath',
+      'Catheter',
+      'Guide wire',
+      'Pre dilatation balloon',
+    ])
     expect(ptcaCommentSentence(p)).toBe('POBA OF LCX WAS DONE SUCCESSFULLY')
   })
 
@@ -455,6 +461,48 @@ describe('PTCA handwritten report', () => {
     expect(ptcaInventoryBlocks(p).map((b) => b.heading)).toEqual(['PTCA → LCX'])
     p.vesselPciKind = { LCX: 'POBA' }
     expect(ptcaInventoryBlocks(p).map((b) => b.heading)).toEqual(['POBA → LCX'])
+    expect(ptcaInventoryBlocks(p)[0].lines.map((l) => l.label)).not.toContain('Stent')
+    expect(ptcaInventoryBlocks(p)[0].lines.map((l) => l.label)).not.toContain('Post dilatation balloon')
+  })
+
+  it('keeps stent and post-dilatation on a POBA inventory only when they were logged', () => {
+    const p = emptyProcedure('ptca-template')
+    p.baselineAngio = [finding({ vessel: 'LCX', stenosis: 80, isTarget: true })]
+    p.vesselPciKind = { LCX: 'POBA' }
+    p.events = [
+      {
+        id: 's1',
+        at: 1,
+        kind: 'stent',
+        data: {
+          name: 'Xience Sierra',
+          type: 'DES',
+          diameterMm: 3.0,
+          lengthMm: 18,
+          vessel: 'LCX',
+          segment: 'proximal',
+          deployedAtAtm: 12,
+          seconds: 20,
+        },
+      },
+      {
+        id: 'p1',
+        at: 2,
+        kind: 'postdilatation',
+        data: {
+          name: 'NC Sapphire',
+          type: 'non-compliant',
+          diameterMm: 3.25,
+          lengthMm: 12,
+          vessel: 'LCX',
+          segment: 'proximal',
+          inflations: [{ atm: 18, seconds: 15 }],
+        },
+      },
+    ]
+    const labels = ptcaInventoryBlocks(p)[0].lines.map((l) => l.label)
+    expect(labels).toContain('Stent')
+    expect(labels).toContain('Post dilatation balloon')
   })
 
   it('headlines LMCA combined with LAD as PTCA → LMCA - LAD', () => {
