@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { eventsForVessel, mergeVesselReorder, vesselWorkEvents, clearVesselEvents } from '@/lib/pciEvents'
+import { eventsForVessel, mergeVesselReorder, vesselWorkEvents, clearVesselEvents, clearVesselProcedure } from '@/lib/pciEvents'
+import { emptyProcedure } from '@/lib/seed'
 import type { ProcedureEvent } from '@/types/procedure'
 
 const events: ProcedureEvent[] = [
@@ -53,5 +54,33 @@ describe('pciEvents', () => {
       data: { device: 'JR', curve: '3.5', size: '6F', vessel: 'LAD' },
     }
     expect(clearVesselEvents([...events, tagged], 'LAD').map((e) => e.id)).toEqual(['g1', 'w2'])
+  })
+
+  it('clears combined process and PCI kind with the vessel', () => {
+    const procedure = emptyProcedure('ptca-template')
+    procedure.vesselPciKind = { LMCA: 'POBA', LAD: 'PTCA' }
+    procedure.vesselCombined = { LMCA: { on: true, vessels: ['LAD'] } }
+    procedure.baselineAngio = [
+      {
+        id: 'lm',
+        vessel: 'LMCA',
+        stenosis: 90,
+        timiFlow: 3,
+        features: [],
+        isTarget: true,
+      },
+    ]
+    const next = clearVesselProcedure(procedure, 'LMCA')
+    expect(next.vesselCombined?.LMCA).toBeUndefined()
+    expect(next.vesselPciKind?.LMCA).toBeUndefined()
+    expect(next.baselineAngio).toEqual([])
+    expect(next.vesselPciKind?.LAD).toBe('PTCA')
+  })
+
+  it('drops the vessel from another combined partner list', () => {
+    const procedure = emptyProcedure('ptca-template')
+    procedure.vesselCombined = { LMCA: { on: true, vessels: ['LAD', 'LCX'] } }
+    const next = clearVesselProcedure(procedure, 'LAD')
+    expect(next.vesselCombined?.LMCA).toEqual({ on: true, vessels: ['LCX'] })
   })
 })

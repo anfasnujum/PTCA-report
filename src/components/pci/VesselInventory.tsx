@@ -34,6 +34,7 @@ import {
   upsertPciLesion,
 } from '@/lib/pciLesion'
 import { Chip, ChipScroller } from '@/components/ui/chip'
+import { Switch } from '@/components/ui/switch'
 import { Section } from '@/components/ui/section'
 import { LocationFields } from '@/components/fields/LocationFields'
 import { StenosisPicker } from '@/components/fields/StenosisPicker'

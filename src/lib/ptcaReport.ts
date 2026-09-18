@@ -211,7 +211,11 @@ function pciVessels(procedure: Procedure): Vessel[] {
   for (const vessel of Object.keys(procedure.vesselCombined ?? {}) as Vessel[]) {
     if (procedure.vesselCombined?.[vessel]?.on) add(vessel)
   }
-  return ordered
+  const partners = new Set<Vessel>()
+  for (const host of Object.keys(procedure.vesselCombined ?? {}) as Vessel[]) {
+    for (const partner of combinedProcessVessels(procedure, host)) partners.add(partner)
+  }
+  return ordered.filter((vessel) => !partners.has(vessel))
 }
 
 function eventsOf<K extends ProcedureEvent['kind']>(
@@ -228,6 +232,38 @@ function matchingGuides(procedure: Procedure, vessel: Vessel): GuideCatheter[] {
   const side = coronaryOf(vessel)
   const inferred = guides.filter((g) => !g.vessel && coronaryFromDevice(g.device || '') === side)
   return inferred.length ? inferred : guides.filter((g) => !g.vessel)
+}
+
+function matchingGuidesForGroup(procedure: Procedure, vessels: Vessel[]): GuideCatheter[] {
+  const out: GuideCatheter[] = []
+  const keys = new Set<string>()
+  for (const vessel of vessels) {
+    for (const guide of matchingGuides(procedure, vessel)) {
+      const key = `${guide.vessel ?? ''}|${guide.size}|${guide.device}|${guide.curve}|${guide.name ?? ''}`
+      if (keys.has(key)) continue
+      keys.add(key)
+      out.push(guide)
+    }
+  }
+  return out
+}
+
+function devicesOnGroup(
+  procedure: Procedure,
+  kind: 'thrombusAspiration' | 'microcatheter' | 'guideExtension',
+  vessels: Vessel[],
+): NamedDeviceUse[] {
+  return vessels.flatMap((vessel) => devicesOnVessel(procedure, kind, vessel))
+}
+
+function eventsOnGroup<K extends ProcedureEvent['kind']>(
+  procedure: Procedure,
+  kind: K,
+  vessels: Vessel[],
+): Extract<ProcedureEvent, { kind: K }>['data'][] {
+  return eventsOf(procedure.events, kind)
+    .map((e) => e.data)
+    .filter((d) => 'vessel' in d && vessels.includes((d as { vessel?: Vessel }).vessel as Vessel))
 }
 
 function namedInventory(d: NamedDeviceUse): string {
@@ -259,30 +295,19 @@ function devicesOnVessel(
 }
 
 function hardwareForVessel(procedure: Procedure, vessel: Vessel): VesselHardware {
+  const group = [vessel, ...combinedProcessVessels(procedure, vessel)]
   return {
     vessel,
-    guides: matchingGuides(procedure, vessel),
-    aspirations: devicesOnVessel(procedure, 'thrombusAspiration', vessel),
-    microcatheters: devicesOnVessel(procedure, 'microcatheter', vessel),
-    wires: eventsOf(procedure.events, 'guidewire')
-      .map((e) => e.data)
-      .filter((d) => d.vessel === vessel),
-    extensions: devicesOnVessel(procedure, 'guideExtension', vessel),
-    predils: eventsOf(procedure.events, 'predilatation')
-      .map((e) => e.data)
-      .filter((d) => d.vessel === vessel),
-    stents: eventsOf(procedure.events, 'stent')
-      .map((e) => e.data)
-      .filter((d) => d.vessel === vessel),
-    postdils: eventsOf(procedure.events, 'postdilatation')
-      .map((e) => e.data)
-      .filter((d) => d.vessel === vessel),
-    pots: eventsOf(procedure.events, 'lmcaPot')
-      .map((e) => e.data)
-      .filter((d) => d.vessel === vessel),
-    imaging: eventsOf(procedure.events, 'imaging')
-      .map((e) => e.data)
-      .filter((d) => d.vessel === vessel),
+    guides: matchingGuidesForGroup(procedure, group),
+    aspirations: devicesOnGroup(procedure, 'thrombusAspiration', group),
+    microcatheters: devicesOnGroup(procedure, 'microcatheter', group),
+    wires: eventsOnGroup(procedure, 'guidewire', group),
+    extensions: devicesOnGroup(procedure, 'guideExtension', group),
+    predils: eventsOnGroup(procedure, 'predilatation', group),
+    stents: eventsOnGroup(procedure, 'stent', group),
+    postdils: eventsOnGroup(procedure, 'postdilatation', group),
+    pots: eventsOnGroup(procedure, 'lmcaPot', group),
+    imaging: eventsOnGroup(procedure, 'imaging', group),
   }
 }
 
@@ -320,6 +345,13 @@ export function combinedProcessVessels(procedure: Procedure, vessel: Vessel): Ve
   if (!spec?.on) return []
   const chosen = new Set(spec.vessels.filter((item) => item && item !== vessel))
   return VESSELS.filter((item) => chosen.has(item))
+}
+
+export function isCombinedProcessPartner(procedure: Procedure, vessel: Vessel): boolean {
+  for (const host of Object.keys(procedure.vesselCombined ?? {}) as Vessel[]) {
+    if (combinedProcessVessels(procedure, host).includes(vessel)) return true
+  }
+  return false
 }
 
 export function pciInventoryHeading(
@@ -428,9 +460,15 @@ function deployedToPhrase(s: Pick<StentUse, 'deployedToMm'>): string {
   return ` to a size of ${fmtMm(s.deployedToMm)} mm`
 }
 
+function joinListed(parts: string[]): string {
+  if (parts.length <= 1) return parts[0] ?? ''
+  if (parts.length === 2) return `${parts[0]} and ${parts[1]}`
+  return `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`
+}
+
 function stentLocation(s: StentUse): string {
   const segs = asSegments(s.segment).filter((x) => x !== 'other')
-  const loc = segs.map(segmentTitle).join(' to ')
+  const loc = joinListed(segs.map(segmentTitle))
   return loc ? `${loc} ${s.vessel}` : s.vessel
 }
 

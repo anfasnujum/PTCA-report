@@ -420,6 +420,7 @@ export function seedCatalogue(now = Date.now()): CatalogueItem[] {
   const balloons: Array<[string, string]> = [
     ['Sapphire II', 'semi-compliant'],
     ['Emerge', 'semi-compliant'],
+    ['Ryurei', 'semi-compliant'],
     ['NC Trek', 'non-compliant'],
     ['NC Sapphire', 'non-compliant'],
     ['AperiNC', 'non-compliant'],

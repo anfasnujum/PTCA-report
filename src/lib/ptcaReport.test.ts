@@ -10,6 +10,7 @@ import {
   ptcaTitle,
   targetVesselsLesions,
   targetVesselsShort,
+  isCombinedProcessPartner,
 } from '@/lib/ptcaReport'
 import type { AngioFinding, Procedure } from '@/types/procedure'
 
@@ -448,10 +449,43 @@ describe('PTCA handwritten report', () => {
     p.baselineAngio = [finding({ vessel: 'LMCA', stenosis: 90, isTarget: true })]
     p.vesselCombined = { LMCA: { on: true, vessels: ['LAD'] } }
     expect(ptcaInventoryBlocks(p).map((b) => b.heading)).toEqual(['PTCA → LMCA - LAD'])
+    expect(isCombinedProcessPartner(p, 'LAD')).toBe(true)
+    expect(isCombinedProcessPartner(p, 'LMCA')).toBe(false)
     expect(targetVesselsShort(p)).toBe('LM - LAD')
     expect(ptcaCommentSentence(p)).toBe('PTCA OF LM - LAD WAS DONE SUCCESSFULLY')
     p.vesselCombined = { LMCA: { on: false, vessels: ['LAD'] } }
     expect(ptcaInventoryBlocks(p).map((b) => b.heading)).toEqual(['PTCA → LMCA'])
+  })
+
+  it('does not print a separate inventory for a combined partner vessel', () => {
+    const p = emptyProcedure('ptca-template')
+    p.baselineAngio = [
+      finding({ id: 'lm', vessel: 'LMCA', stenosis: 90, isTarget: true, features: [] }),
+      finding({ id: 'lad', vessel: 'LAD', stenosis: 80, isTarget: true, features: [] }),
+    ]
+    p.vesselCombined = { LMCA: { on: true, vessels: ['LAD'] } }
+    p.events = [
+      {
+        id: 's1',
+        at: 1,
+        kind: 'stent',
+        data: {
+          name: 'Xience Sierra',
+          type: 'DES',
+          diameterMm: 3.5,
+          lengthMm: 38,
+          vessel: 'LAD',
+          segment: 'proximal',
+          deployedAtAtm: 12,
+          seconds: 20,
+        },
+      },
+    ]
+    const blocks = ptcaInventoryBlocks(p)
+    expect(blocks.map((b) => b.heading)).toEqual(['PTCA → LMCA - LAD'])
+    expect(blocks[0].lines.find((l) => l.label === 'Stent')?.value).toBe(
+      '3.5 x 38mm Xience Sierra @ 12 atm',
+    )
   })
 
   it('prints stenosis for combined partner vessels on the target line', () => {
@@ -613,6 +647,43 @@ describe('PTCA handwritten report', () => {
     ]
     expect(ptcaProcedureNarrative(p)).toContain(
       'Later a 2.75x28mm METAFOR stent was deployed to the Proximal to mid LCX at 10atm to a size of 3.07 mm.',
+    )
+  })
+
+  it('joins two stent segments with and and more with commas and and', () => {
+    const p = emptyProcedure('ptca-template')
+    p.access = { ...p.access, site: 'radial', side: 'right' }
+    p.baselineAngio = [finding({ vessel: 'RCA', stenosis: 90, isTarget: true, features: [] })]
+    p.events = [
+      { id: 'g1', at: 1, kind: 'guideCatheter', data: { device: 'JR', curve: '3.5', size: '6F' } },
+      {
+        id: 's1',
+        at: 2,
+        kind: 'stent',
+        data: {
+          name: 'METAFOR',
+          type: 'DES',
+          diameterMm: 3.0,
+          lengthMm: 19,
+          vessel: 'RCA',
+          segment: ['proximal-mid', 'mid-distal'],
+          deployedAtAtm: 10,
+          seconds: 20,
+        },
+      },
+    ]
+    expect(ptcaProcedureNarrative(p)).toContain(
+      'Later a 3.0x19mm METAFOR stent was deployed to the Proximal to mid and Mid to distal RCA at 10atm.',
+    )
+    p.events[1] = {
+      ...p.events[1],
+      data: {
+        ...(p.events[1] as Extract<(typeof p.events)[number], { kind: 'stent' }>).data,
+        segment: ['ostial', 'proximal-mid', 'mid-distal'],
+      },
+    }
+    expect(ptcaProcedureNarrative(p)).toContain(
+      'Later a 3.0x19mm METAFOR stent was deployed to the Ostial, Proximal to mid and Mid to distal RCA at 10atm.',
     )
   })
 

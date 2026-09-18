@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button'
 import { BottomSheet } from '@/components/ui/bottom-sheet'
 import { Section } from '@/components/ui/section'
 import { LEFT_VESSELS, RIGHT_VESSELS, formatStenosis } from '@/lib/format'
-import { pciLesionForVessel, clearPciLesion } from '@/lib/pciLesion'
-import { vesselWorkEvents, clearVesselEvents } from '@/lib/pciEvents'
+import { pciLesionForVessel } from '@/lib/pciLesion'
+import { vesselWorkEvents, clearVesselProcedure } from '@/lib/pciEvents'
+import { isCombinedProcessPartner } from '@/lib/ptcaReport'
 import { cn } from '@/lib/utils'
 import { useProcedureStore } from '@/store/useProcedureStore'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -63,8 +64,10 @@ export function ProceduresPage() {
   const [openVessel, setOpenVessel] = useState<Vessel | null>(null)
   if (!current) return null
 
-  const stepCount = (vessel: Vessel) => vesselWorkEvents(current.events, vessel).length
+  const stepCount = (vessel: Vessel) =>
+    isCombinedProcessPartner(current, vessel) ? 0 : vesselWorkEvents(current.events, vessel).length
   const stenosisLabel = (vessel: Vessel) => {
+    if (isCombinedProcessPartner(current, vessel)) return ''
     const lesion = pciLesionForVessel(current.baselineAngio, vessel)
     return lesion ? formatStenosis(lesion) : ''
   }
@@ -107,13 +110,7 @@ export function ProceduresPage() {
               <Button
                 variant="secondary"
                 size="lg"
-                onClick={() =>
-                  mutate((p) => ({
-                    ...p,
-                    events: clearVesselEvents(p.events, openVessel),
-                    baselineAngio: clearPciLesion(p.baselineAngio, openVessel),
-                  }))
-                }
+                onClick={() => mutate((p) => clearVesselProcedure(p, openVessel))}
               >
                 Clear
               </Button>

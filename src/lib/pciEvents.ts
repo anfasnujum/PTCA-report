@@ -1,6 +1,7 @@
 import { isRightCoronary } from '@/lib/format'
 import { coronaryFromDevice, normalizeGuideCatheter } from '@/lib/guideCatheter'
-import type { ProcedureEvent, Vessel } from '@/types/procedure'
+import { clearPciLesion } from '@/lib/pciLesion'
+import type { Procedure, ProcedureEvent, Vessel } from '@/types/procedure'
 
 export function eventBelongsToVessel(event: ProcedureEvent, vessel: Vessel): boolean {
   switch (event.kind) {
@@ -40,6 +41,28 @@ export function clearVesselEvents(events: ProcedureEvent[], vessel: Vessel): Pro
     }
     return !eventBelongsToVessel(event, vessel)
   })
+}
+
+export function clearVesselProcedure(procedure: Procedure, vessel: Vessel): Procedure {
+  const vesselPciKind = { ...procedure.vesselPciKind }
+  delete vesselPciKind[vessel]
+  const vesselCombined = { ...procedure.vesselCombined }
+  delete vesselCombined[vessel]
+  for (const host of Object.keys(vesselCombined) as Vessel[]) {
+    const spec = vesselCombined[host]
+    if (!spec) continue
+    vesselCombined[host] = {
+      ...spec,
+      vessels: spec.vessels.filter((item) => item !== vessel),
+    }
+  }
+  return {
+    ...procedure,
+    events: clearVesselEvents(procedure.events, vessel),
+    baselineAngio: clearPciLesion(procedure.baselineAngio, vessel),
+    vesselPciKind,
+    vesselCombined,
+  }
 }
 
 export function mergeVesselReorder(
