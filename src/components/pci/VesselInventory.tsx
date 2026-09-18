@@ -26,7 +26,6 @@ import {
 } from '@/lib/constants'
 import { defaultDiameter, featureLabel, formatStenosis, isRightCoronary } from '@/lib/format'
 import { defaultGuideCatheter } from '@/lib/guideCatheter'
-import { suggestedPostDil } from '@/lib/noteTemplate'
 import {
   DEFAULT_PCI_STENOSIS,
   draftPciLesion,
@@ -72,7 +71,6 @@ export function VesselInventory({ vessel }: { vessel: Vessel }) {
   const removeEvent = useProcedureStore((s) => s.removeEvent)
   const mutate = useProcedureStore((s) => s.mutate)
   const [sheet, setSheet] = useState<Sheet | null>(null)
-  const [postDil, setPostDil] = useState<BalloonUse | null>(null)
   const [combinedStenosisFor, setCombinedStenosisFor] = useState<Vessel | null>(null)
 
   const vesselEvents = useMemo(
@@ -565,7 +563,6 @@ export function VesselInventory({ vessel }: { vessel: Vessel }) {
         onSave={(data) => {
           const editId = sheet?.kind === 'stent' ? sheet.editId : undefined
           commit({ id: nid(), at: Date.now(), kind: 'stent', data: { ...data, vessel } }, editId)
-          if (!editId) setPostDil(suggestedPostDil({ ...data, vessel }))
         }}
       />
       <ImagingSheet
@@ -611,36 +608,6 @@ export function VesselInventory({ vessel }: { vessel: Vessel }) {
             setF={(next) => setPartnerLesion(combinedStenosisFor, next)}
             unset={!pciLesionForVessel(current.baselineAngio, combinedStenosisFor)}
           />
-        ) : null}
-      </BottomSheet>
-      <BottomSheet
-        nested
-        open={Boolean(postDil)}
-        title="Add post-dilatation?"
-        onClose={() => setPostDil(null)}
-        footer={
-          <div className="flex gap-2">
-            <Button variant="secondary" className="flex-1" onClick={() => setPostDil(null)}>
-              Skip
-            </Button>
-            <Button
-              className="flex-1"
-              onClick={() => {
-                if (!postDil) return
-                addEvent({ id: nid(), at: Date.now(), kind: 'postdilatation', data: postDil })
-                setPostDil(null)
-              }}
-            >
-              Add NC balloon
-            </Button>
-          </div>
-        }
-      >
-        {postDil ? (
-          <p className="text-base leading-relaxed text-foreground">
-            Suggest {postDil.name} {postDil.diameterMm.toFixed(2).replace(/0$/, '')} × {postDil.lengthMm} mm
-            at {postDil.inflations[0]?.atm} atm — 0.25 mm larger than the stent.
-          </p>
         ) : null}
       </BottomSheet>
     </div>

@@ -124,6 +124,7 @@ export const ANGIO_FEATURES = [
   'calcified',
   'thrombotic',
   'thrombotic-occlusion',
+  'near-total',
   'tortuous',
   'CTO',
   'ectatic',

@@ -759,16 +759,3 @@ export function generateNote(procedure: Procedure): string {
 export function hasStentEvents(events: ProcedureEvent[]): boolean {
   return events.some((e) => e.kind === 'stent')
 }
-
-export function suggestedPostDil(stent: StentUse): BalloonUse {
-  const diameterMm = Math.min(5, Math.round((stent.diameterMm + 0.25) * 4) / 4)
-  return {
-    name: 'NC Sapphire',
-    type: 'non-compliant',
-    diameterMm,
-    lengthMm: 12,
-    vessel: stent.vessel,
-    segment: stent.segment,
-    inflations: [{ atm: 18, seconds: 15 }],
-  }
-}

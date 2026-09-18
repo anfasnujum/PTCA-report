@@ -257,6 +257,19 @@ describe('PTCA handwritten report', () => {
     expect(targetVesselsLesions(p)).toBe('Proximal RCA (100% Thrombotic occlusion)')
   })
 
+  it('prints Near total as a vessel description', () => {
+    const p = hameed()
+    p.baselineAngio = [
+      finding({
+        vessel: 'LAD',
+        stenosis: 99,
+        isTarget: true,
+        features: ['near-total'],
+      }),
+    ]
+    expect(targetVesselsLesions(p)).toBe('LAD (99% Near total)')
+  })
+
   it('groups inventory under PTCA → vessel for each treated vessel', () => {
     const blocks = ptcaInventoryBlocks(hameed())
     expect(blocks).toHaveLength(1)
