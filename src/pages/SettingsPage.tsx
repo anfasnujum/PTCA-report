@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input'
 import { Section } from '@/components/ui/section'
 import { Switch } from '@/components/ui/switch'
 import { DEFAULT_S3_BUCKET, loadS3Settings, saveS3Settings, settingsMissing, type S3Settings } from '@/lib/s3Settings'
+import { loadElevenLabsSettings, saveElevenLabsSettings } from '@/lib/elevenLabsSettings'
+import { DEFAULT_LLM_MODEL, loadLlmSettings, saveLlmSettings } from '@/lib/llmSettings'
 import { useSyncStore } from '@/store/useSyncStore'
 
 export function SettingsPage() {
@@ -16,7 +18,10 @@ export function SettingsPage() {
   const status = useSyncStore((s) => s.status)
   const error = useSyncStore((s) => s.error)
   const [form, setForm] = useState<S3Settings>(() => loadS3Settings())
+  const [elevenLabsKey, setElevenLabsKey] = useState(() => loadElevenLabsSettings().apiKey)
+  const [llmForm, setLlmForm] = useState(() => loadLlmSettings())
   const [saved, setSaved] = useState(false)
+  const [voiceSaved, setVoiceSaved] = useState(false)
   const [testing, setTesting] = useState(false)
   const [testMessage, setTestMessage] = useState<string | null>(null)
 
@@ -68,7 +73,7 @@ export function SettingsPage() {
           >
             <ArrowLeft className="size-5" />
           </button>
-          <BrandMark subtitle="Cloud sync" />
+          <BrandMark subtitle="This device" />
         </div>
       </header>
 
@@ -80,6 +85,54 @@ export function SettingsPage() {
           case on Home also deletes its object from the bucket. The later save wins if the same case
           or staff list is edited in two places at once.
         </p>
+
+        <Section title="Voice edit">
+          <p className="text-sm leading-relaxed text-muted">
+            Speech is transcribed with ElevenLabs Scribe v2, then gpt-4o-mini maps it onto the open
+            PTCA or CAG report. Clear commands are applied immediately. If the target is ambiguous,
+            you pick from options. Keys stay in this browser only.
+          </p>
+          <Field
+            label="ElevenLabs API key"
+            value={elevenLabsKey}
+            onChange={(value) => {
+              setVoiceSaved(false)
+              setElevenLabsKey(value)
+            }}
+            type="password"
+            autoComplete="off"
+          />
+          <Field
+            label="OpenAI API key"
+            value={llmForm.apiKey}
+            onChange={(apiKey) => {
+              setVoiceSaved(false)
+              setLlmForm((f) => ({ ...f, apiKey }))
+            }}
+            type="password"
+            autoComplete="off"
+          />
+          <Field
+            label="LLM model"
+            value={llmForm.model}
+            onChange={(model) => {
+              setVoiceSaved(false)
+              setLlmForm((f) => ({ ...f, model }))
+            }}
+            placeholder={DEFAULT_LLM_MODEL}
+            autoComplete="off"
+          />
+          <Button
+            onClick={() => {
+              saveElevenLabsSettings({ apiKey: elevenLabsKey })
+              saveLlmSettings(llmForm)
+              setVoiceSaved(true)
+            }}
+          >
+            Save voice keys
+          </Button>
+          {voiceSaved ? <p className="text-sm font-medium text-ok">Voice keys saved on this device.</p> : null}
+        </Section>
 
         <Switch
           checked={form.enabled}

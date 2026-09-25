@@ -29,10 +29,7 @@ describe('guideCatheter', () => {
     expect(coronaryFromDevice('AL')).toBe('left')
   })
 
-  it('keeps a compatible curve when the device changes', () => {
-    expect(withGuideDevice({ device: 'JR', curve: '3.5' }, 'EBU')).toEqual({
-      device: 'EBU',
-      curve: '3.5',
-    })
+  it('does not treat a wire name as a guiding catheter curve', () => {
+    expect(parseGuideLabel('RUNTHROUGH 3.0')).toEqual({ device: 'RUNTHROUGH 3.0', curve: '' })
   })
 })

@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/elevenlabs/:path*",
+      "destination": "https://api.elevenlabs.io/:path*"
+    },
+    {
+      "source": "/openai/:path*",
+      "destination": "https://api.openai.com/:path*"
+    }
+  ]
+}

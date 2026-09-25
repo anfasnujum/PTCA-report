@@ -577,7 +577,7 @@ export function isChronicTotalOcclusion(
   ) {
     return false
   }
-  if (f.features.includes('CTO')) return true
+  if ((f.features ?? []).includes('CTO')) return true
   return f.stenosis === 100
 }
 
@@ -661,9 +661,9 @@ export function worstFinding(findings: AngioFinding[]): AngioFinding | undefined
 
 export function isUnremarkableFinding(f: AngioFinding): boolean {
   const type = findingTypeOf(f)
-  if (type === 'normal') return f.features.length === 0
+  if (type === 'normal') return (f.features ?? []).length === 0
   if (type === 'mildly-ectatic-vessel' || type === 'dissection' || type === 'total-occlusion' || type === 'other') return false
-  if (f.features.length) return false
+  if ((f.features ?? []).length) return false
   if (type === 'plaque') {
     if (f.plaqueGrade === 'other') return !(f.plaqueOther ?? '').trim()
     return !f.plaqueGrade

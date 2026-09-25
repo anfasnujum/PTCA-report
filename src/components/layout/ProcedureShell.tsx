@@ -9,6 +9,9 @@ import { DISCLAIMER } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { stepsFor } from '@/components/layout/steps'
 import { NotePanel } from '@/components/layout/NotePanel'
+import { VoiceEditControl } from '@/components/voice/VoiceEditControl'
+import { VoiceLogButton } from '@/components/voice/VoiceLogButton'
+import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { useEnterNextButton } from '@/hooks/useEnterNextButton'
 
 export function ProcedureShell() {
@@ -65,6 +68,7 @@ export function ProcedureShell() {
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden lg:flex-row print:h-auto print:min-h-0 print:overflow-visible">
+      <ErrorBoundary>
       <aside className="no-print hidden h-full w-60 shrink-0 flex-col overflow-y-auto border-r border-border bg-surface lg:flex">
         <button
           type="button"
@@ -117,14 +121,17 @@ export function ProcedureShell() {
               </p>
               <SavedIndicator state={saveState} />
             </div>
-            <span
-              className={cn(
-                'rounded-full px-3 py-1 text-xs font-semibold uppercase',
-                current.status === 'draft' ? 'bg-background text-warn' : 'bg-accent-soft text-accent',
-              )}
-            >
-              {current.status}
-            </span>
+            <div className="flex shrink-0 items-center gap-1">
+              <VoiceLogButton procedureId={current.id} />
+              <span
+                className={cn(
+                  'rounded-full px-3 py-1 text-xs font-semibold uppercase',
+                  current.status === 'draft' ? 'bg-background text-warn' : 'bg-accent-soft text-accent',
+                )}
+              >
+                {current.status}
+              </span>
+            </div>
           </div>
           <nav className="flex gap-1 overflow-x-auto px-3 pb-2 scrollbar-none lg:hidden">
             {steps.map((s) => (
@@ -167,6 +174,8 @@ export function ProcedureShell() {
           ) : null}
         </div>
       </div>
+      <VoiceEditControl />
+      </ErrorBoundary>
     </div>
   )
 }

@@ -19,14 +19,14 @@ export function eventBelongsToVessel(event: ProcedureEvent, vessel: Vessel): boo
     case 'stent':
     case 'lmcaPot':
     case 'imaging':
-      return event.data.vessel === vessel
+      return event.data?.vessel === vessel
     default:
       return false
   }
 }
 
-export function eventsForVessel(events: ProcedureEvent[], vessel: Vessel): ProcedureEvent[] {
-  return events.filter((event) => eventBelongsToVessel(event, vessel))
+export function eventsForVessel(events: ProcedureEvent[] | undefined, vessel: Vessel): ProcedureEvent[] {
+  return (events ?? []).filter((event) => event && eventBelongsToVessel(event, vessel))
 }
 
 export function vesselWorkEvents(events: ProcedureEvent[], vessel: Vessel): ProcedureEvent[] {

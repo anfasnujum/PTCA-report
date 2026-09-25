@@ -7,7 +7,22 @@ import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
+const apiProxy = {
+  '/elevenlabs': {
+    target: 'https://api.elevenlabs.io',
+    changeOrigin: true,
+    rewrite: (p: string) => p.replace(/^\/elevenlabs/, ''),
+  },
+  '/openai': {
+    target: 'https://api.openai.com',
+    changeOrigin: true,
+    rewrite: (p: string) => p.replace(/^\/openai/, ''),
+  },
+}
+
 export default defineConfig({
+  server: { proxy: apiProxy },
+  preview: { proxy: apiProxy },
   plugins: [
     react(),
     tailwindcss(),
@@ -38,6 +53,7 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,json}'],
         navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/elevenlabs/, /^\/openai/],
       },
     }),
   ],

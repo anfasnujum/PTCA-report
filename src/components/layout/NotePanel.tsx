@@ -9,7 +9,14 @@ export function NotePanel() {
   const current = useProcedureStore((s) => s.current)
   const [copied, setCopied] = useState(false)
 
-  const note = useMemo(() => (current ? generateNote(current) : ''), [current])
+  const note = useMemo(() => {
+    if (!current) return ''
+    try {
+      return generateNote(current)
+    } catch (err) {
+      return err instanceof Error ? err.message : 'Note could not be generated.'
+    }
+  }, [current])
 
   if (!current) return null
 

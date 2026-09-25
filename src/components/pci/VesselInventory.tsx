@@ -90,6 +90,7 @@ export function VesselInventory({ vessel }: { vessel: Vessel }) {
 
   const loc = lastLocation(current, vessel)
   const lesion = storedLesion ?? draftPciLesion(vessel, 0)
+  const lesionFeatures = lesion.features ?? []
 
   const setLesion = (next: typeof lesion) => {
     mutate((p) => ({
@@ -332,13 +333,13 @@ export function VesselInventory({ vessel }: { vessel: Vessel }) {
             {ANGIO_FEATURES.map((feat) => (
               <Chip
                 key={feat}
-                selected={lesion.features.includes(feat)}
+                selected={lesionFeatures.includes(feat)}
                 onClick={() =>
                   setLesion({
                     ...lesion,
-                    features: lesion.features.includes(feat)
-                      ? lesion.features.filter((x) => x !== feat)
-                      : [...lesion.features, feat],
+                    features: lesionFeatures.includes(feat)
+                      ? lesionFeatures.filter((x) => x !== feat)
+                      : [...lesionFeatures, feat],
                   })
                 }
               >

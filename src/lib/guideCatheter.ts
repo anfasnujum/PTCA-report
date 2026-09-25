@@ -69,7 +69,9 @@ export function parseGuideLabel(label: string): { device: string; curve: string 
   if (isGuideDevice(raw)) return { device: raw, curve: firstCurve(raw) }
 
   const generic = /^([A-Z0-9]+)\s+(.+)$/i.exec(raw)
-  if (generic) return { device: generic[1].toUpperCase(), curve: generic[2] }
+  if (generic && isGuideDevice(generic[1].toUpperCase())) {
+    return { device: generic[1].toUpperCase(), curve: generic[2] }
+  }
 
   return { device: raw, curve: '' }
 }

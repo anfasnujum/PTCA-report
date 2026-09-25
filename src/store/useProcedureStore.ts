@@ -29,17 +29,36 @@ function withOperatorFields(p: Procedure): Procedure {
   const main = p.mainOperator ?? ''
   const assistant = p.assistantOperator ?? ''
   const lab = p.lab ?? emptyLab()
-  if (main || assistant) {
-    return { ...p, kind, mainOperator: main, assistantOperator: assistant, lab }
-  }
-  const ops = p.operators ?? []
-  return {
+  const baselineAngio = (p.baselineAngio ?? []).map((f) => ({
+    ...f,
+    features: Array.isArray(f.features) ? f.features : [],
+    stenosis: typeof f.stenosis === 'number' && Number.isFinite(f.stenosis) ? f.stenosis : 0,
+  }))
+  const events = (p.events ?? []).map((event) => {
+    if (event.kind !== 'predilatation' && event.kind !== 'postdilatation' && event.kind !== 'lmcaPot') {
+      return event
+    }
+    return {
+      ...event,
+      data: {
+        ...event.data,
+        inflations: Array.isArray(event.data?.inflations) ? event.data.inflations : [{ atm: 10, seconds: 20 }],
+      },
+    }
+  })
+  const next = {
     ...p,
     kind,
-    mainOperator: ops[0] ?? '',
-    assistantOperator: ops[1] ?? '',
     lab,
+    baselineAngio,
+    events,
+    mainOperator: main || (p.operators?.[0] ?? ''),
+    assistantOperator: assistant || (p.operators?.[1] ?? ''),
   }
+  if (main || assistant) {
+    return { ...next, mainOperator: main, assistantOperator: assistant }
+  }
+  return next
 }
 
 let saveTimer: ReturnType<typeof setTimeout> | undefined

@@ -58,10 +58,11 @@ function shortVesselCode(vessel: string): string {
 }
 
 function targetFeaturePhrase(f: AngioFinding): string {
+  const features = f.features ?? []
   const known = new Set<string>(ANGIO_FEATURES)
   const ordered = [
-    ...ANGIO_FEATURES.filter((feat) => f.features.includes(feat)),
-    ...f.features.filter((feat) => !known.has(feat)),
+    ...ANGIO_FEATURES.filter((feat) => features.includes(feat)),
+    ...features.filter((feat) => !known.has(feat)),
   ]
   const custom = f.descriptionCustom?.trim()
   const parts = [...ordered.map(featureLabel), ...(custom ? [custom] : [])]
