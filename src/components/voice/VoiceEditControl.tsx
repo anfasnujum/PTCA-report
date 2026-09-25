@@ -7,6 +7,7 @@ import { pickRecorderMimeType, transcribeAudio } from '@/lib/elevenLabsStt'
 import { hasLlmKey, loadLlmSettings } from '@/lib/llmSettings'
 import { applyVoiceActions } from '@/lib/voice/apply'
 import { interpretTranscript } from '@/lib/voice/interpret'
+import { startLiveCaption, type LiveCaptionHandle } from '@/lib/voice/liveCaption'
 import type { VoiceAction, VoiceDecision, VoiceOption } from '@/lib/voice/schema'
 import { useCatalogueStore } from '@/store/useCatalogueStore'
 import { useProcedureStore } from '@/store/useProcedureStore'
@@ -15,6 +16,17 @@ import type { Procedure } from '@/types/procedure'
 import { cn } from '@/lib/utils'
 
 type VoiceStatus = 'idle' | 'recording' | 'working'
+
+function isTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return true
+  if (target.isContentEditable) return true
+  const tag = target.tagName
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true
+  if (target.closest('input, textarea, select, [contenteditable="true"]')) return true
+  if (target.closest('[role="textbox"], [role="combobox"], [role="searchbox"]')) return true
+  if (document.querySelector('[data-sheet]')) return true
+  return false
+}
 
 export function VoiceEditControl() {
   const current = useProcedureStore((s) => s.current)
@@ -27,12 +39,24 @@ export function VoiceEditControl() {
   const [decision, setDecision] = useState<VoiceDecision | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [applied, setApplied] = useState(false)
+  const [livePreview, setLivePreview] = useState('')
+  const [liveCaptionOn, setLiveCaptionOn] = useState(false)
   const undoRef = useRef<Procedure | null>(null)
   const logIdRef = useRef<string | null>(null)
   const recorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const streamRef = useRef<MediaStream | null>(null)
   const stopTimerRef = useRef<number | null>(null)
+  const liveCaptionRef = useRef<LiveCaptionHandle | null>(null)
+  const statusRef = useRef<VoiceStatus>(status)
+  const modalOpenRef = useRef(false)
+  const onMicClickRef = useRef<() => void>(() => {})
+
+  const stopTracks = () => {
+    streamRef.current?.getTracks().forEach((track) => track.stop())
+    streamRef.current = null
+    recorderRef.current = null
+  }
 
   useEffect(() => {
     if (status !== 'recording') return
@@ -43,6 +67,8 @@ export function VoiceEditControl() {
 
   useEffect(() => {
     return () => {
+      liveCaptionRef.current?.stop()
+      liveCaptionRef.current = null
       stopTracks()
       if (stopTimerRef.current) window.clearTimeout(stopTimerRef.current)
     }
@@ -57,15 +83,16 @@ export function VoiceEditControl() {
     logIdRef.current = null
   }
 
-  const stopTracks = () => {
-    streamRef.current?.getTracks().forEach((track) => track.stop())
-    streamRef.current = null
-    recorderRef.current = null
+  const haltLiveCaption = () => {
+    liveCaptionRef.current?.stop()
+    liveCaptionRef.current = null
+    setLiveCaptionOn(false)
   }
 
   const finishRecording = () => {
     const recorder = recorderRef.current
     if (!recorder || recorder.state === 'inactive') return
+    haltLiveCaption()
     recorder.stop()
   }
 
@@ -74,6 +101,8 @@ export function VoiceEditControl() {
     setTranscript(null)
     setDecision(null)
     setApplied(false)
+    setLivePreview('')
+    setLiveCaptionOn(false)
     if (!hasElevenLabsKey()) {
       setError('Add an ElevenLabs API key in Settings to use voice edit.')
       return
@@ -97,11 +126,13 @@ export function VoiceEditControl() {
         if (event.data.size > 0) chunksRef.current.push(event.data)
       }
       recorder.onerror = () => {
+        haltLiveCaption()
         stopTracks()
         setStatus('idle')
         setError('Recording failed.')
       }
       recorder.onstop = () => {
+        haltLiveCaption()
         const type = recorder.mimeType || chunksRef.current[0]?.type || 'audio/webm'
         const blob = new Blob(chunksRef.current, { type })
         stopTracks()
@@ -111,8 +142,12 @@ export function VoiceEditControl() {
       recorder.start()
       setSeconds(0)
       setStatus('recording')
+      const caption = startLiveCaption((text) => setLivePreview(text))
+      liveCaptionRef.current = caption
+      setLiveCaptionOn(Boolean(caption))
       stopTimerRef.current = window.setTimeout(finishRecording, 90_000)
     } catch {
+      haltLiveCaption()
       stopTracks()
       setError('Microphone permission is required for voice edit.')
     }
@@ -199,6 +234,25 @@ export function VoiceEditControl() {
     void startRecording()
   }
 
+  statusRef.current = status
+  modalOpenRef.current = Boolean(transcript || error || decision)
+  onMicClickRef.current = onMicClick
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' && e.key !== ' ') return
+      if (e.defaultPrevented || e.repeat || e.isComposing) return
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      if (statusRef.current === 'working') return
+      if (modalOpenRef.current && statusRef.current !== 'recording') return
+      if (isTypingTarget(e.target)) return
+      e.preventDefault()
+      onMicClickRef.current()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
+
   const undo = () => {
     const previous = undoRef.current
     if (!previous) return
@@ -228,7 +282,7 @@ export function VoiceEditControl() {
         onClick={onMicClick}
         disabled={status === 'working'}
         aria-label={status === 'recording' ? 'Stop recording' : 'Voice edit'}
-        title={status === 'recording' ? 'Stop and transcribe' : 'Voice edit'}
+        title={status === 'recording' ? 'Stop and transcribe (Space)' : 'Voice edit (Space)'}
       >
         {status === 'working' ? (
           <LoaderCircle className="size-6 animate-spin" />
@@ -239,9 +293,22 @@ export function VoiceEditControl() {
         )}
       </button>
       {status === 'recording' || status === 'working' ? (
-        <p className="no-print pointer-events-none fixed bottom-[max(5.25rem,calc(env(safe-area-inset-bottom)+4rem))] right-4 z-40 rounded-full bg-surface px-3 py-1 text-xs font-semibold text-danger shadow-card lg:right-8">
-          {status === 'recording' ? `Recording ${seconds}s` : phase || 'Working'}
-        </p>
+        <div className="no-print pointer-events-none fixed bottom-[max(5.25rem,calc(env(safe-area-inset-bottom)+4rem))] right-4 z-40 flex w-[min(24rem,calc(100vw-6.5rem))] flex-col items-end gap-2 lg:right-8">
+          {status === 'recording' && (liveCaptionOn || livePreview) ? (
+            <div
+              className="w-full rounded-2xl border border-border bg-surface px-3 py-2 shadow-card"
+              aria-live="polite"
+            >
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted">Hearing preview</p>
+              <p className="mt-1 text-sm leading-relaxed">
+                {livePreview || 'Listening…'}
+              </p>
+            </div>
+          ) : null}
+          <p className="rounded-full bg-surface px-3 py-1 text-xs font-semibold text-danger shadow-card">
+            {status === 'recording' ? `Recording ${seconds}s · Space to stop` : phase || 'Working'}
+          </p>
+        </div>
       ) : null}
       {modalOpen
         ? createPortal(
