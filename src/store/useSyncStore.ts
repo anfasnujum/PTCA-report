@@ -8,7 +8,7 @@ import {
   setCloudSyncErrorHandler,
   testS3Connection,
 } from '@/lib/cloudSync'
-import { isS3Ready } from '@/lib/s3Settings'
+import { isS3Ready, loadS3Settings } from '@/lib/s3Settings'
 import type { Procedure } from '@/types/procedure'
 
 export type CloudStatus = 'disabled' | 'idle' | 'syncing' | 'ok' | 'error'
@@ -71,7 +71,13 @@ export const useSyncStore = create<SyncState>((set, get) => ({
     }
     if (inflight) return inflight
     set({ status: 'syncing', error: null })
-    console.log('[debug sync] starting runFullSync')
+    const s = loadS3Settings()
+    console.log('[debug sync] starting runFullSync', {
+      bucket: s.bucket,
+      region: s.region,
+      prefix: s.prefix,
+      accessKeyIdPrefix: s.accessKeyId.slice(0, 4),
+    })
     inflight = runFullSync()
       .then((result) => {
         console.log('[debug sync] runFullSync completed', result)
