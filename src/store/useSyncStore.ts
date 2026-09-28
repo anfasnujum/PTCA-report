@@ -71,11 +71,14 @@ export const useSyncStore = create<SyncState>((set, get) => ({
     }
     if (inflight) return inflight
     set({ status: 'syncing', error: null })
+    console.log('[debug sync] starting runFullSync')
     inflight = runFullSync()
-      .then(() => {
+      .then((result) => {
+        console.log('[debug sync] runFullSync completed', result)
         set({ status: 'ok', error: null, lastPullAt: Date.now() })
       })
       .catch((error) => {
+        console.log('[debug sync] runFullSync FAILED', error)
         set({ status: 'error', error: messageOf(error) })
       })
       .finally(() => {
