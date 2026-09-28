@@ -239,7 +239,7 @@ function matchingGuidesForGroup(procedure: Procedure, vessels: Vessel[]): GuideC
   const keys = new Set<string>()
   for (const vessel of vessels) {
     for (const guide of matchingGuides(procedure, vessel)) {
-      const key = `${guide.vessel ?? ''}|${guide.size}|${guide.device}|${guide.curve}|${guide.name ?? ''}`
+      const key = `${guide.vessel ?? ''}|${guide.size}|${guide.device}|${guide.curve}`
       if (keys.has(key)) continue
       keys.add(key)
       out.push(guide)
@@ -256,14 +256,15 @@ function devicesOnGroup(
   return vessels.flatMap((vessel) => devicesOnVessel(procedure, kind, vessel))
 }
 
+type EventDataOf<K extends ProcedureEvent['kind']> = Extract<ProcedureEvent, { kind: K }>['data']
+
 function eventsOnGroup<K extends ProcedureEvent['kind']>(
   procedure: Procedure,
   kind: K,
   vessels: Vessel[],
-): Extract<ProcedureEvent, { kind: K }>['data'][] {
-  return eventsOf(procedure.events, kind)
-    .map((e) => e.data)
-    .filter((d) => 'vessel' in d && vessels.includes((d as { vessel?: Vessel }).vessel as Vessel))
+): EventDataOf<K>[] {
+  const data = eventsOf(procedure.events, kind).map((e) => e.data) as unknown as EventDataOf<K>[]
+  return data.filter((d) => 'vessel' in d && vessels.includes((d as { vessel?: Vessel }).vessel as Vessel))
 }
 
 function namedInventory(d: NamedDeviceUse): string {

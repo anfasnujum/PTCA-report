@@ -737,7 +737,7 @@ describe('PTCA handwritten report', () => {
       'Later a 3.0x19mm METAFOR stent was deployed to the Proximal to mid and Mid to distal RCA at 10atm.',
     )
     p.events[1] = {
-      ...p.events[1],
+      ...(p.events[1] as Extract<(typeof p.events)[number], { kind: 'stent' }>),
       data: {
         ...(p.events[1] as Extract<(typeof p.events)[number], { kind: 'stent' }>).data,
         segment: ['ostial', 'proximal-mid', 'mid-distal'],
