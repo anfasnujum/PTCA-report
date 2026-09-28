@@ -91,8 +91,6 @@ export async function runFullSync(): Promise<{ pulled: number; pushed: number }>
   let pulled = 0
   let pushed = 0
 
-  const DEBUG_ID = '8268097a-4243-49cb-974c-c014b2de78c8'
-
   for (const id of ids) {
     if (isDeletedProcedureId(id)) {
       pendingProcedures.delete(id)
@@ -106,14 +104,6 @@ export async function runFullSync(): Promise<{ pulled: number; pushed: number }>
       }
       continue
     }
-    if (id === DEBUG_ID) {
-      console.log('[debug sync] examining', id, {
-        localUpdatedAt: localById.get(id)?.updatedAt,
-        remoteUpdatedAt: remoteById.get(id)?.updatedAt,
-        isDirty: dirtyProcedureIds.has(id),
-        inRemoteKeys: remoteById.has(id),
-      })
-    }
     if (dirtyProcedureIds.has(id)) continue
     const chosen = pickNewerProcedure(localById.get(id), remoteById.get(id))
     if (!chosen) continue
@@ -126,9 +116,6 @@ export async function runFullSync(): Promise<{ pulled: number; pushed: number }>
     if (!remote || chosen.updatedAt > remote.updatedAt) {
       await s3PutJson(procedureObjectKey(prefix, chosen.id), chosen, settings)
       pushed += 1
-    }
-    if (id === DEBUG_ID) {
-      console.log('[debug sync] resolved', id, { chosenUpdatedAt: chosen.updatedAt })
     }
   }
 
