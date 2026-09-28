@@ -74,6 +74,15 @@ export const useProcedureStore = create<ProcedureState>((set, get) => ({
 
   load: async (id) => {
     const row = await db.procedures.get(id)
+    // TEMP DEBUG - remove once the stale-page-break report is diagnosed
+    console.log('[debug load]', id, {
+      found: !!row,
+      updatedAt: row?.updatedAt,
+      updatedAtIso: row?.updatedAt ? new Date(row.updatedAt).toISOString() : undefined,
+      docOverrideLength: row?.docOverride?.length ?? 0,
+      hasHardcodedBreak: row?.docOverride ? /<div[^>]*class="report-page-break"/.test(row.docOverride) : false,
+      hasManualBreak: row?.docOverride ? /<hr[^>]*class="report-page-break"/.test(row.docOverride) : false,
+    })
     if (!row) {
       set({ current: null, loadError: 'Procedure not found', saveState: 'idle' })
       return
