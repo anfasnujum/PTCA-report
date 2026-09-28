@@ -60,7 +60,12 @@ export async function s3Delete(key: string, settings: S3Settings = loadS3Setting
 
 export async function s3GetJson<T>(key: string, settings: S3Settings = loadS3Settings()): Promise<T | undefined> {
   const aws = clientFor(settings)
-  const res = await aws.fetch(endpoint(settings, encodeKey(key)), { method: 'GET' })
+  // S3 objects here carry no Cache-Control header, so the browser applies its own
+  // heuristic freshness (RFC 7234) and can keep serving a stale cached body for this
+  // exact URL indefinitely, even after the object changes - aws4fetch signs via the
+  // Authorization header rather than a query string, so repeat GETs to the same key
+  // are byte-identical URLs the browser is free to cache. Force a real network hit.
+  const res = await aws.fetch(endpoint(settings, encodeKey(key)), { method: 'GET', cache: 'no-store' })
   if (res.status === 404) return undefined
   if (!res.ok) throw new Error(await readError(res))
   return (await res.json()) as T
@@ -73,7 +78,7 @@ export async function s3ListKeys(prefix: string, settings: S3Settings = loadS3Se
     prefix,
     'max-keys': '1000',
   }).toString()
-  const res = await aws.fetch(endpoint(settings, '', query), { method: 'GET' })
+  const res = await aws.fetch(endpoint(settings, '', query), { method: 'GET', cache: 'no-store' })
   if (!res.ok) throw new Error(await readError(res))
   const xml = await res.text()
   return [...xml.matchAll(/<Key>([^<]+)<\/Key>/g)].map((m) => decodeXml(m[1] ?? ''))
