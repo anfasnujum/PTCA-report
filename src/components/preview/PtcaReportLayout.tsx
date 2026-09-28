@@ -145,7 +145,7 @@ export function PtcaReportLayout({ procedure }: { procedure: Procedure }) {
         </p>
       </div>
 
-      <div className="report-page-break">
+      <div>
         <p className="font-bold">PROCEDURE:</p>
         {ptcaProcedureParagraphs(p).map((paragraph, i) => (
           <p key={`procedure-${i}`} className="text-justify">

@@ -15,6 +15,9 @@ dist-ssr
 .env.*
 !.env.example
 
+# One-time migration backups (contain patient data) - never commit
+scripts/migration-backups/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
